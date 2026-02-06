@@ -26,7 +26,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   // sementara hardcode role
-  const role: Role = "USER";
+  const role: Role = "SUPER_ADMIN";
 
   useEffect(() => {
     const run = async () => {

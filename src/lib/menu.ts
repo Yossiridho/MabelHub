@@ -14,8 +14,18 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     label: "Visit Activity",
-    href: "/visits/plans", // silakan sesuaikan dengan route kamu
-    roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
+    href: "/visits/plans",
+    roles: ["SUPER_ADMIN","ADMIN", "LEADER", "USER"],
+  },
+  {
+    label: "instansi",
+    href: "/instansi",
+    roles: ["SUPER_ADMIN","ADMIN", "LEADER", "USER"],
+  },
+  {
+    label: "data visit",
+    href: "/data-visit",
+    roles: ["SUPER_ADMIN","ADMIN", "LEADER", "USER"],
   },
 ];
 
