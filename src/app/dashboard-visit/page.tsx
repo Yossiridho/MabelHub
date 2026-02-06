@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Sidebar from "@/components/sidebar/sidebar";
+import type { Role } from "@/lib/menu";
 
 type DashboardStats = {
   totalVisits: number;
@@ -26,17 +28,36 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [unreadNotif, setUnreadNotif] = useState(3); // contoh jumlah pesan masuk
 
+  // sementara hardcode role
+  const role: Role = "USER";
+
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((res) => res.json())
-      .then((data) => {
+    const run = async () => {
+      try {
+        const res = await fetch("/api/dashboard");
+        if (!res.ok) throw new Error("Failed to fetch stats");
+        const data = (await res.json()) as DashboardStats;
         setStats(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    };
+
+    run();
   }, []);
 
   return (
+    <div className="flex min-h-screen bg-blue-100">
+      <Sidebar role={role} title="VISIT TRACKING" />
+
+      <main className="flex-1 p-6">
+        <div className="mb-6 flex items-center justify-between rounded-xl bg-white/60 backdrop-blur-md px-6 py-4 shadow">
+          <div>
+            <h1 className="text-xl font-semibold text-blue-600">VISIT TRACKING</h1>
+            <p className="text-xs text-gray-400">Sales Visit Monitoring System</p>
+          </div>
     <div className="min-h-screen bg-blue-100 p-6">
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-semibold">Visit Dashboard</h2>
@@ -68,72 +89,84 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+          <button
+            onClick={() => router.push("/")}
+            className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-600 hover:bg-red-200"
+          >
+            LOGOUT
+          </button>
+        </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
-        <StatCard title="TOTAL VISITS" value={stats?.totalVisits} />
-        <StatCard title="STAY OFFICE" value={stats?.stayOffice} />
-        <StatCard title="NOT VISITED" value={stats?.notVisited} />
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold">Visit Dashboard</h2>
+          {loading && <p className="mt-2 text-sm text-gray-500">Loading...</p>}
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
+          <StatCard title="TOTAL VISITS" value={stats?.totalVisits} />
+          <StatCard title="STAY OFFICE" value={stats?.stayOffice} />
+          <StatCard title="NOT VISITED" value={stats?.notVisited} />
 
         <div className="rounded-xl bg-white p-4 shadow">
           <p className="mb-3 text-xs text-gray-500">MARKET COVERAGE</p>
 
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-semibold">{stats?.salesCount ?? "-"}</p>
-              <p className="mt-1 text-xs text-gray-500">Sales</p>
-            </div>
-
-            <div>
-              <p className="text-2xl font-semibold">{stats?.satkerCount ?? "-"}</p>
-              <p className="mt-1 text-xs text-gray-500">Satker</p>
-            </div>
-
-            <div>
-              <p className="text-2xl font-semibold">{stats?.cityCount ?? "-"}</p>
-              <p className="mt-1 text-xs text-gray-500">City</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-white p-4 shadow">
-          <p className="mb-3 text-xs text-gray-500">RING DISTRIBUTION</p>
-          <div className="grid grid-cols-4 gap-4 text-center">
-            {(["ring1", "ring2", "ring3", "ring4"] as const).map((ring, i) => (
-              <div key={ring}>
-                <p className="text-2xl font-semibold">{stats?.ring?.[ring] ?? "-"}</p>
-                <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-semibold">{stats?.salesCount ?? "-"}</p>
+                <p className="mt-1 text-xs text-gray-500">Sales</p>
               </div>
-            ))}
+
+              <div>
+                <p className="text-2xl font-semibold">{stats?.satkerCount ?? "-"}</p>
+                <p className="mt-1 text-xs text-gray-500">Satker</p>
+              </div>
+
+              <div>
+                <p className="text-2xl font-semibold">{stats?.cityCount ?? "-"}</p>
+                <p className="mt-1 text-xs text-gray-500">City</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-4 shadow">
+            <p className="mb-3 text-xs text-gray-500">RING DISTRIBUTION</p>
+            <div className="grid grid-cols-4 gap-4 text-center">
+              {(["ring1", "ring2", "ring3", "ring4"] as const).map((ring, i) => (
+                <div key={ring}>
+                  <p className="text-2xl font-semibold">{stats?.ring?.[ring] ?? "-"}</p>
+                  <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
       {/* filter */}
-      <div className="mb-6 rounded-xl bg-white/70 p-5 shadow backdrop-blur-md">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-          {[
-            "Semua Sales",
-            "Tanggal Mulai",
-            "Tanggal Akhir",
-            "Semua Status",
-            "Semua Ring",
-            "Semua City",
-          ].map((label) => (
-            <select
-              key={label}
-              className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm"
-            >
-              <option>{label}</option>
-            </select>
-          ))}
-        </div>
+        <div className="mb-6 rounded-xl bg-white/70 p-5 shadow backdrop-blur-md">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
+            {[
+              "Semua Sales",
+              "Tanggal Mulai",
+              "Tanggal Akhir",
+              "Semua Status",
+              "Semua Ring",
+              "Semua City",
+            ].map((label) => (
+              <select
+                key={label}
+                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm"
+              >
+                <option>{label}</option>
+              </select>
+            ))}
+          </div>
 
-        <div className="mt-4">
-          <select className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm">
-            <option>Semua Satker</option>
-          </select>
+          <div className="mt-4">
+            <select className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm">
+              <option>Semua Satker</option>
+            </select>
+          </div>
         </div>
-      </div>
 
       {/* table */}
       <div className="rounded-xl bg-white shadow-lg">
@@ -157,11 +190,16 @@ export default function DashboardPage() {
             </tr>
           </thead>
 
-          <tbody>
-            <tr className="text-gray-400"></tr>
-          </tbody>
-        </table>
-      </div>
+            <tbody>
+              <tr className="text-gray-400">
+                <td className="px-4 py-4" colSpan={8}>
+                  Belum ada data.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
     </div>
   );
 }
