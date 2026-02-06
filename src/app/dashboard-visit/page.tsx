@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const [unreadNotif, setUnreadNotif] = useState(3); // contoh jumlah pesan masuk
 
   // sementara hardcode role
-  const role: Role = "USER";
+  const role: Role = "SUPER_ADMIN";
 
   useEffect(() => {
     const run = async () => {
