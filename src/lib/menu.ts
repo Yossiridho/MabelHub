@@ -8,8 +8,6 @@ export type MenuItem = {
 
 export const MENU_ITEMS: MenuItem[] = [
   {
-    label: "Dashboard",
-    href: "/dashboard-visit",
     label: "DASHBOARD",
     href: "/dashboard-visit",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
