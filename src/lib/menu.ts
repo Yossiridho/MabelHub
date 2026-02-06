@@ -10,22 +10,14 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     label: "Dashboard",
     href: "/dashboard-visit",
+    label: "DASHBOARD",
+    href: "/dashboard-visit",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
   {
-    label: "Visit Activity",
-    href: "/visits/plans",
-    roles: ["SUPER_ADMIN","ADMIN", "LEADER", "USER"],
-  },
-  {
-    label: "instansi",
-    href: "/instansi",
-    roles: ["SUPER_ADMIN","ADMIN", "LEADER", "USER"],
-  },
-  {
-    label: "data visit",
-    href: "/data-visit",
-    roles: ["SUPER_ADMIN","ADMIN", "LEADER", "USER"],
+    label: "PLAN ACTIVITY",
+    href: "/plan-activity",
+    roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
 ];
 
