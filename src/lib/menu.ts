@@ -17,6 +17,11 @@ export const MENU_ITEMS: MenuItem[] = [
     href: "/plan-activity",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
+  {
+    label: "REPORT",
+    href: "/report",
+    roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
+  },
 ];
 
 export function getMenuByRole(role: Role) {
