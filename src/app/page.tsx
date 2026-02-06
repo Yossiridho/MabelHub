@@ -1,4 +1,10 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
+  const router = useRouter();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-blue-100">
       <div className="flex w-225 rounded-3xl bg-white p-10 shadow-lg border-l-8 border-blue-500">
@@ -30,7 +36,10 @@ export default function LoginPage() {
             />
           </div>
 
-          <button className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700">
+          <button
+            onClick={() => router.push("/dashboard-visit")}
+            className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700"
+          >
             LOGIN
           </button>
         </div>

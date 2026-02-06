@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type DashboardStats = {
   totalVisits: number;
@@ -20,6 +21,7 @@ type DashboardStats = {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/dashboard-visit")
@@ -41,7 +43,10 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-400">Sales Visit Monitoring System</p>
         </div>
 
-        <button className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-600 hover:bg-red-200">
+        <button
+          onClick={() => router.push("/")}
+          className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-600 hover:bg-red-200"
+        >
           LOGOUT
         </button>
       </div>
