@@ -8,13 +8,13 @@ export type MenuItem = {
 
 export const MENU_ITEMS: MenuItem[] = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
+    label: "DASHBOARD",
+    href: "/dashboard-visit",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
   {
-    label: "Visit Activity",
-    href: "/visits/plans", // silakan sesuaikan dengan route kamu
+    label: "PLAN ACTIVITY",
+    href: "/plan-activity",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
 ];
