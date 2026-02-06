@@ -21,10 +21,13 @@ type DashboardStats = {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+
+  // SEARCH + NOTIF (baru)
+  const [search, setSearch] = useState("");
+  const [unreadNotif, setUnreadNotif] = useState(3); // contoh jumlah pesan masuk
 
   useEffect(() => {
-    fetch("/api/dashboard-visit")
+    fetch("/api/dashboard")
       .then((res) => res.json())
       .then((data) => {
         setStats(data);
@@ -35,24 +38,35 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-blue-100 p-6">
-      <div className="mb-6 flex items-center justify-between rounded-xl bg-white/60 backdrop-blur-md px-6 py-4 shadow">
-        <div>
-          <h1 className="text-xl font-semibold text-blue-600">
-            VISIT TRACKING
-          </h1>
-          <p className="text-xs text-gray-400">Sales Visit Monitoring System</p>
-        </div>
-
-        <button
-          onClick={() => router.push("/")}
-          className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-600 hover:bg-red-200"
-        >
-          LOGOUT
-        </button>
-      </div>
-
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-semibold">Visit Dashboard</h2>
+
+        <div className="flex items-center gap-3">
+          {/* Searchbar */}
+          <div className="relative w-full md:w-96">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="h-12 w-full rounded-full bg-white px-6 pr-14 text-sm shadow-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
+
+          {/* Notification button */}
+          <button
+            type="button"
+            onClick={() => setUnreadNotif(0)} // contoh: klik untuk clear badge
+            className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+            aria-label="Notifications"
+          >
+            {/* Badge unread */}
+            {unreadNotif > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+                {unreadNotif}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
@@ -61,48 +75,41 @@ export default function DashboardPage() {
         <StatCard title="NOT VISITED" value={stats?.notVisited} />
 
         <div className="rounded-xl bg-white p-4 shadow">
-          <p className="text-xs text-gray-500 mb-3">MARKET COVERAGE</p>
+          <p className="mb-3 text-xs text-gray-500">MARKET COVERAGE</p>
 
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-semibold">
-                {stats?.salesCount ?? "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Sales</p>
+              <p className="text-2xl font-semibold">{stats?.salesCount ?? "-"}</p>
+              <p className="mt-1 text-xs text-gray-500">Sales</p>
             </div>
 
             <div>
-              <p className="text-2xl font-semibold">
-                {stats?.satkerCount ?? "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Satker</p>
+              <p className="text-2xl font-semibold">{stats?.satkerCount ?? "-"}</p>
+              <p className="mt-1 text-xs text-gray-500">Satker</p>
             </div>
 
             <div>
-              <p className="text-2xl font-semibold">
-                {stats?.cityCount ?? "-"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">City</p>
+              <p className="text-2xl font-semibold">{stats?.cityCount ?? "-"}</p>
+              <p className="mt-1 text-xs text-gray-500">City</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-xl bg-white p-4 shadow">
-          <p className="text-xs text-gray-500 mb-3">RING DISTRIBUTION</p>
+          <p className="mb-3 text-xs text-gray-500">RING DISTRIBUTION</p>
           <div className="grid grid-cols-4 gap-4 text-center">
             {(["ring1", "ring2", "ring3", "ring4"] as const).map((ring, i) => (
               <div key={ring}>
-                <p className="text-2xl font-semibold">
-                  {stats?.ring?.[ring] ?? "-"}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Ring {i + 1}</p>
+                <p className="text-2xl font-semibold">{stats?.ring?.[ring] ?? "-"}</p>
+                <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
               </div>
-            ))}{" "}
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl bg-white/70 backdrop-blur-md p-5 shadow">
+      {/* filter */}
+      <div className="mb-6 rounded-xl bg-white/70 p-5 shadow backdrop-blur-md">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
           {[
             "Semua Sales",
@@ -128,6 +135,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* table */}
       <div className="rounded-xl bg-white shadow-lg">
         <table className="w-full text-sm">
           <thead className="bg-white text-blue-700">
@@ -142,7 +150,7 @@ export default function DashboardPage() {
                 "PIC PHONE",
                 "RING",
               ].map((header) => (
-                <th key={header} className=" rounded-xl px-4 py-3 text-left">
+                <th key={header} className="rounded-xl px-4 py-3 text-left">
                   {header}
                 </th>
               ))}

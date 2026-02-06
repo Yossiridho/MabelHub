@@ -1,22 +1,30 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-
-export default function LoginPage() {
-  const router = useRouter();
+import Image from "next/image";
+export default function LoginPage(){
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-blue-100">
-      <div className="flex w-225 rounded-3xl bg-white p-10 shadow-lg border-l-8 border-blue-500">
-        <div className="flex w-1/2 flex-col items-center justify-center">
-          <h1 className="text-2xl text-blue-500 font-semibold">MabelHub</h1>
-        </div>
+     <div className="flex min-h-screen items-center justify-center bg-blue-100">
+       <div className="flex w-225 rounded-3xl bg-white p-10 shadow-lg border-l-8 border-blue-500">
+         
+         {/* LEFT SECTION */}
+         <div className="flex w-1/2 flex-col items-center justify-center">
+           <Image
+             src="/logo.png"
+             alt="MabelHub Logo"
+             width={200}
+             height={160}
+             className="mt-7"
+           />
+           <h1 className="text-2xl font-semibold text-black">
+             MabelHub
+           </h1>
+         </div>
 
         {/* RIGHT SECTION */}
         <div className="flex w-1/2 flex-col justify-center px-10">
-          <h2 className="mb-8 text-center text-3xl font-semibold">LOGIN</h2>
+         <h2 className="mb-8 text-center text-3xl font-semibold">
+  LOGIN
+</h2>
 
-          {/* Username */}
           <div className="mb-5">
             <label className="mb-2 block text-sm">Username</label>
             <input
@@ -26,7 +34,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Password */}
           <div className="mb-8">
             <label className="mb-2 block text-sm">Password</label>
             <input
@@ -36,13 +43,11 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
-            onClick={() => router.push("/dashboard-visit")}
-            className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700"
-          >
+<button className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700">
             LOGIN
           </button>
         </div>
+
       </div>
     </div>
   );
