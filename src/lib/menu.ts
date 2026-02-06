@@ -9,7 +9,7 @@ export type MenuItem = {
 export const MENU_ITEMS: MenuItem[] = [
   {
     label: "Dashboard",
-    href: "/dashboard",
+    href: "/dashboard-visit",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
   {
