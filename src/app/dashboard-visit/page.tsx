@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const [unreadNotif, setUnreadNotif] = useState(3);
 
   // sementara hardcode role
-  const role: Role = "USER";
+  const role: Role = "SUPER_ADMIN";
 
   useEffect(() => {
     const run = async () => {
