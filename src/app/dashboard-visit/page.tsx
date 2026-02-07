@@ -35,7 +35,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const run = async () => {
       try {
-        const res = await fetch("/api/dashboard");
+        const res = await fetch("/api/dashboard-visit");
         if (!res.ok) throw new Error("Failed to fetch stats");
         const data = (await res.json()) as DashboardStats;
         setStats(data);
