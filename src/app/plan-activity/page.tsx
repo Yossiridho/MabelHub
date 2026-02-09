@@ -11,17 +11,16 @@ export default function PlanActivityPage() {
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
-        <div className="shrink-0">
-          <Sidebar role={role} title="VISIT TRACKING" />
-        </div>
 
-        <div className="flex-1 p-6">
+        <Sidebar role={role} title="VISIT TRACKING" />
+
+        <div className="flex-1 p-6 pl-50 h-screen overflow-y-auto">
           <main className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow">
             {/* HEADER */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <h2 className="text-lg font-semibold">PLAN ACTIVITY</h2>
 
-              <div className="relative w-full md:w-[360px]">
+              <div className="relative w-full md:w-90">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
