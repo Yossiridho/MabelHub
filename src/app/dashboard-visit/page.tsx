@@ -20,10 +20,24 @@ type DashboardStats = {
   };
 };
 
+type VisitRow = {
+  _id: string;
+  nama_sales?: string;
+  visit_date?: string | Date;
+  status_visit?: string;
+  satuan_kerja?: string;
+  city?: string;
+  pic_name?: string;
+  pic_phone?: string;
+  status_ring?: string;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [visits, setVisits] = useState<VisitRow[]>([]);
+  const [loadingTable, setLoadingTable] = useState(true);
 
   // SEARCH + NOTIF
   const [search, setSearch] = useState("");
@@ -49,23 +63,41 @@ export default function DashboardPage() {
     run();
   }, []);
 
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch("/api/visits?limit=10&page=1");
+        if (!res.ok) throw new Error("Failed to fetch visits");
+        const data = await res.json();
+        setVisits(data.items ?? []);
+      } catch (e) {
+        console.error(e);
+        setVisits([]);
+      } finally {
+        setLoadingTable(false);
+      }
+    };
+
+    run();
+  }, []);
+
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* SIDEBAR */}
-        <div className="shrink-0">
-          <Sidebar role={role} title="VISIT TRACKING" />
-        </div>
+        <Sidebar role={role} title="VISIT TRACKING" />
+
+
 
         {/* CONTENT */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 pl-70 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 className="text-2xl font-semibold">Visit Dashboard</h2>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
-              <div className="relative w-full md:w-[380px]">
+              <div className="relative w-full md:w-95">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -145,17 +177,23 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-semibold">{stats?.salesCount ?? "-"}</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.salesCount ?? "-"}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">Sales</p>
                 </div>
 
                 <div>
-                  <p className="text-2xl font-semibold">{stats?.satkerCount ?? "-"}</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.satkerCount ?? "-"}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">Satker</p>
                 </div>
 
                 <div>
-                  <p className="text-2xl font-semibold">{stats?.cityCount ?? "-"}</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.cityCount ?? "-"}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">City</p>
                 </div>
               </div>
@@ -164,12 +202,16 @@ export default function DashboardPage() {
             <div className="rounded-xl bg-white p-4 shadow">
               <p className="mb-3 text-xs text-gray-500">RING DISTRIBUTION</p>
               <div className="grid grid-cols-4 gap-4 text-center">
-                {(["ring1", "ring2", "ring3", "ring4"] as const).map((ring, i) => (
-                  <div key={ring}>
-                    <p className="text-2xl font-semibold">{stats?.ring?.[ring] ?? "-"}</p>
-                    <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
-                  </div>
-                ))}
+                {(["ring1", "ring2", "ring3", "ring4"] as const).map(
+                  (ring, i) => (
+                    <div key={ring}>
+                      <p className="text-2xl font-semibold">
+                        {stats?.ring?.[ring] ?? "-"}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           </div>
@@ -224,12 +266,36 @@ export default function DashboardPage() {
               </thead>
 
               <tbody>
-                <tr className="text-gray-400">
-                  {/* biar keliatan empty state */}
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
-                    Belum ada data.
-                  </td>
-                </tr>
+                {loadingTable ? (
+                  <tr>
+                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
+                      Loading data...
+                    </td>
+                  </tr>
+                ) : visits.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
+                      Belum ada data.
+                    </td>
+                  </tr>
+                ) : (
+                  visits.map((row) => (
+                    <tr key={row._id} className="border-t">
+                      <td className="px-4 py-3">{row.nama_sales ?? "-"}</td>
+                      <td className="px-4 py-3">
+                        {row.visit_date
+                          ? new Date(row.visit_date).toLocaleDateString("id-ID")
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3">{row.status_visit ?? "-"}</td>
+                      <td className="px-4 py-3">{row.satuan_kerja ?? "-"}</td>
+                      <td className="px-4 py-3">{row.city ?? "-"}</td>
+                      <td className="px-4 py-3">{row.pic_name ?? "-"}</td>
+                      <td className="px-4 py-3">{row.pic_phone ?? "-"}</td>
+                      <td className="px-4 py-3">{row.status_ring ?? "-"}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

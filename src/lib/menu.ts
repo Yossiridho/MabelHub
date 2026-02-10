@@ -18,6 +18,11 @@ export const MENU_ITEMS: MenuItem[] = [
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
   {
+    label: "E-Procurement",
+    href: "/e-procurement",
+    roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
+  },
+  {
     label: "REPORT",
     href: "/report",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],

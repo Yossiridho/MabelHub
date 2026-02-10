@@ -14,7 +14,7 @@ export default function Sidebar({ role, title = "CRM" }: SidebarProps) {
   const menus = getMenuByRole(role);
 
   return (
-    <aside className="h-screen w-64 border-r bg-white">
+    <aside className="fixed inset-y-0 left-0 h-screen w-64 border-r bg-white">
       <div className="px-5 py-4 border-b">
         <div className="text-lg font-semibold">{title}</div>
         <div className="text-xs text-gray-500 mt-1">Role: {role}</div>

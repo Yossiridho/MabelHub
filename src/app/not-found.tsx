@@ -6,8 +6,7 @@ export default function NotFound() {
   const router = useRouter();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-sky-100 to-indigo-100">
-      {/* Decorative blobs */}
+    <div className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-50 via-sky-100 to-indigo-100">
       <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-blue-300/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-indigo-300/30 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-sky-300/20 blur-3xl" />
@@ -68,7 +67,7 @@ export default function NotFound() {
             </div>
 
             {/* Right: illustration */}
-            <div className="relative flex items-center justify-center bg-gradient-to-br from-blue-600/10 via-sky-600/10 to-indigo-600/10 p-8 md:p-10">
+            <div className="relative flex items-center justify-center bg-linear-to-br from-blue-600/10 via-sky-600/10 to-indigo-600/10 p-8 md:p-10">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(59,130,246,0.20),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(99,102,241,0.20),transparent_55%)]" />
               <div className="relative w-full max-w-sm">
                 <div className="rounded-3xl border border-white/40 bg-white/60 p-6 shadow-lg backdrop-blur">
@@ -162,8 +161,7 @@ export default function NotFound() {
                 </div>
 
                 <p className="mt-4 text-center text-xs text-slate-600">
-                  Kalau ini halaman internal CRM, pastikan kamu punya akses role
-                  yang sesuai.
+                  pastikan kamu punya akses role yang sesuai.
                 </p>
               </div>
             </div>
