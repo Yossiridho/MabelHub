@@ -21,10 +21,24 @@ type DashboardStats = {
   };
 };
 
+type VisitRow = {
+  _id: string;
+  nama_sales?: string;
+  visit_date?: string | Date;
+  status_visit?: string;
+  satuan_kerja?: string;
+  city?: string;
+  pic_name?: string;
+  pic_phone?: string;
+  status_ring?: string;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [visits, setVisits] = useState<VisitRow[]>([]);
+  const [loadingTable, setLoadingTable] = useState(true);
 
   // SEARCH + NOTIF
   const [search, setSearch] = useState("");
@@ -50,31 +64,70 @@ export default function DashboardPage() {
     run();
   }, []);
 
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch("/api/visits?limit=10&page=1");
+        if (!res.ok) throw new Error("Failed to fetch visits");
+        const data = await res.json();
+        setVisits(data.items ?? []);
+      } catch (e) {
+        console.error(e);
+        setVisits([]);
+      } finally {
+        setLoadingTable(false);
+      }
+    };
+
+    run();
+  }, []);
+
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
-        <div className="shrink-0">
-          <Sidebar role={role} title="VISIT DASHBOARD" />
-        </div>
+        {/* SIDEBAR */}
+        <Sidebar role={role} title="VISIT TRACKING" />
+
+
 
         {/* CONTENT */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 pl-70 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 className="text-2xl font-semibold">VISIT DASHBOARD</h2>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
-  <div className="relative w-full md:w-[380px]">
-  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-
-  <input
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    placeholder="Search..."
-    className="h-12 w-full rounded-full bg-white pl-11 pr-4 text-sm shadow-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
-  />
-</div>
+              <div className="relative w-full md:w-95">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  className="h-12 w-full rounded-full bg-white px-6 pr-14 text-sm shadow-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
+                />
+                <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-gray-500">
+                  {/* search icon */}
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M16.5 16.5 21 21"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+              </div>
 
 <button
   type="button"
@@ -105,17 +158,23 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-semibold">{stats?.salesCount ?? "-"}</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.salesCount ?? "-"}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">Sales</p>
                 </div>
 
                 <div>
-                  <p className="text-2xl font-semibold">{stats?.satkerCount ?? "-"}</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.satkerCount ?? "-"}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">Satker</p>
                 </div>
 
                 <div>
-                  <p className="text-2xl font-semibold">{stats?.cityCount ?? "-"}</p>
+                  <p className="text-2xl font-semibold">
+                    {stats?.cityCount ?? "-"}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">City</p>
                 </div>
               </div>
@@ -124,12 +183,16 @@ export default function DashboardPage() {
             <div className="rounded-xl bg-white p-4 shadow">
               <p className="mb-3 text-xs text-gray-500">RING DISTRIBUTION</p>
               <div className="grid grid-cols-4 gap-4 text-center">
-                {(["ring1", "ring2", "ring3", "ring4"] as const).map((ring, i) => (
-                  <div key={ring}>
-                    <p className="text-2xl font-semibold">{stats?.ring?.[ring] ?? "-"}</p>
-                    <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
-                  </div>
-                ))}
+                {(["ring1", "ring2", "ring3", "ring4"] as const).map(
+                  (ring, i) => (
+                    <div key={ring}>
+                      <p className="text-2xl font-semibold">
+                        {stats?.ring?.[ring] ?? "-"}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           </div>
@@ -184,12 +247,36 @@ export default function DashboardPage() {
               </thead>
 
               <tbody>
-                <tr className="text-gray-400">
-                  {/* biar keliatan empty state */}
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
-                    Belum ada data.
-                  </td>
-                </tr>
+                {loadingTable ? (
+                  <tr>
+                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
+                      Loading data...
+                    </td>
+                  </tr>
+                ) : visits.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
+                      Belum ada data.
+                    </td>
+                  </tr>
+                ) : (
+                  visits.map((row) => (
+                    <tr key={row._id} className="border-t">
+                      <td className="px-4 py-3">{row.nama_sales ?? "-"}</td>
+                      <td className="px-4 py-3">
+                        {row.visit_date
+                          ? new Date(row.visit_date).toLocaleDateString("id-ID")
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3">{row.status_visit ?? "-"}</td>
+                      <td className="px-4 py-3">{row.satuan_kerja ?? "-"}</td>
+                      <td className="px-4 py-3">{row.city ?? "-"}</td>
+                      <td className="px-4 py-3">{row.pic_name ?? "-"}</td>
+                      <td className="px-4 py-3">{row.pic_phone ?? "-"}</td>
+                      <td className="px-4 py-3">{row.status_ring ?? "-"}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
