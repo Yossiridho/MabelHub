@@ -2,51 +2,59 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
+import { Search, Bell } from "lucide-react";
 import type { Role } from "@/lib/menu";
 
 export default function PlanActivityPage() {
   const [search, setSearch] = useState("");
+  const [unreadNotif, setUnreadNotif] = useState(3);
   const role: Role = "USER";
 
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         <div className="shrink-0">
-          <Sidebar role={role} title="VISIT TRACKING" />
+          <Sidebar role={role} />
         </div>
 
+     {/* CONTENT */}
         <div className="flex-1 p-6">
-          <main className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow">
-            {/* HEADER */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-lg font-semibold">PLAN ACTIVITY</h2>
+          {/* TOP BAR */}
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-2xl font-semibold">PLAN ACTIVITY</h2>
+            <div className="flex items-center gap-3"></div>
+            
+            <div className="flex items-center gap-3">
+  <div className="relative w-full md:w-[380px]">
+  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
 
-              <div className="relative w-full md:w-[360px]">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search..."
-                  className="h-10 w-full rounded-full bg-gray-50 px-4 pr-11 text-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
-                />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M16.5 16.5 21 21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
+  <input
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    placeholder="Search..."
+    className="h-12 w-full rounded-full bg-white pl-11 pr-4 text-sm shadow-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
+  />
+</div>
+
+<button
+  type="button"
+  onClick={() => setUnreadNotif(0)}
+  className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+  aria-label="Notifications"
+>
+  <Bell className="h-6 w-6 text-gray-700" />
+
+  {/* Badge unread */}
+  {unreadNotif > 0 && (
+    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+      {unreadNotif}
+    </span>
+  )}
+</button>
               </div>
             </div>
 
-            {/* ACTION */}
+
             <div className="mt-4 flex justify-end">
               <button className="h-9 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700">
                 ADD PLANS
@@ -77,13 +85,11 @@ export default function PlanActivityPage() {
                 <tbody className="bg-white">
                   <tr>
                     <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
-                      Belum ada data.
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </main>
         </div>
       </div>
     </div>
