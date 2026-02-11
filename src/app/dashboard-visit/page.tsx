@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
+import { Search, Bell } from "lucide-react";
 import type { Role } from "@/lib/menu";
 
 type DashboardStats = {
@@ -44,7 +45,7 @@ export default function DashboardPage() {
   const [unreadNotif, setUnreadNotif] = useState(3);
 
   // sementara hardcode role
-  const role: Role = "SUPER_ADMIN";
+  const role: Role = "SUPERADMIN";
 
   useEffect(() => {
     const run = async () => {
@@ -85,15 +86,15 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* SIDEBAR */}
-        <Sidebar role={role} title="VISIT TRACKING" />
+        <Sidebar role={role} />
 
 
 
         {/* CONTENT */}
-        <div className="flex-1 p-6 pl-70 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-semibold">Visit Dashboard</h2>
+            <h2 className="text-2xl font-semibold">VISIT DASHBOARD</h2>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
@@ -128,41 +129,21 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              {/* Notification button */}
-              <button
-                type="button"
-                onClick={() => setUnreadNotif(0)}
-                className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
-                aria-label="Notifications"
-              >
-                {/* bell icon */}
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="text-gray-800"
-                >
-                  <path
-                    d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M18 16V11a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+<button
+  type="button"
+  onClick={() => setUnreadNotif(0)}
+  className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+  aria-label="Notifications"
+>
+  <Bell className="h-6 w-6 text-gray-700" />
 
-                {/* Badge unread */}
-                {unreadNotif > 0 && (
-                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                    {unreadNotif}
-                  </span>
-                )}
-              </button>
+  {/* Badge unread */}
+  {unreadNotif > 0 && (
+    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+      {unreadNotif}
+    </span>
+  )}
+</button>
             </div>
           </div>
 

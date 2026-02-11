@@ -24,7 +24,7 @@ function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
 }
 
-const role: Role = "SUPER_ADMIN";
+const role: Role = "SUPERADMIN";
 
 export default function EProcurementRequestPage() {
   // ===== Header form state =====
@@ -127,15 +127,15 @@ export default function EProcurementRequestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6FA] px-6 py-10">
+    <div className="min-h-screen bg-blue-100">
       <div className="flex">
-        <Sidebar role={role} title="E-PROCUREMENT" />
-        <div className="w-55 shrink-0" />
+        {/* SIDEBAR */}
+        <Sidebar role={role} />
 
-        <div className="mx-auto w-full max-w-6xl space-y-8">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* ===== HEADER FORM CARD ===== */}
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {/* REQUESTOR */}
               <div>
                 <label className="text-sm font-semibold text-blue-600">
@@ -260,10 +260,9 @@ export default function EProcurementRequestPage() {
             </div>
           </section>
 
-          {/* ===== DAFTAR PRODUK HEADER ===== */}
-          <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-semibold text-gray-700">
+          <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-3xl my-6 font-semibold text-gray-700">
                 Daftar Produk
               </h2>
               <span className="grid h-10 min-w-10 place-items-center rounded-xl bg-gray-600 px-3 text-white">
@@ -285,13 +284,6 @@ export default function EProcurementRequestPage() {
               >
                 Upload Produk
               </button>
-
-              <button
-                onClick={addItem}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                <span className="text-lg leading-none">+</span> Tambah Barang
-              </button>
             </div>
           </section>
 
@@ -299,7 +291,7 @@ export default function EProcurementRequestPage() {
           <section className="space-y-6">
             {items.map((it, idx) => (
               <div
-                key={it.id}
+                key={it.id} // key={`${it.id}-${idx}`}
                 className="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
               >
                 <div className="absolute inset-y-0 left-0 w-2 bg-blue-600" />
@@ -324,7 +316,7 @@ export default function EProcurementRequestPage() {
                   </svg>
                 </button>
 
-                <div className="p-8 pl-16">
+                <div className="mb-6 p-8 pl-20">
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
                     <div className="md:col-span-6">
                       <label className="text-sm font-semibold text-blue-600">
@@ -455,7 +447,6 @@ export default function EProcurementRequestPage() {
             ))}
           </section>
 
-          {/* ===== FOOTER BAR (Info ID + Kirim) ===== */}
           <section className="rounded-2xl bg-white p-7 shadow-sm ring-1 ring-black/5">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-12 md:items-center">
               <div className="md:col-span-4">
@@ -465,22 +456,25 @@ export default function EProcurementRequestPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-8">
-                <button
-                  onClick={handleKirim}
-                  className={cn(
-                    "h-14 w-full rounded-2xl bg-green-700 text-lg font-extrabold tracking-wide text-white",
-                    "shadow-sm hover:bg-green-800 active:scale-[0.99]",
-                  )}
-                >
-                  KIRIM REQUEST
-                </button>
-              </div>
+        <div className="md:col-span-8 flex w-full justify-end gap-4">
+          <button
+          onClick={addItem}
+          className="inline-flex h-14 items-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+          >
+         <span className="text-lg leading-none">+</span> Tambah Barang
+          </button>
+
+          <button
+          onClick={handleKirim}
+          className="h-14 rounded-2xl bg-green-700 px-32 text-sm font-extrabold tracking-wide text-white shadow-sm hover:bg-green-800 active:scale-[0.99]"
+              >
+                 KIRIM REQUEST
+              </button>
+            </div>
             </div>
           </section>
         </div>
 
-        {/* ===== MODAL REVISI ===== */}
         {openRevisi && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div

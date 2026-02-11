@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
+import { Search, Bell } from "lucide-react";
 import type { Role } from "@/lib/menu";
 
 export default function PlanActivityPage() {
   const [search, setSearch] = useState("");
+  const [unreadNotif, setUnreadNotif] = useState(3);
   const role: Role = "USER";
 
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
 
-        <Sidebar role={role} title="VISIT TRACKING" />
+        <Sidebar role={role} />
 
-        <div className="flex-1 p-6 pl-50 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           <main className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow">
             {/* HEADER */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -45,7 +47,7 @@ export default function PlanActivityPage() {
               </div>
             </div>
 
-            {/* ACTION */}
+
             <div className="mt-4 flex justify-end">
               <button className="h-9 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700">
                 ADD PLANS
@@ -76,13 +78,12 @@ export default function PlanActivityPage() {
                 <tbody className="bg-white">
                   <tr>
                     <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
-                      Belum ada data.
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </main>
+            </main>
         </div>
       </div>
     </div>

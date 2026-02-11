@@ -1,46 +1,86 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { getMenuByRole, Role } from "@/lib/menu";
+import { usePathname, useRouter } from "next/navigation";
+import type { Role, MenuSection } from "@/lib/menu";
+import { getMenuByRole } from "@/lib/menu";
 
 type SidebarProps = {
   role: Role;
-  title?: string;
+  userLabel?: string; 
+  userName?: string;  
+  onLogoutHref?: string; 
 };
 
-export default function Sidebar({ role, title = "CRM" }: SidebarProps) {
+export default function Sidebar({
+  role,
+  userLabel = role === "SUPERADMIN" ? "SuperAdmin" : role === "ADMIN" ? "Admin" : "User",
+  userName = "User",
+  onLogoutHref = "/login",
+}: SidebarProps) {
   const pathname = usePathname();
-  const menus = getMenuByRole(role);
+  const router = useRouter();
+
+  const sections: MenuSection[] = getMenuByRole(role);
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="fixed inset-y-0 left-0 h-screen w-64 border-r bg-white">
-      <div className="px-5 py-4 border-b">
-        <div className="text-lg font-semibold">{title}</div>
-        <div className="text-xs text-gray-500 mt-1">Role: {role}</div>
+    <aside className="relative h-screen w-100 bg-white">
+      {/* PROFILE */}
+      <div className="px-6 pt-6 pb-4">
+        <div className="flex flex-col items-center">
+          <div className="h-16 w-16 rounded-full bg-gray-300" />
+          <div className="mt-3 text-center leading-tight">
+            <div className="text-sm font-semibold text-gray-900">{userLabel}</div>
+            <div className="text-lg text-gray-600">{userName}</div>
+          </div>
+          <div className="mt-4 h-px w-full bg-gray-400" />
+        </div>
       </div>
 
-      <nav className="p-3 space-y-1">
-        {menus.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+      {/* MENU */}
+      <nav className="px-4 pb-4 flex-1 overflow-y-auto">
+        <div className="space-y-4">
+          {sections.map((section) => (
+            <div key={section.title} className="overflow-hidden rounded-md bg-white shadow">
+              <div className="bg-gray-300 px-6 py-3 text-lg font-semibold text-gray-700">
+                {section.title}
+              </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={[
-                "block rounded-md px-3 py-2 text-sm transition",
-                active
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-700 hover:bg-gray-100",
-              ].join(" ")}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+              {/* items */}
+              <div>
+                {section.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      "block px-3 py-2 text-lg transition",
+                      isActive(item.href)
+                        ? "bg-blue-200 font-semibold text-gray-900"
+                        : "text-gray-700 hover:bg-gray-50",
+                    ].join(" ")}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </nav>
+
+      {/* LOGOUT */}
+      <div className="absolute bottom-5 left-0 w-full px-9">
+        <button
+          type="button"
+          onClick={() => router.push(onLogoutHref)}
+          className="h-12 w-full rounded-full bg-red-500 text-lg font-semibold text-white"
+        >
+          LOGOUT
+        </button>
+      </div>
     </aside>
   );
 }
