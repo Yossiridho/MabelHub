@@ -27,25 +27,25 @@ export default function Sidebar({
     pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="relative h-screen w-64 bg-white">
+    <aside className="relative h-screen w-100 bg-white">
       {/* PROFILE */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex flex-col items-center">
           <div className="h-16 w-16 rounded-full bg-gray-300" />
           <div className="mt-3 text-center leading-tight">
             <div className="text-sm font-semibold text-gray-900">{userLabel}</div>
-            <div className="text-xs text-gray-500">{userName}</div>
+            <div className="text-lg text-gray-600">{userName}</div>
           </div>
           <div className="mt-4 h-px w-full bg-gray-400" />
         </div>
       </div>
 
       {/* MENU */}
-      <nav className="px-2 pb-12">
+      <nav className="px-4 pb-4 flex-1 overflow-y-auto">
         <div className="space-y-4">
           {sections.map((section) => (
             <div key={section.title} className="overflow-hidden rounded-md bg-white shadow">
-              <div className="bg-gray-300 px-6 py-2 text-xs font-semibold text-gray-700">
+              <div className="bg-gray-300 px-6 py-3 text-lg font-semibold text-gray-700">
                 {section.title}
               </div>
 
@@ -56,7 +56,7 @@ export default function Sidebar({
                     key={item.href}
                     href={item.href}
                     className={[
-                      "block px-3 py-2 text-xs transition",
+                      "block px-3 py-2 text-lg transition",
                       isActive(item.href)
                         ? "bg-blue-200 font-semibold text-gray-900"
                         : "text-gray-700 hover:bg-gray-50",
@@ -72,11 +72,11 @@ export default function Sidebar({
       </nav>
 
       {/* LOGOUT */}
-      <div className="absolute bottom-5 left-0 w-full px-6">
+      <div className="absolute bottom-5 left-0 w-full px-9">
         <button
           type="button"
           onClick={() => router.push(onLogoutHref)}
-          className="h-9 w-full rounded-full bg-red-500 text-xs font-semibold text-white"
+          className="h-12 w-full rounded-full bg-red-500 text-lg font-semibold text-white"
         >
           LOGOUT
         </button>
