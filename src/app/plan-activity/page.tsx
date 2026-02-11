@@ -8,7 +8,7 @@ import type { Role } from "@/lib/menu";
 export default function PlanActivityPage() {
   const [search, setSearch] = useState("");
   const [unreadNotif, setUnreadNotif] = useState(3);
-  const role: Role = "USER";
+  const role: Role = "SUPERADMIN";
 
   return (
     <div className="min-h-screen bg-blue-100">
