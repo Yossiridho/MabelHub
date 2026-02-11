@@ -14,9 +14,9 @@ export default function PlanActivityPage() {
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
 
-        <Sidebar role={role} title="VISIT TRACKING" />
+        <Sidebar role={role} />
 
-        <div className="flex-1 p-6 pl-50 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           <main className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow">
             {/* HEADER */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -83,6 +83,7 @@ export default function PlanActivityPage() {
                 </tbody>
               </table>
             </div>
+            </main>
         </div>
       </div>
     </div>

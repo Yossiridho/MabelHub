@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const [unreadNotif, setUnreadNotif] = useState(3);
 
   // sementara hardcode role
-  const role: Role = "SUPER_ADMIN";
+  const role: Role = "SUPERADMIN";
 
   useEffect(() => {
     const run = async () => {
@@ -86,12 +86,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* SIDEBAR */}
-        <Sidebar role={role} title="VISIT TRACKING" />
+        <Sidebar role={role} />
 
 
 
         {/* CONTENT */}
-        <div className="flex-1 p-6 pl-70 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 className="text-2xl font-semibold">VISIT DASHBOARD</h2>
