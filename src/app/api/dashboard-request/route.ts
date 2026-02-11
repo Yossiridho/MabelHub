@@ -4,7 +4,7 @@ import { VisitActivity } from "@/models/VisitActivity";
 
 export async function GET() {
   await dbConnect();
-  
+
   // 1) total + per status_visit
   const statusAgg = await VisitActivity.aggregate([
     {

@@ -13,7 +13,6 @@ export default function PlanActivityPage() {
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
-
         <Sidebar role={role} />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
@@ -47,7 +46,6 @@ export default function PlanActivityPage() {
               </div>
             </div>
 
-
             <div className="mt-4 flex justify-end">
               <button className="h-9 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700">
                 ADD PLANS
@@ -77,13 +75,15 @@ export default function PlanActivityPage() {
 
                 <tbody className="bg-white">
                   <tr>
-                    <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
-                    </td>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-14 text-center text-gray-500"
+                    ></td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            </main>
+          </main>
         </div>
       </div>
     </div>

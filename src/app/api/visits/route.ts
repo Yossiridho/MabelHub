@@ -14,7 +14,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? "10")));
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(searchParams.get("limit") ?? "10")),
+  );
   const q = (searchParams.get("q") ?? "").trim();
 
   const sales = (searchParams.get("sales") ?? "").trim(); // nama_sales
@@ -57,7 +60,9 @@ export async function GET(req: Request) {
       .sort({ visit_date: -1 })
       .skip(skip)
       .limit(limit)
-      .select("nama_sales visit_date status_visit satuan_kerja city pic_name pic_phone status_ring")
+      .select(
+        "nama_sales visit_date status_visit satuan_kerja city pic_name pic_phone status_ring",
+      )
       .lean(),
     VisitActivity.countDocuments(filter),
   ]);

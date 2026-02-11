@@ -43,7 +43,8 @@ function formatDateID(iso: string) {
 }
 
 function getPageWindow(current: number, totalPages: number, size: number) {
-  if (totalPages <= size) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  if (totalPages <= size)
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
   const half = Math.floor(size / 2);
   let start = Math.max(1, current - half);
   let end = start + size - 1;
@@ -55,7 +56,9 @@ function getPageWindow(current: number, totalPages: number, size: number) {
 }
 
 function StatusPill({ value }: { value: string }) {
-  const isVisited = value.toUpperCase().includes("VISIT") && !value.toUpperCase().includes("NOT");
+  const isVisited =
+    value.toUpperCase().includes("VISIT") &&
+    !value.toUpperCase().includes("NOT");
   return (
     <span
       className={cn(
@@ -238,8 +241,16 @@ export default function RekapitulasiVisitPage() {
             )}
           />
 
-          <FilterDate label="TANGGAL MULAI" value={fStart} onChange={(v) => onChangeFilter(setFStart, v)} />
-          <FilterDate label="TANGGAL AKHIR" value={fEnd} onChange={(v) => onChangeFilter(setFEnd, v)} />
+          <FilterDate
+            label="TANGGAL MULAI"
+            value={fStart}
+            onChange={(v) => onChangeFilter(setFStart, v)}
+          />
+          <FilterDate
+            label="TANGGAL AKHIR"
+            value={fEnd}
+            onChange={(v) => onChangeFilter(setFEnd, v)}
+          />
 
           <FilterSelect
             label="STATUS VISIT"
@@ -317,7 +328,10 @@ export default function RekapitulasiVisitPage() {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     Tidak ada data.
                   </td>
                 </tr>
@@ -342,7 +356,9 @@ export default function RekapitulasiVisitPage() {
                       <td className="px-6 py-6">
                         <StatusPill value={r.status_visit} />
                       </td>
-                      <td className="px-6 py-6 text-gray-900">{r.satuan_kerja}</td>
+                      <td className="px-6 py-6 text-gray-900">
+                        {r.satuan_kerja}
+                      </td>
                       <td className="px-6 py-6 text-gray-900">{r.city}</td>
                       <td className="px-6 py-6 text-gray-900">{r.pic_name}</td>
                       <td className="px-6 py-6 text-gray-900">{r.pic_phone}</td>
@@ -380,8 +396,12 @@ export default function RekapitulasiVisitPage() {
           </select>
 
           <div className="flex items-center gap-2">
-            <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">⏮</PageBtn>
-            <PageBtn onClick={() => gotoPage(safePage - 1)} ariaLabel="Prev">◀</PageBtn>
+            <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
+              ⏮
+            </PageBtn>
+            <PageBtn onClick={() => gotoPage(safePage - 1)} ariaLabel="Prev">
+              ◀
+            </PageBtn>
 
             {getPageWindow(safePage, totalPages, 5).map((p) => (
               <button
@@ -398,8 +418,12 @@ export default function RekapitulasiVisitPage() {
               </button>
             ))}
 
-            <PageBtn onClick={() => gotoPage(safePage + 1)} ariaLabel="Next">▶</PageBtn>
-            <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">⏭</PageBtn>
+            <PageBtn onClick={() => gotoPage(safePage + 1)} ariaLabel="Next">
+              ▶
+            </PageBtn>
+            <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">
+              ⏭
+            </PageBtn>
           </div>
         </div>
       </section>
@@ -408,7 +432,9 @@ export default function RekapitulasiVisitPage() {
       <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3 text-lg font-extrabold text-gray-900">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100">📖</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100">
+              📖
+            </span>
             Detail Kunjungan
           </div>
 
@@ -432,20 +458,40 @@ export default function RekapitulasiVisitPage() {
           ) : (
             <div className="rounded-xl bg-[#F7F9FB] p-6 ring-1 ring-gray-100">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
-                <DetailItem label="Created At" value={formatDateID(selected.created_at)} />
-                <DetailItem label="Market Status" value={selected.market_status} />
+                <DetailItem
+                  label="Created At"
+                  value={formatDateID(selected.created_at)}
+                />
+                <DetailItem
+                  label="Market Status"
+                  value={selected.market_status}
+                />
                 <DetailItem label="KLPD" value={selected.klpd} />
                 <DetailItem label="Reschedule" value={selected.reschedule} />
-                <DetailItem label="Institusi Kerja" value={selected.institusi_kerja} />
-                <DetailItem label="PIC Position" value={selected.pic_position} />
+                <DetailItem
+                  label="Institusi Kerja"
+                  value={selected.institusi_kerja}
+                />
+                <DetailItem
+                  label="PIC Position"
+                  value={selected.pic_position}
+                />
 
                 <DetailItem label="PIC Role" value={selected.pic_role} />
-                <DetailItem label="Tindak Lanjut" value={selected.tindak_lanjut} />
-                <DetailItem label="Kegiatan Status" value={selected.kegiatan_status} />
+                <DetailItem
+                  label="Tindak Lanjut"
+                  value={selected.tindak_lanjut}
+                />
+                <DetailItem
+                  label="Kegiatan Status"
+                  value={selected.kegiatan_status}
+                />
               </div>
 
               <div className="mt-6">
-                <div className="text-xs font-extrabold tracking-wider text-gray-500">DESKRIPSI</div>
+                <div className="text-xs font-extrabold tracking-wider text-gray-500">
+                  DESKRIPSI
+                </div>
                 <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
                   {selected.deskripsi || "-"}
                 </div>

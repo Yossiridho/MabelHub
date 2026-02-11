@@ -35,7 +35,7 @@ export default function NotFound() {
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <button
-                  onClick={() => router.push("/dashboard-visit")}
+                  onClick={() => router.push("/dashboard-request")}
                   className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 active:scale-[0.99]"
                 >
                   Ke Dashboard
