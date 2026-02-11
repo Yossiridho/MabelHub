@@ -7,16 +7,20 @@ import { getMenuByRole } from "@/lib/menu";
 
 type SidebarProps = {
   role: Role;
-  userLabel?: string; 
-  userName?: string;  
-  onLogoutHref?: string; 
+  userLabel?: string;
+  userName?: string;
+  onLogoutHref?: string;
 };
 
 export default function Sidebar({
   role,
-  userLabel = role === "SUPERADMIN" ? "SuperAdmin" : role === "ADMIN" ? "Admin" : "User",
+  userLabel = role === "SUPERADMIN"
+    ? "SuperAdmin"
+    : role === "ADMIN"
+      ? "Admin"
+      : "User",
   userName = "User",
-  onLogoutHref = "/login",
+  onLogoutHref = "/",
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,7 +37,9 @@ export default function Sidebar({
         <div className="flex flex-col items-center">
           <div className="h-16 w-16 rounded-full bg-gray-300" />
           <div className="mt-3 text-center leading-tight">
-            <div className="text-sm font-semibold text-gray-900">{userLabel}</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {userLabel}
+            </div>
             <div className="text-lg text-gray-600">{userName}</div>
           </div>
           <div className="mt-4 h-px w-full bg-gray-400" />
@@ -44,7 +50,10 @@ export default function Sidebar({
       <nav className="px-4 pb-4 flex-1 overflow-y-auto">
         <div className="space-y-4">
           {sections.map((section) => (
-            <div key={section.title} className="overflow-hidden rounded-md bg-white shadow">
+            <div
+              key={section.title}
+              className="overflow-hidden rounded-md bg-white shadow"
+            >
               <div className="bg-gray-300 px-6 py-3 text-lg font-semibold text-gray-700">
                 {section.title}
               </div>

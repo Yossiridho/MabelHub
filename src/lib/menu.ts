@@ -15,7 +15,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
     {
       title: "ACTIVITY REQUEST",
       items: [
-        { label: "Dashboard", href: "/dashboard" },
+        { label: "Dashboard", href: "/dashboard-request" },
         { label: "Plan Activity", href: "/plan-activity" },
         { label: "E-Procurement", href: "/e-procurement" },
         { label: "Rekapitulasi", href: "/rekapitulasi" },
@@ -61,7 +61,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
     {
       title: "ACTIVITY REQUEST",
       items: [
-        { label: "Dashboard", href: "/dashboard" },
+        { label: "Dashboard", href: "/dashboard-request" },
         { label: "Plan Activity", href: "/plan-activity" },
         { label: "E-Procurement", href: "/e-procurement" },
         { label: "Rekapitulasi", href: "/rekapitulasi" },
