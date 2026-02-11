@@ -1,9 +1,13 @@
-export type Role = "SUPER_ADMIN" | "ADMIN" | "LEADER" | "USER";
+export type Role = "SUPERADMIN" | "ADMIN" | "USER";
 
 export type MenuItem = {
   label: string;
   href: string;
-  roles: Role[];
+};
+
+export type MenuSection = {
+  title: string;
+  items: MenuItem[];
 };
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -27,13 +31,8 @@ export const MENU_ITEMS: MenuItem[] = [
     href: "/report",
     roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
   },
-  {
-    label: "REQUEST SPH",
-    href: "/request-sph",
-    roles: ["SUPER_ADMIN", "LEADER", "USER"],
-  },
 ];
 
-export function getMenuByRole(role: Role) {
-  return MENU_ITEMS.filter((m) => m.roles.includes(role));
+export function getMenuByRole(role: Role): MenuSection[] {
+  return MENUS_BY_ROLE[role] ?? [];
 }
