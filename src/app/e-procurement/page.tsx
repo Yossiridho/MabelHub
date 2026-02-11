@@ -70,11 +70,11 @@ export default function EProcurementRequestPage() {
         merek: '',
         subKategori: '',
         qty: 1,
-        spesifikasi: '',
-        paguPerItem: 0,
-        hargaTayang: 1,
-        linkInaproc: '',
-        linkEcom: '',
+        spesifikasi: "",
+        paguPerItem: "",
+        hargaTayang: "",
+        linkInaproc: "",
+        linkEcom: "",
       },
     ])
   }
@@ -385,14 +385,14 @@ export default function EProcurementRequestPage() {
                         PAGU PER ITEM
                       </label>
                       <input
-                        type='number'
-                        min={0}
+                        type="number"
+                       
                         value={it.paguPerItem}
                         onChange={(e) =>
                           updateItem(
                             it.id,
-                            'paguPerItem',
-                            Number(e.target.value),
+                            "paguPerItem",
+                            e.target.value === "" ? "" : Number(e.target.value),
                           )
                         }
                         className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
@@ -404,14 +404,13 @@ export default function EProcurementRequestPage() {
                         HARGA TAYANG
                       </label>
                       <input
-                        type='number'
-                        min={1}
+                        type="number"
                         value={it.hargaTayang}
                         onChange={(e) =>
                           updateItem(
                             it.id,
-                            'hargaTayang',
-                            Number(e.target.value),
+                            "hargaTayang",
+                            e.target.value === "" ? "" : Number(e.target.value),
                           )
                         }
                         className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
