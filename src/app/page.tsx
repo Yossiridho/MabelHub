@@ -44,7 +44,7 @@ export default function LoginPage() {
           </div>
 
           <button
-            onClick={() => router.push("/mode")}
+            onClick={() => router.push("/dashboard-request")}
             className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700"
           >
             LOGIN

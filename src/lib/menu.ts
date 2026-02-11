@@ -1,35 +1,75 @@
-export type Role = "SUPER_ADMIN" | "ADMIN" | "LEADER" | "USER";
+export type Role = "SUPERADMIN" | "ADMIN" | "USER";
 
 export type MenuItem = {
   label: string;
   href: string;
-  roles: Role[];
 };
 
-export const MENU_ITEMS: MenuItem[] = [
-  {
-    label: "DASHBOARD",
-    href: "/dashboard-visit",
-    roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
-  },
-  {
-    label: "PLAN ACTIVITY",
-    href: "/plan-activity",
-    roles: ["SUPER_ADMIN", "ADMIN", "LEADER", "USER"],
-  },
-  { label: "SPH", href: "/sph", roles: ["USER", "LEADER", "SUPER_ADMIN"] },
-  {
-    label: "Request Masuk",
-    href: "/admin/requests",
-    roles: ["ADMIN", "SUPER_ADMIN"],
-  },
-  {
-    label: "Orderan Saya",
-    href: "/admin/my-orders",
-    roles: ["ADMIN", "SUPER_ADMIN"],
-  },
-];
+export type MenuSection = {
+  title: string;
+  items: MenuItem[];
+};
 
-export function getMenuByRole(role: Role) {
-  return MENU_ITEMS.filter((m) => m.roles.includes(role));
+export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
+  SUPERADMIN: [
+    {
+      title: "ACTIVITY REQUEST",
+      items: [
+        { label: "Dashboard", href: "/dashboard-request" },
+        { label: "Plan Activity", href: "/plan-activity" },
+        { label: "E-Procurement", href: "/e-procurement" },
+        { label: "Rekapitulasi", href: "/rekapitulasi" },
+      ],
+    },
+    {
+      title: "ACTIVITY RESPONSE",
+      items: [
+        { label: "Dashboard", href: "/dashboard-response" },
+        { label: "E-Procurement Response", href: "/e-procurement-response" },
+        { label: "Rekapitulasi", href: "/rekapitulasi-response" },
+        { label: "Instansi", href: "/instansi" },
+      ],
+    },
+    {
+      title: "Lainnya",
+      items: [
+        { label: "Add User", href: "/users/add" },
+        { label: "Parameter", href: "/parameter" },
+      ],
+    },
+  ],
+
+  ADMIN: [
+    {
+      title: "ACTIVITY REQUEST",
+      items: [
+        { label: "E-Procurement", href: "/e-procurement" },
+        { label: "Rekapitulasi", href: "/rekapitulasi" },
+      ],
+    },
+    {
+      title: "ACTIVITY RESPONSE",
+      items: [
+        { label: "Dashboard", href: "/dashboard-response" },
+        { label: "E-Procurement Response", href: "/e-procurement-response" },
+        { label: "Rekapitulasi", href: "/rekapitulasi-response" },
+      ],
+    },
+  ],
+
+  USER: [
+    {
+      title: "ACTIVITY REQUEST",
+      items: [
+        { label: "Dashboard", href: "/dashboard-request" },
+        { label: "Plan Activity", href: "/plan-activity" },
+        { label: "E-Procurement", href: "/e-procurement" },
+        { label: "Rekapitulasi", href: "/rekapitulasi" },
+      ],
+    },
+  ],
+};
+
+export function getMenuByRole(role: Role): MenuSection[] {
+  return MENUS_BY_ROLE[role] ?? [];
 }
