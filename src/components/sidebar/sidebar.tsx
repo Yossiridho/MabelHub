@@ -31,10 +31,10 @@ export default function Sidebar({
     pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="relative h-screen w-100 bg-white">
+    <aside className="relative h-screen w-82 bg-white">
       {/* PROFILE */}
       <div className="px-6 pt-6 pb-4">
-        <div className="flex flex-col items-center">
+        <div className="flex h-full flex-col items-center">
           <div className="h-16 w-16 rounded-full bg-gray-300" />
           <div className="mt-3 text-center leading-tight">
             <div className="text-sm font-semibold text-gray-900">
@@ -47,7 +47,7 @@ export default function Sidebar({
       </div>
 
       {/* MENU */}
-      <nav className="px-4 pb-4 flex-1 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="space-y-4">
           {sections.map((section) => (
             <div
@@ -66,6 +66,7 @@ export default function Sidebar({
                     href={item.href}
                     className={[
                       "block px-3 py-2 text-lg transition",
+                      "pl-6",
                       isActive(item.href)
                         ? "bg-blue-200 font-semibold text-gray-900"
                         : "text-gray-700 hover:bg-gray-50",
@@ -81,7 +82,7 @@ export default function Sidebar({
       </nav>
 
       {/* LOGOUT */}
-      <div className="absolute bottom-5 left-0 w-full px-9">
+      <div className="sticky bottom-0 bg-white px-6 pb-6 pt-3">
         <button
           type="button"
           onClick={() => router.push(onLogoutHref)}
@@ -93,3 +94,4 @@ export default function Sidebar({
     </aside>
   );
 }
+
