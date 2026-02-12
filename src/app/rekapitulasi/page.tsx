@@ -209,8 +209,7 @@ export default function RekapitulasiVisitPage() {
   const showingFrom = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const showingTo = Math.min(total, safePage * pageSize);
 
-  const gotoPage = (p: number) =>
-    setPage(Math.min(Math.max(1, p), totalPages));
+  const gotoPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
 
   const onChangeFilter = (fn: (v: string) => void, v: string) => {
     fn(v);
@@ -234,25 +233,25 @@ export default function RekapitulasiVisitPage() {
           {/* FILTER CARD */}
           <section className="rounded-2xl bg-white p-7 shadow-sm ring-1 ring-blue-200">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
-          <FilterSelect
-            label="SALES PERSON"
-            value={fSales}
-            onChange={(v) => onChangeFilter(setFSales, v)}
-            options={[{ label: "Semua Sales", value: "ALL" }].concat(
-              salesOptions.map((s) => ({ label: s, value: s })),
-            )}
-          />
+              <FilterSelect
+                label="SALES PERSON"
+                value={fSales}
+                onChange={(v) => onChangeFilter(setFSales, v)}
+                options={[{ label: "Semua Sales", value: "ALL" }].concat(
+                  salesOptions.map((s) => ({ label: s, value: s })),
+                )}
+              />
 
-          <FilterDate
-            label="TANGGAL MULAI"
-            value={fStart}
-            onChange={(v) => onChangeFilter(setFStart, v)}
-          />
-          <FilterDate
-            label="TANGGAL AKHIR"
-            value={fEnd}
-            onChange={(v) => onChangeFilter(setFEnd, v)}
-          />
+              <FilterDate
+                label="TANGGAL MULAI"
+                value={fStart}
+                onChange={(v) => onChangeFilter(setFStart, v)}
+              />
+              <FilterDate
+                label="TANGGAL AKHIR"
+                value={fEnd}
+                onChange={(v) => onChangeFilter(setFEnd, v)}
+              />
 
               <FilterSelect
                 label="STATUS VISIT"
@@ -346,9 +345,7 @@ export default function RekapitulasiVisitPage() {
                           onClick={() => setSelected(r)}
                           className={cn(
                             "cursor-pointer border-t border-blue-50",
-                            active
-                              ? "bg-blue-50/60"
-                              : "hover:bg-blue-50/30",
+                            active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
                           )}
                         >
                           <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
@@ -467,7 +464,8 @@ export default function RekapitulasiVisitPage() {
             <div className="p-6">
               {!selected ? (
                 <div className="text-sm text-gray-500">
-                  Klik salah satu baris pada tabel untuk melihat detail kegiatan.
+                  Klik salah satu baris pada tabel untuk melihat detail
+                  kegiatan.
                 </div>
               ) : (
                 <div className="rounded-xl bg-[#F7F9FB] p-6 ring-1 ring-gray-100">
