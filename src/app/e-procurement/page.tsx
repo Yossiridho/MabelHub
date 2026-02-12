@@ -70,8 +70,8 @@ export default function EProcurementRequestPage() {
         subKategori: "",
         qty: 1,
         spesifikasi: "",
-        paguPerItem: "",
-        hargaTayang: "",
+        paguPerItem: 0,
+        hargaTayang: 0,
         linkInaproc: "",
         linkEcom: "",
       },
@@ -385,13 +385,13 @@ export default function EProcurementRequestPage() {
                       </label>
                       <input
                         type="number"
-                       
+                        min={0}
                         value={it.paguPerItem}
                         onChange={(e) =>
                           updateItem(
                             it.id,
                             "paguPerItem",
-                            e.target.value === "" ? "" : Number(e.target.value),
+                            Number(e.target.value),
                           )
                         }
                         className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
@@ -404,12 +404,13 @@ export default function EProcurementRequestPage() {
                       </label>
                       <input
                         type="number"
+                        min={0}
                         value={it.hargaTayang}
                         onChange={(e) =>
                           updateItem(
                             it.id,
                             "hargaTayang",
-                            e.target.value === "" ? "" : Number(e.target.value),
+                            Number(e.target.value),
                           )
                         }
                         className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
