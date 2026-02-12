@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Sidebar from "@/components/sidebar/sidebar";
+import type { Role } from "@/lib/menu";
 
 type VisitRow = {
   _id: string;
@@ -13,7 +15,7 @@ type VisitRow = {
   pic_phone: string;
   status_ring: "RING 1" | "RING 2" | "RING 3" | "RING 4";
 
-  // detail section fields (ISI SAMA seperti kode pertama)
+  // detail section fields
   created_at: string;
   market_status: string;
   klpd: string;
@@ -74,6 +76,9 @@ function StatusPill({ value }: { value: string }) {
 }
 
 export default function RekapitulasiVisitPage() {
+  // SEMENTARA (samakan dengan halaman lain / nanti dari auth)
+  const role: Role = "SUPERADMIN";
+
   // ====== dummy data (nanti ganti fetch API) ======
   const allRows: VisitRow[] = useMemo(
     () => [
@@ -214,292 +219,323 @@ export default function RekapitulasiVisitPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F7FF] p-8">
-      {/* HEADER */}
-      <div className="mb-6 flex items-center gap-4">
-        <button
-          type="button"
-          className="grid h-10 w-10 place-items-center rounded-full bg-white text-gray-700 shadow-sm ring-1 ring-blue-100 hover:bg-blue-50"
-          aria-label="Back"
-        >
-          ←
-        </button>
-        <h1 className="text-xl font-extrabold tracking-wide text-gray-900">
-          REKAPITULASI VISIT
-        </h1>
-      </div>
+    <div className="min-h-screen bg-[#F2F7FF]">
+      <div className="flex">
+        {/* SIDEBAR */}
+        <Sidebar role={role} />
 
-      {/* FILTER CARD (style seperti contoh) */}
-      <section className="rounded-2xl bg-white p-7 shadow-sm ring-1 ring-blue-200">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
-          <FilterSelect
-            label="SALES PERSON"
-            value={fSales}
-            onChange={(v) => onChangeFilter(setFSales, v)}
-            options={[{ label: "Semua Sales", value: "ALL" }].concat(
-              salesOptions.map((s) => ({ label: s, value: s })),
-            )}
-          />
+        {/* CONTENT */}
+        <div className="flex-1 h-screen overflow-y-auto">
+          <div className="p-8">
+            {/* HEADER */}
+            <div className="mb-6 flex items-center gap-4">
+              <button
+                type="button"
+                className="grid h-10 w-10 place-items-center rounded-full bg-white text-gray-700 shadow-sm ring-1 ring-blue-100 hover:bg-blue-50"
+                aria-label="Back"
+              >
+                ←
+              </button>
+              <h1 className="text-xl font-extrabold tracking-wide text-gray-900">
+                REKAPITULASI VISIT
+              </h1>
+            </div>
 
-          <FilterDate
-            label="TANGGAL MULAI"
-            value={fStart}
-            onChange={(v) => onChangeFilter(setFStart, v)}
-          />
-          <FilterDate
-            label="TANGGAL AKHIR"
-            value={fEnd}
-            onChange={(v) => onChangeFilter(setFEnd, v)}
-          />
+            {/* FILTER CARD */}
+            <section className="rounded-2xl bg-white p-7 shadow-sm ring-1 ring-blue-200">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
+                <FilterSelect
+                  label="SALES PERSON"
+                  value={fSales}
+                  onChange={(v) => onChangeFilter(setFSales, v)}
+                  options={[{ label: "Semua Sales", value: "ALL" }].concat(
+                    salesOptions.map((s) => ({ label: s, value: s })),
+                  )}
+                />
 
-          <FilterSelect
-            label="STATUS VISIT"
-            value={fStatus}
-            onChange={(v) => onChangeFilter(setFStatus, v)}
-            options={[
-              { label: "Semua Status", value: "ALL" },
-              { label: "Visited", value: "Visited" },
-              { label: "Not Visited", value: "Not Visited" },
-            ]}
-          />
+                <FilterDate
+                  label="TANGGAL MULAI"
+                  value={fStart}
+                  onChange={(v) => onChangeFilter(setFStart, v)}
+                />
+                <FilterDate
+                  label="TANGGAL AKHIR"
+                  value={fEnd}
+                  onChange={(v) => onChangeFilter(setFEnd, v)}
+                />
 
-          <FilterSelect
-            label="RING"
-            value={fRing}
-            onChange={(v) => onChangeFilter(setFRing, v)}
-            options={[
-              { label: "Semua Ring", value: "ALL" },
-              { label: "RING 1", value: "RING 1" },
-              { label: "RING 2", value: "RING 2" },
-              { label: "RING 3", value: "RING 3" },
-              { label: "RING 4", value: "RING 4" },
-            ]}
-          />
+                <FilterSelect
+                  label="STATUS VISIT"
+                  value={fStatus}
+                  onChange={(v) => onChangeFilter(setFStatus, v)}
+                  options={[
+                    { label: "Semua Status", value: "ALL" },
+                    { label: "Visited", value: "Visited" },
+                    { label: "Not Visited", value: "Not Visited" },
+                  ]}
+                />
 
-          <FilterSelect
-            label="CITY"
-            value={fCity}
-            onChange={(v) => onChangeFilter(setFCity, v)}
-            options={[{ label: "Semua City", value: "ALL" }].concat(
-              cityOptions.map((c) => ({ label: c, value: c })),
-            )}
-          />
+                <FilterSelect
+                  label="RING"
+                  value={fRing}
+                  onChange={(v) => onChangeFilter(setFRing, v)}
+                  options={[
+                    { label: "Semua Ring", value: "ALL" },
+                    { label: "RING 1", value: "RING 1" },
+                    { label: "RING 2", value: "RING 2" },
+                    { label: "RING 3", value: "RING 3" },
+                    { label: "RING 4", value: "RING 4" },
+                  ]}
+                />
 
-          <div className="md:col-span-6">
-            <FilterSelect
-              label="SATUAN KERJA"
-              value={fSatker}
-              onChange={(v) => onChangeFilter(setFSatker, v)}
-              options={[{ label: "Semua Satker", value: "ALL" }].concat(
-                satkerOptions.map((s) => ({ label: s, value: s })),
-              )}
-              full
-            />
-          </div>
-        </div>
-      </section>
+                <FilterSelect
+                  label="CITY"
+                  value={fCity}
+                  onChange={(v) => onChangeFilter(setFCity, v)}
+                  options={[{ label: "Semua City", value: "ALL" }].concat(
+                    cityOptions.map((c) => ({ label: c, value: c })),
+                  )}
+                />
 
-      {/* TABLE (style seperti contoh) */}
-      <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#E1F3FF]">
-              <tr className="text-left">
-                {[
-                  "NAMA SALES",
-                  "VISIT DATE",
-                  "STATUS",
-                  "SATUAN KERJA",
-                  "CITY",
-                  "PIC NAME",
-                  "PIC PHONE",
-                  "RING",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-[#0B6AA9]"
+                <div className="md:col-span-6">
+                  <FilterSelect
+                    label="SATUAN KERJA"
+                    value={fSatker}
+                    onChange={(v) => onChangeFilter(setFSatker, v)}
+                    options={[{ label: "Semua Satker", value: "ALL" }].concat(
+                      satkerOptions.map((s) => ({ label: s, value: s })),
+                    )}
+                    full
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* TABLE */}
+            <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#E1F3FF]">
+                    <tr className="text-left">
+                      {[
+                        "NAMA SALES",
+                        "VISIT DATE",
+                        "STATUS",
+                        "SATUAN KERJA",
+                        "CITY",
+                        "PIC NAME",
+                        "PIC PHONE",
+                        "RING",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-[#0B6AA9]"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {pageRows.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-6 py-12 text-center text-gray-500"
+                        >
+                          Tidak ada data.
+                        </td>
+                      </tr>
+                    ) : (
+                      pageRows.map((r) => {
+                        const active = selected?._id === r._id;
+                        return (
+                          <tr
+                            key={r._id}
+                            onClick={() => setSelected(r)}
+                            className={cn(
+                              "cursor-pointer border-t border-blue-50",
+                              active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
+                            )}
+                          >
+                            <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
+                              {r.nama_sales}
+                            </td>
+                            <td className="px-6 py-6 text-gray-800">
+                              {formatDateID(r.visit_date)}
+                            </td>
+                            <td className="px-6 py-6">
+                              <StatusPill value={r.status_visit} />
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.satuan_kerja}
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.city}
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.pic_name}
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.pic_phone}
+                            </td>
+                            <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
+                              {r.status_ring}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* PAGINATION */}
+            <section className="mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-gray-600">
+                Menampilkan {showingFrom} - {showingTo} dari {total} data
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="h-10 rounded-xl border border-blue-100 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                >
+                  <option value={10}>10 / Halaman</option>
+                  <option value={25}>25 / Halaman</option>
+                  <option value={50}>50 / Halaman</option>
+                  <option value={100}>100 / Halaman</option>
+                </select>
+
+                <div className="flex items-center gap-2">
+                  <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
+                    ⏮
+                  </PageBtn>
+                  <PageBtn
+                    onClick={() => gotoPage(safePage - 1)}
+                    ariaLabel="Prev"
                   >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+                    ◀
+                  </PageBtn>
 
-            <tbody>
-              {pageRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    Tidak ada data.
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((r) => {
-                  const active = selected?._id === r._id;
-                  return (
-                    <tr
-                      key={r._id}
-                      onClick={() => setSelected(r)}
+                  {getPageWindow(safePage, totalPages, 5).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => gotoPage(p)}
                       className={cn(
-                        "cursor-pointer border-t border-blue-50",
-                        active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
+                        "grid h-10 w-10 place-items-center rounded-xl border text-sm font-semibold",
+                        p === safePage
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40",
                       )}
                     >
-                      <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
-                        {r.nama_sales}
-                      </td>
-                      <td className="px-6 py-6 text-gray-800">
-                        {formatDateID(r.visit_date)}
-                      </td>
-                      <td className="px-6 py-6">
-                        <StatusPill value={r.status_visit} />
-                      </td>
-                      <td className="px-6 py-6 text-gray-900">
-                        {r.satuan_kerja}
-                      </td>
-                      <td className="px-6 py-6 text-gray-900">{r.city}</td>
-                      <td className="px-6 py-6 text-gray-900">{r.pic_name}</td>
-                      <td className="px-6 py-6 text-gray-900">{r.pic_phone}</td>
-                      <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
-                        {r.status_ring}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                      {p}
+                    </button>
+                  ))}
 
-      {/* PAGINATION (putih, rapi) */}
-      <section className="mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between">
-        <div className="text-sm text-gray-600">
-          Menampilkan {showingFrom} - {showingTo} dari {total} data
-        </div>
+                  <PageBtn
+                    onClick={() => gotoPage(safePage + 1)}
+                    ariaLabel="Next"
+                  >
+                    ▶
+                  </PageBtn>
+                  <PageBtn
+                    onClick={() => gotoPage(totalPages)}
+                    ariaLabel="Last"
+                  >
+                    ⏭
+                  </PageBtn>
+                </div>
+              </div>
+            </section>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-blue-100 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-          >
-            <option value={10}>10 / Halaman</option>
-            <option value={25}>25 / Halaman</option>
-            <option value={50}>50 / Halaman</option>
-            <option value={100}>100 / Halaman</option>
-          </select>
+            {/* DETAIL */}
+            <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
+              <div className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-3 text-lg font-extrabold text-gray-900">
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100">
+                    📖
+                  </span>
+                  Detail Kunjungan
+                </div>
 
-          <div className="flex items-center gap-2">
-            <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
-              ⏮
-            </PageBtn>
-            <PageBtn onClick={() => gotoPage(safePage - 1)} ariaLabel="Prev">
-              ◀
-            </PageBtn>
-
-            {getPageWindow(safePage, totalPages, 5).map((p) => (
-              <button
-                key={p}
-                onClick={() => gotoPage(p)}
-                className={cn(
-                  "grid h-10 w-10 place-items-center rounded-xl border text-sm font-semibold",
-                  p === safePage
-                    ? "border-blue-200 bg-blue-50 text-blue-700"
-                    : "border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40",
+                {selected && (
+                  <button
+                    onClick={() => setSelected(null)}
+                    className="rounded-lg bg-white px-4 py-2 text-sm font-extrabold text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                  >
+                    TUTUP
+                  </button>
                 )}
-              >
-                {p}
-              </button>
-            ))}
-
-            <PageBtn onClick={() => gotoPage(safePage + 1)} ariaLabel="Next">
-              ▶
-            </PageBtn>
-            <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">
-              ⏭
-            </PageBtn>
-          </div>
-        </div>
-      </section>
-
-      {/* DETAIL KEGIATAN (STYLE BARU; ISI TETAP) */}
-      <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3 text-lg font-extrabold text-gray-900">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100">
-              📖
-            </span>
-            Detail Kunjungan
-          </div>
-
-          {selected && (
-            <button
-              onClick={() => setSelected(null)}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-extrabold text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
-            >
-              TUTUP
-            </button>
-          )}
-        </div>
-
-        <div className="h-px w-full bg-gray-200" />
-
-        <div className="p-6">
-          {!selected ? (
-            <div className="text-sm text-gray-500">
-              Klik salah satu baris pada tabel untuk melihat detail kegiatan.
-            </div>
-          ) : (
-            <div className="rounded-xl bg-[#F7F9FB] p-6 ring-1 ring-gray-100">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
-                <DetailItem
-                  label="Created At"
-                  value={formatDateID(selected.created_at)}
-                />
-                <DetailItem
-                  label="Market Status"
-                  value={selected.market_status}
-                />
-                <DetailItem label="KLPD" value={selected.klpd} />
-                <DetailItem label="Reschedule" value={selected.reschedule} />
-                <DetailItem
-                  label="Institusi Kerja"
-                  value={selected.institusi_kerja}
-                />
-                <DetailItem
-                  label="PIC Position"
-                  value={selected.pic_position}
-                />
-
-                <DetailItem label="PIC Role" value={selected.pic_role} />
-                <DetailItem
-                  label="Tindak Lanjut"
-                  value={selected.tindak_lanjut}
-                />
-                <DetailItem
-                  label="Kegiatan Status"
-                  value={selected.kegiatan_status}
-                />
               </div>
 
-              <div className="mt-6">
-                <div className="text-xs font-extrabold tracking-wider text-gray-500">
-                  DESKRIPSI
-                </div>
-                <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
-                  {selected.deskripsi || "-"}
-                </div>
+              <div className="h-px w-full bg-gray-200" />
+
+              <div className="p-6">
+                {!selected ? (
+                  <div className="text-sm text-gray-500">
+                    Klik salah satu baris pada tabel untuk melihat detail
+                    kegiatan.
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-[#F7F9FB] p-6 ring-1 ring-gray-100">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
+                      <DetailItem
+                        label="Created At"
+                        value={formatDateID(selected.created_at)}
+                      />
+                      <DetailItem
+                        label="Market Status"
+                        value={selected.market_status}
+                      />
+                      <DetailItem label="KLPD" value={selected.klpd} />
+                      <DetailItem
+                        label="Reschedule"
+                        value={selected.reschedule}
+                      />
+                      <DetailItem
+                        label="Institusi Kerja"
+                        value={selected.institusi_kerja}
+                      />
+                      <DetailItem
+                        label="PIC Position"
+                        value={selected.pic_position}
+                      />
+
+                      <DetailItem label="PIC Role" value={selected.pic_role} />
+                      <DetailItem
+                        label="Tindak Lanjut"
+                        value={selected.tindak_lanjut}
+                      />
+                      <DetailItem
+                        label="Kegiatan Status"
+                        value={selected.kegiatan_status}
+                      />
+                    </div>
+
+                    <div className="mt-6">
+                      <div className="text-xs font-extrabold tracking-wider text-gray-500">
+                        DESKRIPSI
+                      </div>
+                      <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
+                        {selected.deskripsi || "-"}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            </section>
+
+            <div className="h-10" />
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -31,7 +31,7 @@ export default function Sidebar({
     pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="relative h-screen w-100 bg-white">
+    <aside className="flex h-screen w-[260px] shrink-0 flex-col bg-white">
       {/* PROFILE */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex flex-col items-center">
@@ -46,8 +46,8 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* MENU */}
-      <nav className="px-4 pb-4 flex-1 overflow-y-auto">
+      {/* MENU (scrollable) */}
+      <nav className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="space-y-4">
           {sections.map((section) => (
             <div
@@ -58,7 +58,6 @@ export default function Sidebar({
                 {section.title}
               </div>
 
-              {/* items */}
               <div>
                 {section.items.map((item) => (
                   <Link
@@ -80,12 +79,12 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* LOGOUT */}
-      <div className="absolute bottom-5 left-0 w-full px-9">
+      {/* LOGOUT (footer, tidak menimpa menu) */}
+      <div className="border-t border-gray-200 p-4">
         <button
           type="button"
           onClick={() => router.push(onLogoutHref)}
-          className="h-12 w-full rounded-full bg-red-500 text-lg font-semibold text-white"
+          className="h-12 w-full rounded-full bg-red-500 text-lg font-semibold text-white hover:bg-red-600"
         >
           LOGOUT
         </button>
