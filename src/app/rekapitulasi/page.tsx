@@ -223,7 +223,7 @@ export default function RekapitulasiVisitPage() {
       <div className="flex min-h-screen">
         <Sidebar role={role} />
 
-        <div className="flex-1 bg-[#F2F7FF] p-8">
+        <div className="flex-1 h-screen overflow-y-auto p-6">
           {/* HEADER */}
           <div className="mb-6 flex items-center gap-4">
             <h1 className="text-xl font-extrabold tracking-wide text-gray-900">
