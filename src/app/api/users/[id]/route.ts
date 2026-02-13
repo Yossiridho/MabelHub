@@ -1,56 +1,138 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/mongodb";
-import User from "@/models/User";
+import { ObjectId } from "mongodb";
+import clientPromise from "@/lib/mongodb";
 import { hashPassword } from "@/lib/password";
 import { assertSuperadmin } from "@/lib/auth-server";
+
+type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
+
+type UserDoc = {
+  fullName: string;
+  email: string;
+  username: string;
+  passwordHash: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLoginAt?: Date | null;
+};
+
+function normalizeRole(role: string): UserRole | null {
+  const r = role.toUpperCase().trim();
+  if (r === "SUPERADMIN") return "SUPERADMIN";
+  if (r === "ADMIN") return "ADMIN";
+  if (r === "LEADER") return "LEADER";
+  if (r === "SALES") return "SALES";
+  return null;
+}
+
+// (opsional) ensure index unik supaya duplicate tertangkap konsisten
+declare global {
+  // eslint-disable-next-line no-var
+  var __mabel_users_indexes_promise: Promise<void> | undefined;
+}
+async function ensureUserIndexes(db: any) {
+  if (!global.__mabel_users_indexes_promise) {
+    global.__mabel_users_indexes_promise = (async () => {
+      const col = db.collection<UserDoc>("users");
+      await col.createIndex({ email: 1 }, { unique: true });
+      await col.createIndex({ username: 1 }, { unique: true });
+      await col.createIndex({ createdAt: -1 });
+    })();
+  }
+  await global.__mabel_users_indexes_promise;
+}
 
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } },
 ) {
   const gate = assertSuperadmin(req);
-  if (!gate.ok)
+  if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
-
-  await dbConnect();
-  const id = params.id;
-  const body = await req.json();
-
-  const patch: any = {};
-
-  if (body.fullName !== undefined)
-    patch.fullName = String(body.fullName).trim();
-  if (body.email !== undefined)
-    patch.email = String(body.email).trim().toLowerCase();
-  if (body.username !== undefined)
-    patch.username = String(body.username).trim().toLowerCase();
-  if (body.role !== undefined) patch.role = String(body.role).toUpperCase();
-  if (body.isActive !== undefined) patch.isActive = Boolean(body.isActive);
-
-  // kalau mau ganti password
-  if (body.password !== undefined && String(body.password).length > 0) {
-    patch.passwordHash = await hashPassword(String(body.password));
   }
 
-  try {
-    const updated = await User.findByIdAndUpdate(
-      id,
-      { $set: patch },
-      { new: true },
-    )
-      .select(
-        "fullName email username role isActive createdAt updatedAt lastLoginAt",
-      )
-      .lean();
+  // validasi ObjectId
+  if (!ObjectId.isValid(params.id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
+  const _id = new ObjectId(params.id);
 
-    if (!updated)
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB || "mabelhub");
+    await ensureUserIndexes(db);
+
+    const body = await req.json().catch(() => ({}));
+
+    const $set: Partial<UserDoc> & Record<string, any> = {};
+    const now = new Date();
+
+    if (body.fullName !== undefined) {
+      $set.fullName = String(body.fullName).trim();
+    }
+    if (body.email !== undefined) {
+      $set.email = String(body.email).trim().toLowerCase();
+    }
+    if (body.username !== undefined) {
+      $set.username = String(body.username).trim().toLowerCase();
+    }
+    if (body.role !== undefined) {
+      const r = normalizeRole(String(body.role));
+      if (!r) {
+        return NextResponse.json(
+          { error: "Role tidak valid" },
+          { status: 400 },
+        );
+      }
+      $set.role = r;
+    }
+    if (body.isActive !== undefined) {
+      $set.isActive = Boolean(body.isActive);
+    }
+
+    // ganti password (opsional)
+    if (body.password !== undefined && String(body.password).length > 0) {
+      $set.passwordHash = await hashPassword(String(body.password));
+    }
+
+    // kalau tidak ada field yang diubah
+    if (Object.keys($set).length === 0) {
+      return NextResponse.json(
+        { error: "Tidak ada field untuk diupdate" },
+        { status: 400 },
+      );
+    }
+
+    $set.updatedAt = now;
+
+    const result = await db.collection<UserDoc>("users").findOneAndUpdate(
+      { _id },
+      { $set },
+      {
+        returnDocument: "after",
+        projection: {
+          passwordHash: 0, // jangan kirim hash
+        },
+      },
+    );
+
+    if (!result.value) {
       return NextResponse.json(
         { error: "User tidak ditemukan" },
         { status: 404 },
       );
+    }
 
-    return NextResponse.json({ data: updated });
+    return NextResponse.json({
+      data: {
+        ...result.value,
+        _id: String((result.value as any)._id),
+      },
+    });
   } catch (e: any) {
+    // duplicate key
     if (e?.code === 11000) {
       const keys = Object.keys(e?.keyPattern ?? {});
       return NextResponse.json(
@@ -58,7 +140,10 @@ export async function PUT(
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: "Gagal update user" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message ?? "Gagal update user" },
+      { status: 500 },
+    );
   }
 }
 
@@ -67,18 +152,36 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   const gate = assertSuperadmin(req);
-  if (!gate.ok)
+  if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
 
-  await dbConnect();
-  const id = params.id;
+  if (!ObjectId.isValid(params.id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
+  const _id = new ObjectId(params.id);
 
-  const deleted = await User.findByIdAndDelete(id).lean();
-  if (!deleted)
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB || "mabelhub");
+    await ensureUserIndexes(db);
+
+    const deleted = await db
+      .collection<UserDoc>("users")
+      .findOneAndDelete({ _id });
+
+    if (!deleted.value) {
+      return NextResponse.json(
+        { error: "User tidak ditemukan" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
     return NextResponse.json(
-      { error: "User tidak ditemukan" },
-      { status: 404 },
+      { error: e?.message ?? "Gagal menghapus user" },
+      { status: 500 },
     );
-
-  return NextResponse.json({ ok: true });
+  }
 }
