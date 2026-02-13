@@ -543,7 +543,7 @@ export default function InstansiPage() {
                       resp.items.map((c) => (
                         <tr
                           key={c._id}
-                          className="border-t border-black/10 hover:bg-black/[0.03]"
+                          className="border-t border-black/10 hover:bg-black/3"
                         >
                           <td className="px-4 py-4">{c.kota_kab ?? "-"}</td>
                           <td className="px-4 py-4">{c.klpd ?? "-"}</td>
