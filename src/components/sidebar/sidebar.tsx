@@ -31,8 +31,7 @@ export default function Sidebar({
     pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="relative h-screen w-82 bg-white">
-      {/* PROFILE */}
+    <aside className="sticky top-0 h-screen w-82 bg-white border-r">
       <div className="px-6 pt-6 pb-4">
         <div className="flex h-full flex-col items-center">
           <div className="h-16 w-16 rounded-full bg-gray-300" />

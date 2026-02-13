@@ -97,18 +97,18 @@ export default function AddPlansPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#d9d9d9]">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar role={role} />
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <main className="mx-auto max-w-5xl">
+        <div className="flex-1 h-screen overflow-y-auto p-6">
+          <main className="w-full max-w-none">
             {/* TOP BAR */}
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push("/plan-activity")}
-                  className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-white text-gray-700 shadow-sm ring-1 ring-black/10"
                   aria-label="Back"
                 >
                   ←
@@ -120,7 +120,7 @@ export default function AddPlansPage() {
 
               <button
                 type="button"
-                className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-white"
               >
                 REGISTER COMPANY
               </button>
@@ -131,9 +131,9 @@ export default function AddPlansPage() {
               {rows.map((r, idx) => (
                 <div
                   key={r.id}
-                  className="relative rounded-2xl bg-[#f5efef] p-6 shadow-sm ring-1 ring-black/10"
+                  className="relative rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/10"
                 >
-                  <div className="absolute left-6 top-6 grid h-10 w-10 place-items-center rounded-full bg-gray-200 text-sm font-bold text-gray-700">
+                  <div className="absolute left-6 top-6 grid h-10 w-10 place-items-center rounded-full bg-white text-sm font-bold text-gray-700">
                     {idx + 1}
                   </div>
 
@@ -179,7 +179,7 @@ export default function AddPlansPage() {
                           <select
                             value={r.status}
                             onChange={(e) => patchRow(r.id, { status: e.target.value })}
-                            className="h-11 w-full appearance-none rounded-xl bg-gray-200 px-4 pr-10 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                            className="h-11 w-full appearance-none rounded-xl bg-white px-4 pr-10 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
                           >
                             <option value="">Pilih...</option>
                             <option value="VISITED">VISITED</option>
@@ -198,7 +198,7 @@ export default function AddPlansPage() {
                       <input
                         value={r.satuan_kerja}
                         onChange={(e) => patchRow(r.id, { satuan_kerja: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
                       />
                     </div>
 
@@ -207,7 +207,7 @@ export default function AddPlansPage() {
                       <input
                         value={r.klpd}
                         onChange={(e) => patchRow(r.id, { klpd: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
                       />
                     </div>
 
@@ -216,7 +216,7 @@ export default function AddPlansPage() {
                       <input
                         value={r.institusi_kerja}
                         onChange={(e) => patchRow(r.id, { institusi_kerja: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
                       />
                     </div>
 
@@ -225,7 +225,7 @@ export default function AddPlansPage() {
                       <input
                         value={r.kota}
                         onChange={(e) => patchRow(r.id, { kota: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
                       />
                     </div>
                   </div>

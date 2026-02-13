@@ -304,7 +304,7 @@ export default function RekapitulasiVisitPage() {
           <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#E1F3FF]">
+                <thead className="bg-blue-200">
                   <tr className="text-left">
                     {[
                       "NAMA SALES",
@@ -318,7 +318,7 @@ export default function RekapitulasiVisitPage() {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-[#0B6AA9]"
+                        className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-black"
                       >
                         {h}
                       </th>

@@ -35,8 +35,6 @@ function savePlans(plans: PlanRow[]) {
 }
 
 function formatTanggalHeader(yyyyMmDd: string) {
-  // jadi "1 JANUARI", "2 JANUARI" dst
-  // (kalau tanggal kosong, fallback)
   if (!yyyyMmDd) return "-";
   const d = new Date(yyyyMmDd);
   if (Number.isNaN(d.getTime())) return yyyyMmDd;
@@ -47,7 +45,6 @@ function formatTanggalHeader(yyyyMmDd: string) {
 }
 
 function toSortKey(yyyyMmDd: string) {
-  // untuk sorting desc
   return yyyyMmDd || "0000-00-00";
 }
 
@@ -59,15 +56,6 @@ export default function PlanActivityPage() {
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [openDates, setOpenDates] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const data = loadPlans();
-    setPlans(data);
-    // default: tanggal terbaru terbuka
-    const grouped = groupByTanggal(data);
-    const firstKey = Object.keys(grouped).sort((a, b) => (toSortKey(b) > toSortKey(a) ? 1 : -1))[0];
-    if (firstKey) setOpenDates({ [firstKey]: true });
-  }, []);
-
   function groupByTanggal(rows: PlanRow[]) {
     return rows.reduce<Record<string, PlanRow[]>>((acc, r) => {
       const key = r.tanggal || "UNKNOWN";
@@ -76,6 +64,19 @@ export default function PlanActivityPage() {
       return acc;
     }, {});
   }
+
+  useEffect(() => {
+    const data = loadPlans();
+    setPlans(data);
+
+    // default: tanggal terbaru terbuka
+    const grouped = groupByTanggal(data);
+    const firstKey = Object.keys(grouped).sort((a, b) =>
+      toSortKey(b).localeCompare(toSortKey(a)),
+    )[0];
+
+    if (firstKey) setOpenDates({ [firstKey]: true });
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -91,13 +92,11 @@ export default function PlanActivityPage() {
 
   const grouped = useMemo(() => {
     const g = groupByTanggal(filtered);
-    // sort tanggal desc, UNKNOWN di bawah
     const keys = Object.keys(g).sort((a, b) => {
       if (a === "UNKNOWN") return 1;
       if (b === "UNKNOWN") return -1;
       return toSortKey(b).localeCompare(toSortKey(a));
     });
-
     return { keys, map: g };
   }, [filtered]);
 
@@ -112,28 +111,23 @@ export default function PlanActivityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#d9d9d9]">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
+        {/* SIDEBAR */}
         <Sidebar role={role} />
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <main className="mx-auto max-w-6xl">
+        {/* CONTENT */}
+        <div className="flex-1 h-screen overflow-y-auto p-6">
+          <main className="w-full max-w-none">
             {/* HEADER */}
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
-                <button
-                  className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
-                  aria-label="Back"
-                  onClick={() => router.back()}
-                >
-                  ←
-                </button>
                 <h2 className="text-2xl font-extrabold tracking-wide text-black">
                   PLAN ACTIVITY
                 </h2>
               </div>
 
-              <div className="relative w-full md:w-[360px]">
+              <div className="relative w-full md:w-[420px]">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -169,9 +163,9 @@ export default function PlanActivityPage() {
             </div>
 
             {/* TABLE WRAPPER */}
-            <div className="overflow-hidden rounded-none bg-[#f5efef] ring-1 ring-black/20">
+            <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
               {/* TABLE HEAD */}
-              <div className="grid grid-cols-7 gap-0 bg-[#d9d9d9] px-4 py-3 text-sm font-semibold text-black">
+              <div className="grid grid-cols-7 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
@@ -193,14 +187,20 @@ export default function PlanActivityPage() {
 
                   return (
                     <div key={dateKey} className="border-t border-black/20">
-                      {/* DATE GROUP ROW (klik untuk dropdown) */}
+                      {/* DATE GROUP ROW */}
                       <button
                         type="button"
                         onClick={() => toggleDate(dateKey)}
-                        className="flex w-full items-center justify-between bg-[#f5efef] px-4 py-5 text-left text-lg font-medium text-black hover:bg-[#efe7e7]"
+                        className="flex w-full items-center justify-between bg-white px-2 py-3 pl-6 text-m font-semibold text-black"
                       >
-                        <span>{dateKey === "UNKNOWN" ? "-" : formatTanggalHeader(dateKey)}</span>
-                        <span className="text-xl font-black">{isOpen ? "▾" : "▸"}</span>
+                        <span>
+                          {dateKey === "UNKNOWN"
+                            ? "-"
+                            : formatTanggalHeader(dateKey)}
+                        </span>
+                        <span className="text-xl font-black">
+                          {isOpen ? "▾" : "▸"}
+                        </span>
                       </button>
 
                       {/* DROPDOWN ROWS */}
@@ -209,27 +209,39 @@ export default function PlanActivityPage() {
                           {rows.map((r) => (
                             <div
                               key={r.id}
-                              className="grid grid-cols-7 items-center gap-0 bg-[#d9d9d9] px-4 py-4 text-sm text-black border-t border-black/20"
+                              className="grid grid-cols-7 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
                             >
+                              {/* kolom tanggal dikosongkan */}
                               <div className="opacity-0 select-none">
-                                {/* kolom tanggal dikosongkan agar seperti gambar (tanggal hanya group) */}
                                 {r.tanggal}
                               </div>
+
                               <div className="uppercase">{r.kota || "-"}</div>
                               <div className="uppercase">{r.klpd || "-"}</div>
-                              <div className="uppercase">{r.institusi_kerja || "-"}</div>
-                              <div className="uppercase">{r.satuan_kerja || "-"}</div>
+                              <div className="uppercase">
+                                {r.institusi_kerja || "-"}
+                              </div>
+                              <div className="uppercase">
+                                {r.satuan_kerja || "-"}
+                              </div>
                               <div className="text-center font-semibold">
                                 {(r.status || "-").toUpperCase()}
                               </div>
+
                               <div className="text-center">
                                 <button
-                                  onClick={() => router.push(`/plan-activity/add?edit=${r.id}`)}
+                                  type="button"
+                                  onClick={() =>
+                                    router.push(
+                                      `/plan-activity/add?edit=${r.id}`,
+                                    )
+                                  }
                                   className="mr-3 font-semibold hover:underline"
                                 >
                                   EDIT
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => deletePlan(r.id)}
                                   className="font-semibold text-red-700 hover:underline"
                                 >
