@@ -142,7 +142,7 @@ export default function PlanActivityPage() {
                 </h2>
               </div>
 
-              <div className="relative w-full md:w-[420px]">
+              <div className="relative w-full md:w-105">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
