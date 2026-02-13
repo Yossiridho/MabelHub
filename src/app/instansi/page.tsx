@@ -120,7 +120,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-[#e6e6e6] px-4 text-sm text-black outline-none",
+        "h-11 w-full rounded-xl bg-white px-4 text-sm text-black outline-none",
         "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
         props.className || "",
       )}
@@ -133,7 +133,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-[#e6e6e6] px-4 text-sm text-black outline-none",
+        "h-11 w-full rounded-xl bg-white px-4 text-sm text-black outline-none",
         "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
         props.className || "",
       )}
@@ -392,27 +392,20 @@ export default function InstansiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#d9d9d9]">
+    <div className="min-h-screen bg-blue-100">
       <div className="flex">
         <Sidebar role={role} />
 
-        <div className="flex-1 h-screen overflow-y-auto p-6">
-          <main className="mx-auto max-w-6xl">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <main className="mx-auto pt-4 max-w-9xl">
             {/* Top */}
-            <div className="mb-4 flex items-center gap-3">
-              <button
-                onClick={() => router.back()}
-                className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-800 shadow-sm ring-1 ring-black/10 hover:bg-white"
-                aria-label="Back"
-              >
-                ←
-              </button>
+            <div className="mb-6 flex items-center gap-4">
 
               <div className="flex-1">
-                <h1 className="text-2xl font-extrabold tracking-wide text-black">
+                <h1 className="text-2xl font-extrabold text-black">
                   INSTANSI
                 </h1>
-                <p className="text-xs text-black/60">
+                <p className="text-xs text-black">
                   Rekap instansi yang sudah <b>APPROVED</b>
                 </p>
               </div>
@@ -430,8 +423,8 @@ export default function InstansiPage() {
             </div>
 
             {/* Filters */}
-            <div className="rounded-2xl bg-[#f5efef] p-5 shadow-sm ring-1 ring-black/10">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:items-end">
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-blue-200">
+              <div className="grid gap-4 md:grid-cols-4 md:items-end">
                 <Field label="SEARCH">
                   <div className="relative">
                     <Input
@@ -440,7 +433,7 @@ export default function InstansiPage() {
                       placeholder="Cari institusi / satuan kerja / PIC..."
                       className="pr-10"
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black/60">
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
                       🔍
                     </span>
                   </div>
@@ -500,10 +493,10 @@ export default function InstansiPage() {
             </div>
 
             {/* Table */}
-            <div className="mt-5 overflow-hidden rounded-2xl bg-[#f5efef] ring-1 ring-black/10 shadow-sm">
+            <div className="mt-6 overflow-hidden rounded-2xl bg-white ring-1 ring-blue-200 ">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-[#e7e1e1] text-black">
+                  <thead className="bg-blue-200 text-black ring-2 ring-blue-300">
                     <tr>
                       {[
                         "Kota/Kab",
@@ -521,7 +514,7 @@ export default function InstansiPage() {
                       ].map((h) => (
                         <th
                           key={h}
-                          className="whitespace-nowrap border-b border-black/10 px-4 py-3 text-left text-[11px] font-extrabold tracking-wide text-black/80"
+                          className="whitespace-nowrap border-b border-gray-300 px-4 py-3 text-left text-xs font-extrabold tracking-wide text-black"
                         >
                           {h}
                         </th>
@@ -529,12 +522,12 @@ export default function InstansiPage() {
                     </tr>
                   </thead>
 
-                  <tbody className="bg-[#f5efef]">
+                  <tbody className="bg-white ring-1 ring-blue-200">
                     {loading ? (
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-sm text-black/60"
+                          className="px-4 py-12 text-center text-sm"
                         >
                           Loading...
                         </td>
@@ -543,11 +536,11 @@ export default function InstansiPage() {
                       resp.items.map((c) => (
                         <tr
                           key={c._id}
-                          className="border-t border-black/10 hover:bg-black/[0.03]"
+                          className="border-t border-gray-300"
                         >
                           <td className="px-4 py-4">{c.kota_kab ?? "-"}</td>
                           <td className="px-4 py-4">{c.klpd ?? "-"}</td>
-                          <td className="px-4 py-4 font-semibold">
+                          <td className="px-4 py-4 ">
                             {c.institusi_kerja ?? "-"}
                           </td>
                           <td className="px-4 py-4">{c.satuan_kerja ?? "-"}</td>
@@ -627,7 +620,7 @@ export default function InstansiPage() {
                     ))}
                   </Select>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4">
                     <button
                       onClick={() => setPage(1)}
                       disabled={page === 1}
@@ -645,7 +638,7 @@ export default function InstansiPage() {
                       ◀
                     </button>
 
-                    <div className="px-2 text-xs font-bold text-black">
+                    <div className="px-8 py-8 text-lg font-bold text-black">
                       {page} / {totalPages}
                     </div>
 
@@ -811,7 +804,7 @@ export default function InstansiPage() {
           <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-[#e7e1e1]">
+                <thead className="bg-white">
                   <tr>
                     {[
                       "Kota",
