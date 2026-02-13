@@ -1,0 +1,884 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Sidebar from "@/components/sidebar/sidebar";
+import { useRouter } from "next/navigation";
+import type { Role } from "@/lib/menu";
+
+type Company = {
+  _id: string;
+  kota_kab?: string;
+  klpd?: string;
+  institusi_kerja?: string;
+  satuan_kerja?: string;
+  kode_dinas?: string;
+  status_ring?: string;
+  pic_default?: {
+    nama?: string;
+    no_telp?: string;
+    jabatan?: string;
+    role?: string;
+  };
+};
+
+type CompanyRequest = Company & {
+  requested_at?: string;
+  requested_by?: string;
+};
+
+type ApiResp = {
+  items: Company[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  options: {
+    kota: string[];
+    klpd: string[];
+    segmen: string[];
+  };
+};
+
+function clsx(...v: Array<string | false | undefined | null>) {
+  return v.filter(Boolean).join(" ");
+}
+
+function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  widthClass = "max-w-5xl",
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  widthClass?: string;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center">
+      <button
+        onClick={onClose}
+        className="absolute inset-0 bg-black/35"
+        aria-label="Close modal"
+      />
+      <div
+        className={clsx(
+          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          widthClass,
+        )}
+      >
+        <div className="flex items-start justify-between border-b border-black/10 px-6 py-5">
+          <div>
+            <h2 className="text-base font-extrabold tracking-wide text-black">
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-1 text-xs text-black/60">{subtitle}</p>
+            ) : null}
+          </div>
+
+          <button
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-xl font-black text-black hover:bg-black/10"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="px-6 py-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[11px] font-bold tracking-wide text-black/70">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={clsx(
+        "h-11 w-full rounded-xl bg-[#e6e6e6] px-4 text-sm text-black outline-none",
+        "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
+        props.className || "",
+      )}
+    />
+  );
+}
+
+function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={clsx(
+        "h-11 w-full rounded-xl bg-[#e6e6e6] px-4 text-sm text-black outline-none",
+        "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
+        props.className || "",
+      )}
+    />
+  );
+}
+
+function PrimaryButton({
+  children,
+  onClick,
+  disabled,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={clsx(
+        "h-11 rounded-full px-6 text-sm font-extrabold tracking-wide",
+        "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
+        "disabled:opacity-50 disabled:hover:bg-white",
+        className || "",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SolidButton({
+  children,
+  onClick,
+  disabled,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={clsx(
+        "h-11 rounded-full px-7 text-sm font-extrabold tracking-wide text-white",
+        "bg-black hover:bg-black/90",
+        "disabled:opacity-50",
+        className || "",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusPill({ value }: { value?: string }) {
+  const v = (value || "-").toUpperCase();
+  const isB2G = v.includes("RING 1") || v.includes("RING 2") || v.includes("RING 3");
+  const isB2B = v.includes("RING 4");
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-extrabold",
+        "ring-1 ring-black/10",
+        isB2G && "bg-blue-50 text-blue-700",
+        isB2B && "bg-emerald-50 text-emerald-700",
+        !isB2G && !isB2B && "bg-gray-50 text-gray-700",
+      )}
+    >
+      {v}
+    </span>
+  );
+}
+
+export default function InstansiPage() {
+  const router = useRouter();
+  const role: Role = "SUPERADMIN"; // TODO: ambil dari auth/session
+
+  // filters
+  const [search, setSearch] = useState("");
+  const [kota, setKota] = useState("ALL");
+  const [klpd, setKlpd] = useState("ALL");
+  const [segmen, setSegmen] = useState("ALL");
+
+  // pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+
+  // data
+  const [loading, setLoading] = useState(true);
+  const [resp, setResp] = useState<ApiResp | null>(null);
+  const totalPages = resp?.totalPages ?? 1;
+
+  // modals
+  const [openAdd, setOpenAdd] = useState(false);
+  const [openPending, setOpenPending] = useState(false);
+
+  // add form
+  const [form, setForm] = useState({
+    institusi_kerja: "",
+    kota_kab: "",
+    klpd: "",
+    satuan_kerja: "",
+    status_ring: "",
+    kode_dinas: "",
+    pic_nama: "",
+    pic_telp: "",
+    pic_jabatan: "",
+    pic_role: "",
+  });
+  const [savingAdd, setSavingAdd] = useState(false);
+
+  // pending
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pending, setPending] = useState<CompanyRequest[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function loadApproved() {
+    setLoading(true);
+    const qs = new URLSearchParams({
+      q: search,
+      kota,
+      klpd,
+      segmen,
+      page: String(page),
+      limit: String(limit),
+    });
+
+    const res = await fetch(`/api/instansi?${qs.toString()}`);
+    const data = (await res.json()) as ApiResp;
+    setResp(data);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadApproved();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, kota, klpd, segmen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPage(1);
+      loadApproved();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const kotaOptions = useMemo(() => resp?.options.kota ?? [], [resp]);
+  const klpdOptions = useMemo(() => resp?.options.klpd ?? [], [resp]);
+  const segmenOptions = useMemo(() => resp?.options.segmen ?? [], [resp]);
+
+  async function submitAddInstansi() {
+    if (role !== "SUPERADMIN") return;
+
+    if (
+      !form.institusi_kerja ||
+      !form.kota_kab ||
+      !form.klpd ||
+      !form.satuan_kerja ||
+      !form.status_ring
+    ) {
+      alert("Lengkapi: Nama Institusi, Kota/Kabupaten, KLPD, Satuan Kerja, Status Segmen.");
+      return;
+    }
+
+    setSavingAdd(true);
+    const payload = {
+      institusi_kerja: form.institusi_kerja,
+      kota_kab: form.kota_kab,
+      klpd: form.klpd,
+      satuan_kerja: form.satuan_kerja,
+      status_ring: form.status_ring,
+      kode_dinas: form.kode_dinas,
+      pic_default: {
+        nama: form.pic_nama,
+        no_telp: form.pic_telp,
+        jabatan: form.pic_jabatan,
+        role: form.pic_role,
+      },
+    };
+
+    const res = await fetch("/api/companies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    setSavingAdd(false);
+
+    if (!res.ok) {
+      alert("Gagal menambah instansi.");
+      return;
+    }
+
+    setOpenAdd(false);
+    setForm({
+      institusi_kerja: "",
+      kota_kab: "",
+      klpd: "",
+      satuan_kerja: "",
+      status_ring: "",
+      kode_dinas: "",
+      pic_nama: "",
+      pic_telp: "",
+      pic_jabatan: "",
+      pic_role: "",
+    });
+
+    await loadApproved();
+  }
+
+  async function loadPending() {
+    setPendingLoading(true);
+    const res = await fetch("/api/company-requests?status=PENDING");
+    const data = await res.json();
+    setPending(Array.isArray(data) ? data : []);
+    setPendingLoading(false);
+  }
+
+  async function openPendingModal() {
+    setOpenPending(true);
+    await loadPending();
+  }
+
+  async function approveRequest(id: string) {
+    if (!confirm("Approve instansi ini?")) return;
+    setBusyId(id);
+
+    await fetch(`/api/company-requests/${id}/approve`, { method: "POST" });
+
+    setBusyId(null);
+    await loadPending();
+    await loadApproved();
+  }
+
+  async function rejectRequest(id: string) {
+    const reason = prompt("Alasan reject:");
+    if (!reason) return;
+
+    setBusyId(id);
+    await fetch(`/api/company-requests/${id}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reject_reason: reason }),
+    });
+
+    setBusyId(null);
+    await loadPending();
+  }
+
+  return (
+    <div className="min-h-screen bg-[#d9d9d9]">
+      <div className="flex">
+        <Sidebar role={role} />
+
+        <div className="flex-1 h-screen overflow-y-auto p-6">
+          <main className="mx-auto max-w-6xl">
+            {/* Top */}
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-800 shadow-sm ring-1 ring-black/10 hover:bg-white"
+                aria-label="Back"
+              >
+                ←
+              </button>
+
+              <div className="flex-1">
+                <h1 className="text-2xl font-extrabold tracking-wide text-black">
+                  INSTANSI
+                </h1>
+                <p className="text-xs text-black/60">
+                  Rekap instansi yang sudah <b>APPROVED</b>
+                </p>
+              </div>
+
+              {role === "SUPERADMIN" ? (
+                <div className="flex gap-3">
+                  <PrimaryButton onClick={() => setOpenAdd(true)}>
+                    TAMBAH INSTANSI
+                  </PrimaryButton>
+                  <PrimaryButton onClick={openPendingModal}>
+                    REQUEST PENDING
+                  </PrimaryButton>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Filters */}
+            <div className="rounded-2xl bg-[#f5efef] p-5 shadow-sm ring-1 ring-black/10">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:items-end">
+                <Field label="SEARCH">
+                  <div className="relative">
+                    <Input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Cari institusi / satuan kerja / PIC..."
+                      className="pr-10"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black/60">
+                      🔍
+                    </span>
+                  </div>
+                </Field>
+
+                <Field label="KOTA/KABUPATEN">
+                  <Select
+                    value={kota}
+                    onChange={(e) => {
+                      setKota(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="ALL">Semua Kota</option>
+                    {kotaOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+
+                <Field label="KLPD">
+                  <Select
+                    value={klpd}
+                    onChange={(e) => {
+                      setKlpd(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="ALL">Semua KLPD</option>
+                    {klpdOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+
+                <Field label="SEGMEN">
+                  <Select
+                    value={segmen}
+                    onChange={(e) => {
+                      setSegmen(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="ALL">Semua Segmen</option>
+                    {segmenOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="mt-5 overflow-hidden rounded-2xl bg-[#f5efef] ring-1 ring-black/10 shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-[#e7e1e1] text-black">
+                    <tr>
+                      {[
+                        "Kota/Kab",
+                        "KLPD",
+                        "Institusi Kerja",
+                        "Satuan Kerja",
+                        "Kode Dinas",
+                        "Nama PIC",
+                        "No. HP PIC",
+                        "Jabatan PIC",
+                        "Role PIC",
+                        "Status Segmen",
+                        "History",
+                        "Aksi",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="whitespace-nowrap border-b border-black/10 px-4 py-3 text-left text-[11px] font-extrabold tracking-wide text-black/80"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody className="bg-[#f5efef]">
+                    {loading ? (
+                      <tr>
+                        <td
+                          colSpan={12}
+                          className="px-4 py-12 text-center text-sm text-black/60"
+                        >
+                          Loading...
+                        </td>
+                      </tr>
+                    ) : resp?.items?.length ? (
+                      resp.items.map((c) => (
+                        <tr
+                          key={c._id}
+                          className="border-t border-black/10 hover:bg-black/[0.03]"
+                        >
+                          <td className="px-4 py-4">{c.kota_kab ?? "-"}</td>
+                          <td className="px-4 py-4">{c.klpd ?? "-"}</td>
+                          <td className="px-4 py-4 font-semibold">
+                            {c.institusi_kerja ?? "-"}
+                          </td>
+                          <td className="px-4 py-4">{c.satuan_kerja ?? "-"}</td>
+                          <td className="px-4 py-4">{c.kode_dinas ?? "-"}</td>
+                          <td className="px-4 py-4">{c.pic_default?.nama ?? "-"}</td>
+                          <td className="px-4 py-4">{c.pic_default?.no_telp ?? "-"}</td>
+                          <td className="px-4 py-4">{c.pic_default?.jabatan ?? "-"}</td>
+                          <td className="px-4 py-4">{c.pic_default?.role ?? "-"}</td>
+                          <td className="px-4 py-4">
+                            <StatusPill value={c.status_ring} />
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <button
+                              className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                              title="History"
+                            >
+                              ⟲
+                            </button>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                                title="Edit"
+                                onClick={() => alert("Nanti: halaman edit")}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                                title="Delete"
+                                onClick={() => alert("Nanti: API delete")}
+                              >
+                                🗑
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={12}
+                          className="px-4 py-12 text-center text-sm text-black/60"
+                        >
+                          Tidak ada data.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Bar */}
+              <div className="flex flex-col gap-3 border-t border-black/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                <div className="text-xs text-black/60">
+                  Menampilkan{" "}
+                  <b className="text-black">
+                    {(page - 1) * limit + 1} - {Math.min(page * limit, resp?.total ?? 0)}
+                  </b>{" "}
+                  dari <b className="text-black">{resp?.total ?? 0}</b> data
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Select
+                    value={String(limit)}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="h-10 rounded-xl"
+                  >
+                    {[10, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>
+                        {n} / Halaman
+                      </option>
+                    ))}
+                  </Select>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage(1)}
+                      disabled={page === 1}
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      title="First"
+                    >
+                      ⏮
+                    </button>
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      title="Prev"
+                    >
+                      ◀
+                    </button>
+
+                    <div className="px-2 text-xs font-bold text-black">
+                      {page} / {totalPages}
+                    </div>
+
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      title="Next"
+                    >
+                      ▶
+                    </button>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      disabled={page === totalPages}
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      title="Last"
+                    >
+                      ⏭
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-10" />
+          </main>
+        </div>
+      </div>
+
+      {/* ================= MODAL: TAMBAH INSTANSI ================= */}
+      <Modal
+        open={openAdd}
+        onClose={() => setOpenAdd(false)}
+        title="REGISTER COMPANY"
+        subtitle="Tambah instansi langsung APPROVED (khusus SUPER ADMIN)."
+        widthClass="max-w-5xl"
+      >
+        <div className="text-sm">
+          <div className="grid grid-cols-1 gap-4">
+            <Field label="NAMA INSTITUSI">
+              <Input
+                value={form.institusi_kerja}
+                onChange={(e) => setForm((p) => ({ ...p, institusi_kerja: e.target.value }))}
+                placeholder="Contoh: PLN / RSUD / Dinkes..."
+              />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="KOTA/KABUPATEN">
+                <Input
+                  value={form.kota_kab}
+                  onChange={(e) => setForm((p) => ({ ...p, kota_kab: e.target.value }))}
+                  placeholder="Contoh: Kota Bandung"
+                />
+              </Field>
+
+              <Field label="KLPD">
+                <Input
+                  value={form.klpd}
+                  onChange={(e) => setForm((p) => ({ ...p, klpd: e.target.value }))}
+                  placeholder="Contoh: BUMN / B2B / Kementerian..."
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="SATUAN KERJA">
+                <Input
+                  value={form.satuan_kerja}
+                  onChange={(e) => setForm((p) => ({ ...p, satuan_kerja: e.target.value }))}
+                  placeholder="Contoh: Dinas / Office / Unit kerja..."
+                />
+              </Field>
+
+              <Field label="STATUS SEGMEN (RING)">
+                <Select
+                  value={form.status_ring}
+                  onChange={(e) => setForm((p) => ({ ...p, status_ring: e.target.value }))}
+                >
+                  <option value="">Pilih...</option>
+                  <option value="RING 1">RING 1</option>
+                  <option value="RING 2">RING 2</option>
+                  <option value="RING 3">RING 3</option>
+                  <option value="RING 4">RING 4</option>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="KODE DINAS (OPSIONAL)">
+                <Input
+                  value={form.kode_dinas}
+                  onChange={(e) => setForm((p) => ({ ...p, kode_dinas: e.target.value }))}
+                  placeholder="Contoh: B2-CSMS"
+                />
+              </Field>
+
+              <Field label="ROLE PIC (OPSIONAL)">
+                <Select
+                  value={form.pic_role}
+                  onChange={(e) => setForm((p) => ({ ...p, pic_role: e.target.value }))}
+                >
+                  <option value="">Pilih...</option>
+                  <option value="Kepala">Kepala</option>
+                  <option value="Staff">Staff</option>
+                  <option value="Pengadaan">Pengadaan</option>
+                  <option value="IT">IT</option>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="NAMA PIC (OPSIONAL)">
+                <Input
+                  value={form.pic_nama}
+                  onChange={(e) => setForm((p) => ({ ...p, pic_nama: e.target.value }))}
+                  placeholder="Contoh: Pak Rama"
+                />
+              </Field>
+
+              <Field label="NO. TELEPON PIC (OPSIONAL)">
+                <Input
+                  value={form.pic_telp}
+                  onChange={(e) => setForm((p) => ({ ...p, pic_telp: e.target.value }))}
+                  placeholder="Contoh: 62812xxxx"
+                />
+              </Field>
+            </div>
+
+            <Field label="JABATAN PIC (OPSIONAL)">
+              <Input
+                value={form.pic_jabatan}
+                onChange={(e) => setForm((p) => ({ ...p, pic_jabatan: e.target.value }))}
+                placeholder="Contoh: Pengadaan / IT / Kepala Bagian..."
+              />
+            </Field>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <PrimaryButton onClick={() => setOpenAdd(false)}>BATAL</PrimaryButton>
+            <SolidButton onClick={submitAddInstansi} disabled={savingAdd}>
+              {savingAdd ? "MENYIMPAN..." : "SUBMIT"}
+            </SolidButton>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ================= MODAL: REQUEST PENDING ================= */}
+      <Modal
+        open={openPending}
+        onClose={() => setOpenPending(false)}
+        title="REQUEST PENDING"
+        subtitle="Daftar instansi dari USER/LEADER yang menunggu persetujuan."
+        widthClass="max-w-6xl"
+      >
+        {pendingLoading ? (
+          <div className="py-12 text-center text-sm text-black/60">Loading...</div>
+        ) : pending.length === 0 ? (
+          <div className="py-12 text-center text-sm text-black/60">
+            Tidak ada request pending.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-[#e7e1e1]">
+                  <tr>
+                    {[
+                      "Kota",
+                      "KLPD",
+                      "Institusi",
+                      "Satuan Kerja",
+                      "PIC",
+                      "No PIC",
+                      "Jabatan",
+                      "Role",
+                      "Segmen",
+                      "Aksi",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="whitespace-nowrap border-b border-black/10 px-4 py-3 text-left text-[11px] font-extrabold tracking-wide text-black/80"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody className="bg-white">
+                  {pending.map((p) => (
+                    <tr key={p._id} className="border-t border-black/10">
+                      <td className="px-4 py-4">{p.kota_kab ?? "-"}</td>
+                      <td className="px-4 py-4">{p.klpd ?? "-"}</td>
+                      <td className="px-4 py-4 font-semibold">{p.institusi_kerja ?? "-"}</td>
+                      <td className="px-4 py-4">{p.satuan_kerja ?? "-"}</td>
+                      <td className="px-4 py-4">{p.pic_default?.nama ?? "-"}</td>
+                      <td className="px-4 py-4">{p.pic_default?.no_telp ?? "-"}</td>
+                      <td className="px-4 py-4">{p.pic_default?.jabatan ?? "-"}</td>
+                      <td className="px-4 py-4">{p.pic_default?.role ?? "-"}</td>
+                      <td className="px-4 py-4">
+                        <StatusPill value={p.status_ring} />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            disabled={busyId === p._id}
+                            onClick={() => approveRequest(p._id)}
+                            className="h-10 rounded-xl bg-black px-4 text-xs font-extrabold text-white hover:bg-black/90 disabled:opacity-50"
+                          >
+                            {busyId === p._id ? "..." : "APPROVE"}
+                          </button>
+                          <button
+                            disabled={busyId === p._id}
+                            onClick={() => rejectRequest(p._id)}
+                            className="h-10 rounded-xl bg-white px-4 text-xs font-extrabold ring-1 ring-black/15 hover:bg-black/5 disabled:opacity-50"
+                          >
+                            REJECT
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="border-t border-black/10 px-5 py-4 text-xs text-black/60">
+              Total pending: <b className="text-black">{pending.length}</b>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
