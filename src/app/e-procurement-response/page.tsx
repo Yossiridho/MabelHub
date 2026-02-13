@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
 import { ArrowLeft } from "lucide-react";
+import { useSession } from "@/components/session/SessionProvider";
 
 type EProcRow = {
   requestId: string;
@@ -43,36 +43,33 @@ function fmtDateTime(d: string | Date) {
 }
 
 async function apiListTakeable(): Promise<EProcRow[]> {
-  const res = await fetch("/api/eprocurement/requests?mode=takeable", {
+  const res = await fetch("/api/e-procurement/requests?mode=takeable", {
     cache: "no-store",
   });
   if (!res.ok) return [];
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   return (json?.data ?? []) as EProcRow[];
 }
 
-async function apiTake(requestId: string, adminId: string, adminName: string) {
+async function apiTake(requestId: string) {
   const res = await fetch(
-    `/api/eprocurement/requests/${encodeURIComponent(requestId)}/take`,
+    `/api/e-procurement/requests/${encodeURIComponent(requestId)}/take`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminId, adminName }),
+      // ✅ adminId/adminName TIDAK dikirim lagi (ambil dari session di server)
+      body: JSON.stringify({}),
     },
   );
 
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.error ?? "Gagal TAKE");
-  return json?.data as EProcRow;
+  return (json?.data ?? null) as EProcRow | null;
 }
 
 export default function EProcurementResponsePage() {
   const router = useRouter();
-
-  // SEMENTARA (nanti dari auth/session)
-  const role: Role = "SUPERADMIN";
-  const adminId = "admin-1";
-  const adminName = "ADMIN";
+  const { user, loading: sessionLoading } = useSession();
 
   const [rows, setRows] = useState<EProcRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,9 +78,21 @@ export default function EProcurementResponsePage() {
 
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
 
+  // ✅ Guard: hanya ADMIN / SUPERADMIN
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      if (user.role !== "SUPERADMIN" && user.role !== "ADMIN") {
+        router.replace("/dashboard-request");
+      }
+    }
+  }, [sessionLoading, user, router]);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
+      if (sessionLoading) return;
+      if (!user) return;
+
       setLoading(true);
       setError("");
       const data = await apiListTakeable();
@@ -93,14 +102,14 @@ export default function EProcurementResponsePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [sessionLoading, user]);
 
   const isEmpty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
 
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
-        <Sidebar role={role} />
+        <Sidebar />
 
         <div className="flex-1 h-screen overflow-y-auto">
           <div className="p-6">
@@ -173,7 +182,7 @@ export default function EProcurementResponsePage() {
                                 setError("");
                                 setTakingId(r.requestId);
 
-                                await apiTake(r.requestId, adminId, adminName);
+                                await apiTake(r.requestId);
 
                                 // remove from takeable list
                                 setRows((prev) =>

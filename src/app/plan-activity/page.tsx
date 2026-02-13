@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
 
 type PlanRow = {
   id: string;
@@ -49,8 +49,8 @@ function toSortKey(yyyyMmDd: string) {
 }
 
 export default function PlanActivityPage() {
-  const role: Role = "SUPERADMIN";
   const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
   const [search, setSearch] = useState("");
   const [plans, setPlans] = useState<PlanRow[]>([]);
@@ -64,6 +64,21 @@ export default function PlanActivityPage() {
       return acc;
     }, {});
   }
+
+  // ✅ Guard role (opsional)
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      // contoh: semua role boleh lihat -> hapus effect ini.
+      // contoh aman: minimal SALES/LEADER/ADMIN/SUPERADMIN boleh lihat:
+      const ok =
+        user.role === "SALES" ||
+        user.role === "LEADER" ||
+        user.role === "ADMIN" ||
+        user.role === "SUPERADMIN";
+
+      if (!ok) router.replace("/");
+    }
+  }, [sessionLoading, user, router]);
 
   useEffect(() => {
     const data = loadPlans();
@@ -113,8 +128,8 @@ export default function PlanActivityPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* SIDEBAR */}
-        <Sidebar role={role} />
+        {/* ✅ SIDEBAR (role dari session) */}
+        <Sidebar />
 
         {/* CONTENT */}
         <div className="flex-1 h-screen overflow-y-auto p-6">

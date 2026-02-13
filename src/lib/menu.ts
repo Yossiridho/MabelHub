@@ -1,4 +1,4 @@
-export type Role = "SUPERADMIN" | "ADMIN" | "USER";
+export type Role = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
 export type MenuItem = {
   label: string;
@@ -33,7 +33,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
     {
       title: "Lainnya",
       items: [
-        { label: "Add User", href: "/users/add" },
+        { label: "Add User", href: "/add-user" },
         { label: "Parameter", href: "/parameter" },
       ],
     },
@@ -57,7 +57,19 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
     },
   ],
 
-  USER: [
+  LEADER: [
+    {
+      title: "ACTIVITY REQUEST",
+      items: [
+        { label: "Dashboard", href: "/dashboard-request" },
+        { label: "Plan Activity", href: "/plan-activity" },
+        { label: "E-Procurement", href: "/e-procurement" },
+        { label: "Rekapitulasi", href: "/rekapitulasi" },
+      ],
+    },
+  ],
+
+  SALES: [
     {
       title: "ACTIVITY REQUEST",
       items: [

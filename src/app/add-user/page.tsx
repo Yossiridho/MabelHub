@@ -1,0 +1,633 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Sidebar from "@/components/sidebar/sidebar";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
+
+type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
+
+type UserRow = {
+  _id: string;
+  fullName: string;
+  email: string;
+  username: string;
+  role: UserRole;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+function cn(...s: Array<string | false | null | undefined>) {
+  return s.filter(Boolean).join(" ");
+}
+
+function IconEdit() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 20h9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M3 6h18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 6V4h8v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 6l1 16h10l1-16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 11v6M14 11v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** ====== API helpers (cookie session otomatis ikut) ====== **/
+async function apiListUsers(): Promise<UserRow[]> {
+  const res = await fetch("/api/users", { cache: "no-store" });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json?.error ?? "Gagal memuat user");
+  }
+  const json = await res.json();
+  return (json?.data ?? []) as UserRow[];
+}
+
+async function apiCreateUser(payload: {
+  fullName: string;
+  email: string;
+  username: string;
+  password: string;
+  role: UserRole;
+}) {
+  const res = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal membuat user");
+  return json?.data as UserRow;
+}
+
+async function apiUpdateUser(
+  id: string,
+  payload: Partial<{
+    fullName: string;
+    email: string;
+    username: string;
+    password: string;
+    role: UserRole;
+    isActive: boolean;
+  }>,
+) {
+  const res = await fetch(`/api/users/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal update user");
+  return json?.data as UserRow;
+}
+
+async function apiDeleteUser(id: string) {
+  const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal menghapus user");
+  return true;
+}
+
+/** ====== Page ====== **/
+export default function AddUserPage() {
+  const router = useRouter();
+  const { user, loading } = useSession();
+
+  // ✅ Guard UI: kalau bukan superadmin, jangan kasih akses halaman
+  useEffect(() => {
+    if (!loading && user && user.role !== "SUPERADMIN") {
+      router.replace("/dashboard-request"); // atau halaman lain yang kamu mau
+    }
+  }, [loading, user, router]);
+
+  // list
+  const [rows, setRows] = useState<UserRow[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [err, setErr] = useState<string>("");
+
+  // add form
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [userRole, setUserRole] = useState<UserRole>("ADMIN");
+  const [saving, setSaving] = useState(false);
+
+  // modals
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selected, setSelected] = useState<UserRow | null>(null);
+
+  // edit form state
+  const [eFullName, setEFullName] = useState("");
+  const [eEmail, setEEmail] = useState("");
+  const [eUsername, setEUsername] = useState("");
+  const [ePassword, setEPassword] = useState("");
+  const [eRole, setERole] = useState<UserRole>("ADMIN");
+  const [eSaving, setESaving] = useState(false);
+
+  // load list (hanya kalau session siap & superadmin)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (loading) return;
+      if (!user) return; // middleware biasanya sudah handle
+      if (user.role !== "SUPERADMIN") return;
+
+      setListLoading(true);
+      setErr("");
+      try {
+        const data = await apiListUsers();
+        if (mounted) setRows(data);
+      } catch (e: any) {
+        if (mounted) setErr(e?.message ?? "Gagal memuat user");
+      } finally {
+        if (mounted) setListLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading, user]);
+
+  const resetAddForm = () => {
+    setFullName("");
+    setEmail("");
+    setUsername("");
+    setPassword("");
+    setUserRole("ADMIN");
+  };
+
+  const openEdit = (u: UserRow) => {
+    setSelected(u);
+    setEFullName(u.fullName ?? "");
+    setEEmail(u.email ?? "");
+    setEUsername(u.username ?? "");
+    setEPassword("");
+    setERole(u.role ?? "ADMIN");
+    setEditOpen(true);
+  };
+
+  const openDelete = (u: UserRow) => {
+    setSelected(u);
+    setDeleteOpen(true);
+  };
+
+  const onAdd = async () => {
+    try {
+      setErr("");
+      if (!fullName.trim() || !email.trim() || !username.trim() || !password) {
+        setErr("Nama lengkap, email, username, dan password wajib diisi.");
+        return;
+      }
+      setSaving(true);
+      const created = await apiCreateUser({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        username: username.trim(),
+        password,
+        role: userRole,
+      });
+      setRows((prev) => [created, ...prev]);
+      resetAddForm();
+    } catch (e: any) {
+      setErr(e?.message ?? "Gagal menambah user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSaveEdit = async () => {
+    if (!selected) return;
+    try {
+      setErr("");
+      if (!eFullName.trim() || !eEmail.trim() || !eUsername.trim()) {
+        setErr("Nama lengkap, email, dan username wajib diisi.");
+        return;
+      }
+      setESaving(true);
+
+      const payload: any = {
+        fullName: eFullName.trim(),
+        email: eEmail.trim(),
+        username: eUsername.trim(),
+        role: eRole,
+      };
+      if (ePassword.trim().length > 0) payload.password = ePassword;
+
+      const updated = await apiUpdateUser(selected._id, payload);
+      setRows((prev) =>
+        prev.map((x) => (x._id === selected._id ? updated : x)),
+      );
+      setEditOpen(false);
+      setSelected(null);
+    } catch (e: any) {
+      setErr(e?.message ?? "Gagal edit user");
+    } finally {
+      setESaving(false);
+    }
+  };
+
+  const onConfirmDelete = async () => {
+    if (!selected) return;
+    try {
+      setErr("");
+      setSaving(true);
+      await apiDeleteUser(selected._id);
+      setRows((prev) => prev.filter((x) => x._id !== selected._id));
+      setDeleteOpen(false);
+      setSelected(null);
+    } catch (e: any) {
+      setErr(e?.message ?? "Gagal hapus user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // sementara session masih loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-200">
+        <div className="flex">
+          <Sidebar />
+          <div className="flex-1 p-6 text-sm text-gray-600">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-neutral-200">
+      <div className="flex">
+        <Sidebar />
+
+        <div className="flex-1 h-screen overflow-y-auto">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => history.back()}
+                className="grid h-9 w-9 place-items-center rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-50"
+                aria-label="Back"
+              >
+                ←
+              </button>
+              <div className="text-xl font-extrabold text-gray-900">
+                ADD USER
+              </div>
+            </div>
+
+            {/* Form Card */}
+            <div className="mt-4 rounded-lg bg-neutral-100 p-6 shadow-sm">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Nama Lengkap">
+                  <input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                  />
+                </Field>
+
+                <Field label="Email">
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                  />
+                </Field>
+
+                <Field label="Username">
+                  <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                  />
+                </Field>
+
+                <Field label="Password">
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                  />
+                </Field>
+
+                <Field label="Role">
+                  <select
+                    value={userRole}
+                    onChange={(e) => setUserRole(e.target.value as UserRole)}
+                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                  >
+                    <option value="SUPERADMIN">Superadmin</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="LEADER">Leader</option>
+                    <option value="SALES">Sales</option>
+                  </select>
+                </Field>
+
+                <div className="flex items-end justify-end">
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={onAdd}
+                    className={cn(
+                      "h-11 rounded-lg px-6 text-sm font-extrabold shadow-sm",
+                      saving
+                        ? "bg-neutral-300 text-gray-600"
+                        : "bg-white text-gray-900 hover:bg-gray-50",
+                    )}
+                  >
+                    {saving ? "SAVING..." : "ADD USER"}
+                  </button>
+                </div>
+              </div>
+
+              {err ? (
+                <div className="mt-4 rounded bg-red-100 px-4 py-2 text-sm text-red-700">
+                  {err}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Table */}
+            <div className="mt-6 rounded-lg bg-neutral-100 shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-neutral-200 text-left text-gray-800">
+                      <th className="px-4 py-3 w-12">No</th>
+                      <th className="px-4 py-3">Username</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">User Role</th>
+                      <th className="px-4 py-3 w-28 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center">
+                          Loading...
+                        </td>
+                      </tr>
+                    ) : rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center">
+                          Belum ada user.
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((u, idx) => (
+                        <tr
+                          key={u._id}
+                          className={cn(
+                            "border-t border-neutral-300",
+                            idx % 2 === 0
+                              ? "bg-neutral-100"
+                              : "bg-neutral-200/50",
+                          )}
+                        >
+                          <td className="px-4 py-3">{idx + 1}</td>
+                          <td className="px-4 py-3">{u.username}</td>
+                          <td className="px-4 py-3">{u.email}</td>
+                          <td className="px-4 py-3">
+                            {u.role === "SUPERADMIN"
+                              ? "Superadmin"
+                              : u.role === "ADMIN"
+                                ? "Admin"
+                                : u.role === "LEADER"
+                                  ? "Leader"
+                                  : "Sales"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(u)}
+                                className="text-gray-700 hover:text-gray-900"
+                                aria-label="Edit"
+                              >
+                                <IconEdit />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openDelete(u)}
+                                className="text-gray-700 hover:text-red-600"
+                                aria-label="Delete"
+                              >
+                                <IconTrash />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="h-10" />
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Edit Modal ===== */}
+      <Modal open={editOpen} onClose={() => setEditOpen(false)}>
+        <div className="rounded-lg bg-neutral-100 p-6 shadow-lg">
+          <div className="text-lg font-extrabold text-gray-900">EDIT USER</div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field label="Nama Lengkap">
+              <input
+                value={eFullName}
+                onChange={(e) => setEFullName(e.target.value)}
+                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+              />
+            </Field>
+
+            <Field label="Email">
+              <input
+                value={eEmail}
+                onChange={(e) => setEEmail(e.target.value)}
+                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+              />
+            </Field>
+
+            <Field label="Username">
+              <input
+                value={eUsername}
+                onChange={(e) => setEUsername(e.target.value)}
+                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+              />
+            </Field>
+
+            <Field label="Password (opsional)">
+              <input
+                type="password"
+                value={ePassword}
+                onChange={(e) => setEPassword(e.target.value)}
+                placeholder="Kosongkan jika tidak diganti"
+                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+              />
+            </Field>
+
+            <Field label="Role">
+              <select
+                value={eRole}
+                onChange={(e) => setERole(e.target.value as UserRole)}
+                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+              >
+                <option value="SUPERADMIN">Superadmin</option>
+                <option value="ADMIN">Admin</option>
+                <option value="LEADER">Leader</option>
+                <option value="SALES">Sales</option>
+              </select>
+            </Field>
+
+            <div className="flex items-end justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                className="h-10 rounded-lg bg-white px-5 text-sm font-extrabold text-gray-800 hover:bg-gray-50"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                disabled={eSaving}
+                onClick={onSaveEdit}
+                className={cn(
+                  "h-10 rounded-lg px-5 text-sm font-extrabold",
+                  eSaving
+                    ? "bg-neutral-300 text-gray-600"
+                    : "bg-white text-gray-900 hover:bg-gray-50",
+                )}
+              >
+                {eSaving ? "SAVING..." : "EDIT USER"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ===== Delete Confirm Modal ===== */}
+      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>
+        <div className="w-full max-w-md rounded-lg bg-neutral-100 p-6 shadow-lg">
+          <div className="text-lg font-extrabold text-gray-900">
+            Konfirmasi Hapus
+          </div>
+          <div className="mt-3 text-sm text-gray-700">
+            Apakah anda yakin ingin menghapus user{" "}
+            <span className="font-bold">{selected?.username}</span>?
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              className="h-10 rounded-lg bg-white px-5 text-sm font-extrabold text-gray-800 hover:bg-gray-50"
+            >
+              BATAL
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onConfirmDelete}
+              className={cn(
+                "h-10 rounded-lg px-5 text-sm font-extrabold text-white",
+                saving ? "bg-red-300" : "bg-red-500 hover:bg-red-600",
+              )}
+            >
+              {saving ? "DELETING..." : "HAPUS"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/** ====== small components (no components/ui) ====== **/
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-xs font-semibold text-gray-800">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function Modal({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={(e) => {
+        // klik di background => close
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {children}
+    </div>
+  );
+}

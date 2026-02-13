@@ -1,0 +1,35 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+const PUBLIC_PATHS = ["/", "/api/auth/login"];
+
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // allow public assets & login
+  if (
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon")
+  ) {
+    return NextResponse.next();
+  }
+
+  // allow auth endpoints
+  if (pathname.startsWith("/api/auth/")) return NextResponse.next();
+
+  const token = req.cookies.get("session")?.value;
+
+  // protect all app pages + api
+  if (!token) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

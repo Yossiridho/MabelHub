@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
 
 type EProcRow = {
   requestId: string;
@@ -40,22 +41,23 @@ function fmtDateTime(d: string | Date) {
   return `${dd}-${mm}-${yyyy} ${hh}:${mi}:${ss}`;
 }
 
-async function apiListTaken(role: Role, adminId: string): Promise<EProcRow[]> {
-  const qs = new URLSearchParams({ mode: "taken", role });
-  if (adminId) qs.set("adminId", adminId);
-
-  const res = await fetch(`/api/eprocurement/requests?${qs.toString()}`, {
+/** ✅ Server harus tentukan akses berdasarkan session */
+async function apiListTaken(): Promise<EProcRow[]> {
+  const res = await fetch(`/api/e-procurement/requests?mode=taken`, {
     cache: "no-store",
+    credentials: "include",
   });
   if (!res.ok) return [];
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   return (json?.data ?? []) as EProcRow[];
 }
 
-export default function RekapitulasiPage() {
-  const role: Role = "SUPERADMIN"; // ganti jadi "ADMIN" untuk test
-  const adminId = role === "SUPERADMIN" ? "" : "admin-1";
-  const isSuperAdmin = role === "SUPERADMIN";
+export default function RekapitulasiResponsePage() {
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
+  const isSuperAdmin = user?.role === "SUPERADMIN";
+  const isAdmin = user?.role === "ADMIN";
 
   const [rows, setRows] = useState<EProcRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,29 +65,46 @@ export default function RekapitulasiPage() {
   const [adminFilter, setAdminFilter] = useState("");
   const [q, setQ] = useState("");
 
+  // ✅ Guard: halaman ini hanya untuk SUPERADMIN/ADMIN
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (!user) {
+      router.replace("/");
+      return;
+    }
+    if (!isSuperAdmin && !isAdmin) {
+      router.replace("/dashboard-request");
+      return;
+    }
+  }, [sessionLoading, user, isSuperAdmin, isAdmin, router]);
+
   useEffect(() => {
     let mounted = true;
+
     (async () => {
+      if (sessionLoading) return; // tunggu session dulu
+      if (!user) return;
+
       setLoading(true);
-      const data = await apiListTaken(role, adminId);
+      const data = await apiListTaken();
       if (mounted) setRows(data);
       if (mounted) setLoading(false);
     })();
+
     return () => {
       mounted = false;
     };
-  }, [role, adminId]);
+  }, [sessionLoading, user]);
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
+    const af = adminFilter.trim().toLowerCase();
 
     return rows.filter((r) => {
       const matchAdmin =
         !isSuperAdmin ||
-        !adminFilter.trim() ||
-        (r.takenByAdminName ?? "")
-          .toLowerCase()
-          .includes(adminFilter.trim().toLowerCase());
+        !af ||
+        (r.takenByAdminName ?? "").toLowerCase().includes(af);
 
       const matchQ =
         !qq ||
@@ -108,7 +127,8 @@ export default function RekapitulasiPage() {
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
-        <Sidebar role={role} />
+        {/* ✅ Sidebar pakai session */}
+        <Sidebar />
 
         <div className="flex-1 h-screen overflow-y-auto">
           <div className="p-6">
@@ -119,7 +139,7 @@ export default function RekapitulasiPage() {
               Menampilkan request e-procurement yang sudah diambil admin.
             </div>
 
-            {/* Filter bar (simple) */}
+            {/* Filter bar */}
             <div className="mt-6 rounded-xl bg-white p-4 shadow-md">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
@@ -128,6 +148,7 @@ export default function RekapitulasiPage() {
                   placeholder="Cari requestId / pemohon / lokasi / segmen..."
                   className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
                 />
+
                 {isSuperAdmin ? (
                   <input
                     value={adminFilter}
@@ -140,12 +161,12 @@ export default function RekapitulasiPage() {
             </div>
 
             {/* Table */}
-            <div className="mt-6 rounded-xl bg-white shadow-md overflow-hidden">
-              <div className="px-4 py-3 border-b border-neutral-200 text-sm font-semibold">
+            <div className="mt-6 overflow-hidden rounded-xl bg-white shadow-md">
+              <div className="border-b border-neutral-200 px-4 py-3 text-sm font-semibold">
                 Data Rekap ({filtered.length})
               </div>
 
-              {loading ? (
+              {sessionLoading || loading ? (
                 <div className="p-6 text-sm text-neutral-700">Loading...</div>
               ) : filtered.length === 0 ? (
                 <div className="p-10 text-center text-sm text-neutral-700">

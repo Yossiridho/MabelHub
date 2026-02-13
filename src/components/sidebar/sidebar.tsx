@@ -4,31 +4,44 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { Role, MenuSection } from "@/lib/menu";
 import { getMenuByRole } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
 
-type SidebarProps = {
-  role: Role;
-  userLabel?: string;
-  userName?: string;
-  onLogoutHref?: string;
-};
-
-export default function Sidebar({
-  role,
-  userLabel = role === "SUPERADMIN"
-    ? "SuperAdmin"
-    : role === "ADMIN"
-      ? "Admin"
-      : "User",
-  userName = "User",
-  onLogoutHref = "/",
-}: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, loading } = useSession();
+
+  if (loading) {
+    return (
+      <aside className="flex h-screen w-[260px] items-center justify-center border-r bg-white">
+        <div className="text-sm text-gray-500">Loading...</div>
+      </aside>
+    );
+  }
+
+  // Jika tidak ada user (harusnya middleware sudah redirect)
+  if (!user) return null;
+
+  const role = user.role as Role;
+
+  const userLabel =
+    role === "SUPERADMIN"
+      ? "SuperAdmin"
+      : role === "ADMIN"
+        ? "Admin"
+        : role === "LEADER"
+          ? "Leader"
+          : "Sales";
 
   const sections: MenuSection[] = getMenuByRole(role);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+
+  async function onLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/");
+  }
 
   return (
     <aside className="sticky top-0 h-screen w-82 bg-white border-r">
@@ -39,7 +52,7 @@ export default function Sidebar({
             <div className="text-sm font-semibold text-gray-900">
               {userLabel}
             </div>
-            <div className="text-lg text-gray-600">{userName}</div>
+            <div className="text-lg text-gray-600">{user.fullName}</div>
           </div>
           <div className="mt-4 h-px w-full bg-gray-400" />
         </div>
@@ -83,7 +96,7 @@ export default function Sidebar({
       <div className="sticky bottom-0 bg-white px-6 pb-6 pt-3">
         <button
           type="button"
-          onClick={() => router.push(onLogoutHref)}
+          onClick={onLogout}
           className="h-12 w-full rounded-full bg-red-500 text-lg font-semibold text-white hover:bg-red-600"
         >
           LOGOUT
@@ -92,4 +105,3 @@ export default function Sidebar({
     </aside>
   );
 }
-
