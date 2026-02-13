@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
-import { Search, Bell } from "lucide-react";
-import type { Role } from "@/lib/menu";
+import { Bell } from "lucide-react";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
 
 type DashboardStats = {
   totalVisits: number;
@@ -33,60 +33,88 @@ type VisitRow = {
   status_ring?: string;
 };
 
-export default function DashboardPage() {
+export default function DashboardRequestPage() {
   const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
   const [visits, setVisits] = useState<VisitRow[]>([]);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [loadingTable, setLoadingTable] = useState(true);
 
-  // SEARCH + NOTIF
+  // SEARCH + NOTIF (UI only)
   const [search, setSearch] = useState("");
   const [unreadNotif, setUnreadNotif] = useState(3);
 
-  // sementara hardcode role
-  const role: Role = "SUPERADMIN";
+  // Optional: jika mau “page ini hanya untuk SALES/LEADER”
+  // Kalau tidak perlu, hapus effect ini.
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      // contoh rule: SUPERADMIN/ADMIN sebaiknya ke dashboard-response
+      if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
+        // kalau kamu mau, redirect otomatis:
+        // router.replace("/dashboard-response");
+      }
+    }
+  }, [sessionLoading, user, router]);
 
   useEffect(() => {
-    const run = async () => {
+    let mounted = true;
+    (async () => {
+      if (sessionLoading) return;
+      if (!user) return; // middleware seharusnya redirect
+
       try {
-        const res = await fetch("/api/dashboard-request");
-        if (!res.ok) throw new Error("Failed to fetch stats");
-        const data = (await res.json()) as DashboardStats;
-        setStats(data);
+        setLoadingStats(true);
+        const res = await fetch("/api/dashboard-request", {
+          cache: "no-store",
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error ?? "Failed to fetch stats");
+        if (mounted) setStats(json as DashboardStats);
       } catch (e) {
         console.error(e);
+        if (mounted) setStats(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoadingStats(false);
       }
+    })();
+    return () => {
+      mounted = false;
     };
-
-    run();
-  }, []);
+  }, [sessionLoading, user]);
 
   useEffect(() => {
-    const run = async () => {
+    let mounted = true;
+    (async () => {
+      if (sessionLoading) return;
+      if (!user) return;
+
       try {
-        const res = await fetch("/api/visits?limit=10&page=1");
-        if (!res.ok) throw new Error("Failed to fetch visits");
-        const data = await res.json();
-        setVisits(data.items ?? []);
+        setLoadingTable(true);
+        const res = await fetch("/api/visits?limit=10&page=1", {
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error ?? "Failed to fetch visits");
+        if (mounted) setVisits(data.items ?? []);
       } catch (e) {
         console.error(e);
-        setVisits([]);
+        if (mounted) setVisits([]);
       } finally {
-        setLoadingTable(false);
+        if (mounted) setLoadingTable(false);
       }
+    })();
+    return () => {
+      mounted = false;
     };
-
-    run();
-  }, []);
+  }, [sessionLoading, user]);
 
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* SIDEBAR */}
-        <Sidebar role={role} />
+        <Sidebar />
 
         {/* CONTENT */}
         <div className="flex-1 p-6 h-screen overflow-y-auto">
@@ -147,9 +175,18 @@ export default function DashboardPage() {
 
           {/* STATS CARDS */}
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
-            <StatCard title="TOTAL VISITS" value={stats?.totalVisits} />
-            <StatCard title="STAY OFFICE" value={stats?.stayOffice} />
-            <StatCard title="NOT VISITED" value={stats?.notVisited} />
+            <StatCard
+              title="TOTAL VISITS"
+              value={loadingStats ? undefined : stats?.totalVisits}
+            />
+            <StatCard
+              title="STAY OFFICE"
+              value={loadingStats ? undefined : stats?.stayOffice}
+            />
+            <StatCard
+              title="NOT VISITED"
+              value={loadingStats ? undefined : stats?.notVisited}
+            />
 
             <div className="rounded-xl bg-white p-4 shadow">
               <p className="mb-3 text-xs text-gray-500">MARKET COVERAGE</p>
@@ -157,21 +194,21 @@ export default function DashboardPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-semibold">
-                    {stats?.salesCount ?? "-"}
+                    {loadingStats ? "-" : (stats?.salesCount ?? "-")}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">Sales</p>
                 </div>
 
                 <div>
                   <p className="text-2xl font-semibold">
-                    {stats?.satkerCount ?? "-"}
+                    {loadingStats ? "-" : (stats?.satkerCount ?? "-")}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">Satker</p>
                 </div>
 
                 <div>
                   <p className="text-2xl font-semibold">
-                    {stats?.cityCount ?? "-"}
+                    {loadingStats ? "-" : (stats?.cityCount ?? "-")}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">City</p>
                 </div>
@@ -185,7 +222,7 @@ export default function DashboardPage() {
                   (ring, i) => (
                     <div key={ring}>
                       <p className="text-2xl font-semibold">
-                        {stats?.ring?.[ring] ?? "-"}
+                        {loadingStats ? "-" : (stats?.ring?.[ring] ?? "-")}
                       </p>
                       <p className="mt-1 text-xs text-gray-500">Ring {i + 1}</p>
                     </div>
