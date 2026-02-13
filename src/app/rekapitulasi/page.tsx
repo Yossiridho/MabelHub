@@ -209,8 +209,7 @@ export default function RekapitulasiVisitPage() {
   const showingFrom = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const showingTo = Math.min(total, safePage * pageSize);
 
-  const gotoPage = (p: number) =>
-    setPage(Math.min(Math.max(1, p), totalPages));
+  const gotoPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
 
   const onChangeFilter = (fn: (v: string) => void, v: string) => {
     fn(v);
@@ -305,7 +304,7 @@ export default function RekapitulasiVisitPage() {
           <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#E1F3FF]">
+                <thead className="bg-blue-200">
                   <tr className="text-left">
                     {[
                       "NAMA SALES",
@@ -319,7 +318,7 @@ export default function RekapitulasiVisitPage() {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-[#0B6AA9]"
+                        className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-black"
                       >
                         {h}
                       </th>
@@ -346,9 +345,7 @@ export default function RekapitulasiVisitPage() {
                           onClick={() => setSelected(r)}
                           className={cn(
                             "cursor-pointer border-t border-blue-50",
-                            active
-                              ? "bg-blue-50/60"
-                              : "hover:bg-blue-50/30",
+                            active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
                           )}
                         >
                           <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
@@ -467,7 +464,8 @@ export default function RekapitulasiVisitPage() {
             <div className="p-6">
               {!selected ? (
                 <div className="text-sm text-gray-500">
-                  Klik salah satu baris pada tabel untuk melihat detail kegiatan.
+                  Klik salah satu baris pada tabel untuk melihat detail
+                  kegiatan.
                 </div>
               ) : (
                 <div className="rounded-xl bg-[#F7F9FB] p-6 ring-1 ring-gray-100">

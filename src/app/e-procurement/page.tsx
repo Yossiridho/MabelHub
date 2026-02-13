@@ -385,7 +385,6 @@ export default function EProcurementRequestPage() {
                       </label>
                       <input
                         type="number"
-                        min={0}
                         value={it.paguPerItem}
                         onChange={(e) =>
                           updateItem(
@@ -457,21 +456,21 @@ export default function EProcurementRequestPage() {
                 </div>
               </div>
 
-        <div className="md:col-span-8 flex w-full justify-end gap-4">
-          <button
-          onClick={addItem}
-          className="inline-flex h-14 items-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-          >
-         <span className="text-lg leading-none">+</span> Tambah Barang
-          </button>
+              <div className="md:col-span-8 flex w-full justify-end gap-4">
+                <button
+                  onClick={addItem}
+                  className="inline-flex h-14 items-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                >
+                  <span className="text-lg leading-none">+</span> Tambah Barang
+                </button>
 
-          <button
-          onClick={handleKirim}
-          className="h-14 rounded-2xl bg-green-700 px-32 text-sm font-extrabold tracking-wide text-white shadow-sm hover:bg-green-800 active:scale-[0.99]"
-              >
-                 KIRIM REQUEST
-              </button>
-            </div>
+                <button
+                  onClick={handleKirim}
+                  className="h-14 rounded-2xl bg-green-700 px-32 text-sm font-extrabold tracking-wide text-white shadow-sm hover:bg-green-800 active:scale-[0.99]"
+                >
+                  KIRIM REQUEST
+                </button>
+              </div>
             </div>
           </section>
         </div>
