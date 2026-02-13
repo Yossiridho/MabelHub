@@ -50,7 +50,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const run = async () => {
       try {
-        const res = await fetch("/api/dashboard-visit");
+        const res = await fetch("/api/dashboard-request");
         if (!res.ok) throw new Error("Failed to fetch stats");
         const data = (await res.json()) as DashboardStats;
         setStats(data);
@@ -87,8 +87,6 @@ export default function DashboardPage() {
       <div className="flex">
         {/* SIDEBAR */}
         <Sidebar role={role} />
-
-
 
         {/* CONTENT */}
         <div className="flex-1 p-6 h-screen overflow-y-auto">
@@ -129,21 +127,21 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-<button
-  type="button"
-  onClick={() => setUnreadNotif(0)}
-  className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
-  aria-label="Notifications"
->
-  <Bell className="h-6 w-6 text-gray-700" />
+              <button
+                type="button"
+                onClick={() => setUnreadNotif(0)}
+                className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+                aria-label="Notifications"
+              >
+                <Bell className="h-6 w-6 text-gray-700" />
 
-  {/* Badge unread */}
-  {unreadNotif > 0 && (
-    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-      {unreadNotif}
-    </span>
-  )}
-</button>
+                {/* Badge unread */}
+                {unreadNotif > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+                    {unreadNotif}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
