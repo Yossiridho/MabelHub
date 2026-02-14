@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
 
 type PlanRow = {
   id: string;
@@ -14,25 +14,6 @@ type PlanRow = {
   satuan_kerja: string;
   status: string;
 };
-
-const LS_KEY = "mabelhub_plan_activity_v1";
-
-function loadPlans(): PlanRow[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePlans(plans: PlanRow[]) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(plans));
-  } catch {}
-}
 
 function formatTanggalHeader(yyyyMmDd: string) {
   if (!yyyyMmDd) return "-";
@@ -48,13 +29,29 @@ function toSortKey(yyyyMmDd: string) {
   return yyyyMmDd || "0000-00-00";
 }
 
+async function apiListPlans(): Promise<PlanRow[]> {
+  const res = await fetch("/api/visits", { cache: "no-store" });
+  if (!res.ok) return [];
+  const json = await res.json().catch(() => ({}));
+  return (json?.data ?? []) as PlanRow[];
+}
+
+async function apiDeletePlan(id: string) {
+  const res = await fetch(`/api/visits/${id}`, { method: "DELETE" });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal hapus data");
+  return true;
+}
+
 export default function PlanActivityPage() {
-  const role: Role = "SUPERADMIN";
   const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
   const [search, setSearch] = useState("");
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [openDates, setOpenDates] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   function groupByTanggal(rows: PlanRow[]) {
     return rows.reduce<Record<string, PlanRow[]>>((acc, r) => {
@@ -65,17 +62,42 @@ export default function PlanActivityPage() {
     }, {});
   }
 
+  // Guard role (opsional)
   useEffect(() => {
-    const data = loadPlans();
-    setPlans(data);
+    if (!sessionLoading && user) {
+      const ok =
+        user.role === "SALES" ||
+        user.role === "LEADER" ||
+        user.role === "ADMIN" ||
+        user.role === "SUPERADMIN";
+      if (!ok) router.replace("/");
+    }
+  }, [sessionLoading, user, router]);
 
-    // default: tanggal terbaru terbuka
-    const grouped = groupByTanggal(data);
-    const firstKey = Object.keys(grouped).sort((a, b) =>
-      toSortKey(b).localeCompare(toSortKey(a)),
-    )[0];
+  // load DB
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setErr("");
+      const data = await apiListPlans();
+      if (!mounted) return;
 
-    if (firstKey) setOpenDates({ [firstKey]: true });
+      setPlans(data);
+
+      // default: tanggal terbaru terbuka
+      const grouped = groupByTanggal(data);
+      const firstKey = Object.keys(grouped).sort((a, b) =>
+        toSortKey(b).localeCompare(toSortKey(a)),
+      )[0];
+
+      if (firstKey) setOpenDates({ [firstKey]: true });
+
+      setLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -104,22 +126,23 @@ export default function PlanActivityPage() {
     setOpenDates((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  function deletePlan(id: string) {
-    const next = plans.filter((p) => p.id !== id);
-    setPlans(next);
-    savePlans(next);
+  async function deletePlan(id: string) {
+    try {
+      setErr("");
+      await apiDeletePlan(id);
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+    } catch (e: any) {
+      setErr(e?.message ?? "Gagal hapus");
+    }
   }
 
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* SIDEBAR */}
-        <Sidebar role={role} />
+        <Sidebar />
 
-        {/* CONTENT */}
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
-            {/* HEADER */}
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 <h2 className="text-2xl font-extrabold tracking-wide text-black">
@@ -152,7 +175,6 @@ export default function PlanActivityPage() {
               </div>
             </div>
 
-            {/* ACTIONS */}
             <div className="mb-4 flex justify-end">
               <button
                 onClick={() => router.push("/plan-activity/add")}
@@ -162,9 +184,13 @@ export default function PlanActivityPage() {
               </button>
             </div>
 
-            {/* TABLE WRAPPER */}
+            {err ? (
+              <div className="mb-4 rounded bg-red-100 px-4 py-2 text-sm text-red-700">
+                {err}
+              </div>
+            ) : null}
+
             <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              {/* TABLE HEAD */}
               <div className="grid grid-cols-7 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
                 <div>Tanggal</div>
                 <div>Kota</div>
@@ -175,8 +201,11 @@ export default function PlanActivityPage() {
                 <div className="text-center">Aksi</div>
               </div>
 
-              {/* BODY */}
-              {grouped.keys.length === 0 ? (
+              {loading ? (
+                <div className="px-4 py-12 text-center text-gray-600">
+                  Loading...
+                </div>
+              ) : grouped.keys.length === 0 ? (
                 <div className="px-4 py-12 text-center text-gray-600">
                   Belum ada data.
                 </div>
@@ -187,7 +216,6 @@ export default function PlanActivityPage() {
 
                   return (
                     <div key={dateKey} className="border-t border-black/20">
-                      {/* DATE GROUP ROW */}
                       <button
                         type="button"
                         onClick={() => toggleDate(dateKey)}
@@ -203,7 +231,6 @@ export default function PlanActivityPage() {
                         </span>
                       </button>
 
-                      {/* DROPDOWN ROWS */}
                       {isOpen && (
                         <div>
                           {rows.map((r) => (
@@ -211,7 +238,6 @@ export default function PlanActivityPage() {
                               key={r.id}
                               className="grid grid-cols-7 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
                             >
-                              {/* kolom tanggal dikosongkan */}
                               <div className="opacity-0 select-none">
                                 {r.tanggal}
                               </div>

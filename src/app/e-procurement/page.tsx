@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
 
 type Segment = "RING 1" | "RING 2" | "RING 3" | "RING 4";
 
@@ -24,9 +25,16 @@ function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
 }
 
-const role: Role = "SUPERADMIN";
-
 export default function EProcurementRequestPage() {
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
+  // ✅ Guard (opsional): halaman request biasanya untuk SALES/LEADER
+  useEffect(() => {
+    if (!sessionLoading && user) {
+    }
+  }, [sessionLoading, user, router]);
+
   // ===== Header form state =====
   const [requestor, setRequestor] = useState("");
   const [pemohon, setPemohon] = useState("");
@@ -130,7 +138,7 @@ export default function EProcurementRequestPage() {
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* SIDEBAR */}
-        <Sidebar role={role} />
+        <Sidebar />
 
        <div className="flex-1 p-6 h-screen overflow-y-auto">
 

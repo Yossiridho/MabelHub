@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
 
 type VisitRow = {
   _id: string;
@@ -30,8 +31,6 @@ type VisitRow = {
 function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
 }
-
-const role: Role = "SUPERADMIN";
 
 function formatDateID(iso: string) {
   try {
@@ -79,6 +78,21 @@ function StatusPill({ value }: { value: string }) {
 }
 
 export default function RekapitulasiVisitPage() {
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
+  // ✅ Guard role (opsional, silakan sesuaikan rule aksesmu)
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      const ok =
+        user.role === "SUPERADMIN" ||
+        user.role === "ADMIN" ||
+        user.role === "LEADER" ||
+        user.role === "SALES"; // kalau SALES tidak boleh lihat, hapus baris ini
+      if (!ok) router.replace("/");
+    }
+  }, [sessionLoading, user, router]);
+
   const allRows: VisitRow[] = useMemo(
     () => [
       {
@@ -220,7 +234,8 @@ export default function RekapitulasiVisitPage() {
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex min-h-screen">
-        <Sidebar role={role} />
+        {/* ✅ Sidebar pakai session */}
+        <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* HEADER */}
@@ -491,7 +506,6 @@ export default function RekapitulasiVisitPage() {
                       label="PIC Position"
                       value={selected.pic_position}
                     />
-
                     <DetailItem label="PIC Role" value={selected.pic_role} />
                     <DetailItem
                       label="Tindak Lanjut"
