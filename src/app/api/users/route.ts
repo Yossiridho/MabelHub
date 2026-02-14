@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
   try {
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB || "mabelhub");
+    const db = client.db(process.env.MONGODB_DB || "MabelHub");
     await ensureUserIndexes(db);
 
     const body = await req.json().catch(() => ({}));

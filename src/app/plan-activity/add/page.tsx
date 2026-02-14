@@ -15,32 +15,13 @@ type PlanRow = {
   status: string;
 };
 
-const LS_KEY = "mabelhub_plan_activity_v1";
-
-function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function loadPlans(): PlanRow[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePlans(plans: PlanRow[]) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(plans));
-  } catch {}
+function uidTemp() {
+  return `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function emptyRow(): PlanRow {
   return {
-    id: uid(),
+    id: uidTemp(), // hanya untuk key UI, bukan id DB
     tanggal: "",
     kota: "",
     klpd: "",
@@ -50,6 +31,35 @@ function emptyRow(): PlanRow {
   };
 }
 
+async function apiGetPlan(id: string): Promise<PlanRow | null> {
+  const res = await fetch(`/api/visits/${id}`, { cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  return (json?.data ?? null) as PlanRow | null;
+}
+
+async function apiCreatePlans(items: Omit<PlanRow, "id">[]) {
+  const res = await fetch("/api/visits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal submit");
+  return json;
+}
+
+async function apiUpdatePlan(id: string, patch: Partial<Omit<PlanRow, "id">>) {
+  const res = await fetch(`/api/visits/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal update");
+  return json?.data as PlanRow;
+}
+
 export default function AddPlansPage() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -57,7 +67,6 @@ export default function AddPlansPage() {
 
   const { user, loading: sessionLoading } = useSession();
 
-  // ✅ Guard role (opsional)
   useEffect(() => {
     if (!sessionLoading && user) {
       const ok =
@@ -70,12 +79,28 @@ export default function AddPlansPage() {
   }, [sessionLoading, user, router]);
 
   const [rows, setRows] = useState<PlanRow[]>([emptyRow()]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
 
+  // load edit from DB
   useEffect(() => {
-    if (!editId) return;
-    const plans = loadPlans();
-    const found = plans.find((p) => p.id === editId);
-    if (found) setRows([{ ...found }]);
+    let mounted = true;
+    (async () => {
+      if (!editId) return;
+
+      const found = await apiGetPlan(editId);
+      if (!mounted) return;
+
+      if (found) {
+        setRows([{ ...found }]); // found.id adalah id DB
+      } else {
+        setErr("Data tidak ditemukan.");
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [editId]);
 
   function addCard() {
@@ -90,46 +115,58 @@ export default function AddPlansPage() {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   }
 
-  function submit() {
-    const cleaned = rows.filter(
-      (r) =>
-        r.tanggal ||
-        r.kota ||
-        r.klpd ||
-        r.institusi_kerja ||
-        r.satuan_kerja ||
-        r.status,
-    );
+  async function submit() {
+    try {
+      setErr("");
+      setSaving(true);
 
-    // ✅ amanin kalau user klik submit tapi semua kosong
-    if (cleaned.length === 0) {
+      const cleaned = rows
+        .map((r) => ({
+          tanggal: r.tanggal,
+          kota: r.kota,
+          klpd: r.klpd,
+          institusi_kerja: r.institusi_kerja,
+          satuan_kerja: r.satuan_kerja,
+          status: r.status,
+        }))
+        .filter(
+          (r) =>
+            r.tanggal ||
+            r.kota ||
+            r.klpd ||
+            r.institusi_kerja ||
+            r.satuan_kerja ||
+            r.status,
+        );
+
+      if (cleaned.length === 0) {
+        router.push("/plan-activity");
+        return;
+      }
+
+      if (editId) {
+        // hanya update 1 row (sesuai UI edit)
+        await apiUpdatePlan(editId, cleaned[0]);
+      } else {
+        // bulk insert
+        await apiCreatePlans(cleaned);
+      }
+
       router.push("/plan-activity");
-      return;
+    } catch (e: any) {
+      setErr(e?.message ?? "Gagal submit");
+    } finally {
+      setSaving(false);
     }
-
-    const existing = loadPlans();
-
-    if (editId) {
-      const next = existing.map((p) =>
-        p.id === editId ? { ...cleaned[0], id: editId } : p,
-      );
-      savePlans(next);
-    } else {
-      savePlans([...cleaned, ...existing]);
-    }
-
-    router.push("/plan-activity");
   }
 
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* ✅ sidebar dari session */}
         <Sidebar />
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
-            {/* TOP BAR */}
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
@@ -152,7 +189,12 @@ export default function AddPlansPage() {
               </button>
             </div>
 
-            {/* CARDS */}
+            {err ? (
+              <div className="mb-4 rounded bg-red-100 px-4 py-2 text-sm text-red-700">
+                {err}
+              </div>
+            ) : null}
+
             <div className="space-y-6">
               {rows.map((r, idx) => (
                 <div
@@ -163,7 +205,7 @@ export default function AddPlansPage() {
                     {idx + 1}
                   </div>
 
-                  {rows.length > 1 && (
+                  {!editId && rows.length > 1 && (
                     <button
                       onClick={() => removeCard(r.id)}
                       className="absolute right-6 top-6 text-xl font-black text-black/80 hover:text-black"
@@ -173,7 +215,6 @@ export default function AddPlansPage() {
                     </button>
                   )}
 
-                  {/* form layout */}
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="md:col-span-2 grid grid-cols-1 gap-6 md:grid-cols-2 md:items-end">
                       <div className="md:pl-16">
@@ -280,21 +321,22 @@ export default function AddPlansPage() {
               ))}
             </div>
 
-            {/* FOOTER BUTTONS */}
             {!editId && (
               <div className="mt-6 flex items-center justify-between">
                 <button
                   onClick={addCard}
-                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                  disabled={saving}
+                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
                 >
                   TAMBAH VISIT
                 </button>
 
                 <button
                   onClick={submit}
-                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                  disabled={saving}
+                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  SUBMIT
+                  {saving ? "SUBMIT..." : "SUBMIT"}
                 </button>
               </div>
             )}
@@ -303,15 +345,17 @@ export default function AddPlansPage() {
               <div className="mt-6 flex items-center justify-end gap-3">
                 <button
                   onClick={() => router.push("/plan-activity")}
-                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                  disabled={saving}
+                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
                 >
                   BATAL
                 </button>
                 <button
                   onClick={submit}
-                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                  disabled={saving}
+                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  SIMPAN
+                  {saving ? "SIMPAN..." : "SIMPAN"}
                 </button>
               </div>
             )}

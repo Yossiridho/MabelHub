@@ -61,7 +61,7 @@ export async function PUT(
 
   try {
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB || "mabelhub");
+    const db = client.db(process.env.MONGODB_DB || "MabelHub");
     await ensureUserIndexes(db);
 
     const body = await req.json().catch(() => ({}));
@@ -163,7 +163,7 @@ export async function DELETE(
 
   try {
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB || "mabelhub");
+    const db = client.db(process.env.MONGODB_DB || "MabelHub");
     await ensureUserIndexes(db);
 
     const deleted = await db
