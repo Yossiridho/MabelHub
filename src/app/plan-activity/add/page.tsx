@@ -423,42 +423,6 @@ export default function AddPlansPage() {
                         className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
-
-                    <div>
-                      <label className="text-sm">Nama PIC</label>
-                      <input
-                        value={it.pic_default.nama}
-                        readOnly
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm">No Telepon PIC</label>
-                      <input
-                        value={it.pic_default.no_telp}
-                        readOnly
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm">Jabatan PIC</label>
-                      <input
-                        value={it.pic_default.jabatan}
-                        readOnly
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm">Role PIC</label>
-                      <input
-                        value={it.pic_default.role}
-                        readOnly
-                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
-                      />
-                    </div>
                   </div>
                 </div>
               ))}
@@ -493,8 +457,6 @@ export default function AddPlansPage() {
         onClose={() => setOpenReg(false)}
         role={user?.role || "SALES"}
         onSuccess={() => {
-          // opsional: kalau mau refresh suggestion setelah request dibuat
-          // contoh: fetchSuggestion(itemId, currentQuery)
         }}
       />
     </div>
