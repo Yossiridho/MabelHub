@@ -9,7 +9,7 @@ import { Role } from "@/lib/menu";
 
 export default function RegisterCompanyPage() {
   const router = useRouter();
-  const role: Role = "USER";
+  const role: Role = "SALES";
 
   const [form, setForm] = useState({
     institusi_kerja: "",
@@ -59,7 +59,7 @@ export default function RegisterCompanyPage() {
   return (
     <div className="min-h-screen bg-[#d9d9d9]">
       <div className="flex">
-        <Sidebar role={role} />
+        <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <main className="mx-auto max-w-4xl rounded-2xl bg-[#f5efef] p-8 ring-1 ring-black/10">

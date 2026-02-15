@@ -46,7 +46,7 @@ async function ensureUserIndexes(db: any) {
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const gate = assertSuperadmin(req);
   if (!gate.ok) {
@@ -137,7 +137,7 @@ export async function PUT(
       const keys = Object.keys(e?.keyPattern ?? {});
       return NextResponse.json(
         { error: `Duplicate: ${keys.join(", ")}` },
-        { status: 409 },
+        { status: 409 }
       );
     }
     return NextResponse.json(
@@ -149,7 +149,7 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const gate = assertSuperadmin(req);
   if (!gate.ok) {

@@ -2,95 +2,189 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-function toYmd(d: any) {
-  try {
-    const dt = new Date(d);
-    if (Number.isNaN(dt.getTime())) return "";
-    return dt.toISOString().slice(0, 10);
-  } catch {
-    return "";
-  }
+function clamp(n: number, min: number, max: number) {
+  return Math.min(Math.max(n, min), max);
 }
 
-function mapDoc(doc: any) {
-  return {
-    id: String(doc._id),
-    tanggal: doc.visit_date ? toYmd(doc.visit_date) : "",
-    kota: doc.city ?? "",
-    klpd: doc.klpd ?? "",
-    institusi_kerja: doc.institusi_kerja ?? "",
-    satuan_kerja: doc.satuan_kerja ?? "",
-    status: doc.status_visit ?? "",
-  };
+// ubah "2025-12-03" => "3-Dec-2025"
+function toVisitDateStr(yyyyMmDd: string) {
+  const d = new Date(yyyyMmDd);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = d.getDate(); // tanpa leading zero
+  const mon = d.toLocaleString("en-US", { month: "short" }); // Dec
+  const year = d.getFullYear();
+  return `${day}-${mon}-${year}`;
+}
+
+// ubah Date => "YYYY-MM-DD HH:mm:ss"
+function toCreatedAtStr(dt: Date) {
+  const pad = (x: number) => String(x).padStart(2, "0");
+  const y = dt.getFullYear();
+  const m = pad(dt.getMonth() + 1);
+  const d = pad(dt.getDate());
+  const hh = pad(dt.getHours());
+  const mm = pad(dt.getMinutes());
+  const ss = pad(dt.getSeconds());
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
 }
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") || "").trim().toLowerCase();
+
+  const limit = clamp(Number(searchParams.get("limit") || 25), 1, 100);
+  const page = Math.max(Number(searchParams.get("page") || 1), 1);
+  const skip = (page - 1) * limit;
+
+  const q = String(searchParams.get("q") || "").trim();
 
   const client = await clientPromise;
-  const db = client.db("MabelHub");
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
   const col = db.collection("VisitActivity");
 
-  const filter: any = {};
+  const match: any = {};
   if (q) {
-    // native simple search (case-insensitive)
-    filter.$or = [
-      { city: { $regex: q, $options: "i" } },
-      { klpd: { $regex: q, $options: "i" } },
-      { institusi_kerja: { $regex: q, $options: "i" } },
-      { satuan_kerja: { $regex: q, $options: "i" } },
-      { status_visit: { $regex: q, $options: "i" } },
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    match.$or = [
+      { visit_date: rx },
+      { city: rx },
+      { klpd: rx },
+      { institusi_kerja: rx },
+      { satuan_kerja: rx },
+      { status_visit: rx },
+      { nama_sales: rx },
     ];
   }
 
-  const items = await col
-    .find(filter, {
-      projection: {
-        visit_date: 1,
-        city: 1,
-        klpd: 1,
-        institusi_kerja: 1,
-        satuan_kerja: 1,
-        status_visit: 1,
+  const pipeline: any[] = [
+    { $match: match },
+    {
+      $addFields: {
+        __visitDate: {
+          $dateFromString: {
+            dateString: "$visit_date",
+            format: "%d-%b-%Y",
+            onError: null,
+            onNull: null,
+          },
+        },
+        __createdAt: {
+          $dateFromString: {
+            dateString: "$created_at",
+            format: "%Y-%m-%d %H:%M:%S",
+            onError: null,
+            onNull: null,
+          },
+        },
       },
-    })
-    .sort({ visit_date: -1, createdAt: -1 })
-    .limit(500)
-    .toArray();
+    },
+    { $sort: { __visitDate: -1, __createdAt: -1, _id: -1 } },
+    {
+      $facet: {
+        items: [
+          { $skip: skip },
+          { $limit: limit },
+          { $project: { __visitDate: 0, __createdAt: 0 } },
+        ],
+        total: [{ $count: "count" }],
+      },
+    },
+  ];
 
-  return NextResponse.json({ data: items.map(mapDoc) });
+  const agg = await col.aggregate(pipeline).toArray();
+  const first = agg?.[0] || { items: [], total: [] };
+
+  const itemsRaw = Array.isArray(first.items) ? first.items : [];
+  const total = Number(first.total?.[0]?.count || 0);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const items = itemsRaw.map((it: any) => ({ ...it, _id: String(it._id) }));
+
+  return NextResponse.json({
+    items,
+    pagination: { total, page, limit, totalPages },
+  });
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const items = Array.isArray(body?.items) ? body.items : [];
+  try {
+    const body = await req.json().catch(() => ({}));
 
-  if (!items.length) {
-    return NextResponse.json({ error: "items wajib diisi" }, { status: 400 });
+    // input dari add plans
+    const tanggal = String(body?.tanggal || "").trim(); // yyyy-mm-dd
+    const status_ring = String(body?.status_ring || "").trim();
+    const institusi_kerja = String(body?.institusi_kerja || "").trim();
+    const kota_kab = String(body?.kota_kab || "").trim();
+    const klpd = String(body?.klpd || "").trim();
+    const satuan_kerja = String(body?.satuan_kerja || "").trim();
+
+    // dari session (pakai userId, bukan _id)
+    const createdBy = String(body?.createdBy || "").trim();
+
+    if (!tanggal || !status_ring || !institusi_kerja || !kota_kab || !klpd || !satuan_kerja) {
+      return NextResponse.json(
+        { error: "Field wajib: tanggal, status_ring, institusi_kerja, kota_kab, klpd, satuan_kerja" },
+        { status: 400 },
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB || "MabelHub");
+    const visits = db.collection("VisitActivity");
+    const users = db.collection("users");
+
+    // ambil nama_sales dari users.fullName
+    let nama_sales: string | null = null;
+    if (createdBy && ObjectId.isValid(createdBy)) {
+      const u = await users.findOne(
+        { _id: new ObjectId(createdBy) },
+        { projection: { fullName: 1 } },
+      );
+      nama_sales = (u as any)?.fullName ?? null;
+    }
+
+    // generate incremental field `id` (angka)
+    const last = await visits.find({}, { projection: { id: 1 } }).sort({ id: -1 }).limit(1).toArray();
+    const nextId = Number((last?.[0] as any)?.id || 0) + 1;
+
+    const now = new Date();
+
+    // bentuk dokumen sesuai struktur yang kamu mau
+    const doc = {
+      id: nextId,
+      user_id: createdBy || null,               // kamu minta user_id, jadi isi string userId dulu
+      visit_date: toVisitDateStr(tanggal),      // "3-Dec-2025"
+      city: kota_kab,                           // contoh "Kota Bandung"
+      klpd,
+      institusi_kerja,
+      satuan_kerja,
+
+      // PIC dari company (kalau ada)
+      pic_name: body?.pic_default?.nama ?? null,
+      pic_phone: body?.pic_default?.no_telp ?? null,
+      pic_position: body?.pic_default?.jabatan ?? null,
+      pic_role: body?.pic_default?.role ?? null,
+
+      // field lain: null dulu (nanti di edit)
+      created_at: toCreatedAtStr(now),
+      visit_image: null,
+      status_visit: null,
+      status_market: null,
+      descriptions: null,
+      tindak_lanjut: null,
+      kegiatan_status: null,
+      no_visit_per_month: null,
+
+      status_ring,
+      nama_sales: nama_sales ?? null,
+    };
+
+    const ins = await visits.insertOne(doc as any);
+
+    return NextResponse.json(
+      { ok: true, data: { ...doc, _id: String(ins.insertedId) } },
+      { status: 201 },
+    );
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? "Gagal menyimpan" }, { status: 500 });
   }
-
-  const now = new Date();
-
-  // insert ke field yg sesuai model VisitActivity
-  const docs = items.map((it: any) => ({
-    visit_date: it.tanggal ? new Date(it.tanggal) : null,
-    city: String(it.kota ?? ""),
-    klpd: String(it.klpd ?? ""),
-    institusi_kerja: String(it.institusi_kerja ?? ""),
-    satuan_kerja: String(it.satuan_kerja ?? ""),
-    status_visit: String(it.status ?? ""),
-    created_at: now, // field model kamu
-  }));
-
-  const client = await clientPromise;
-  const db = client.db("MabelHub");
-  const col = db.collection("VisitActivity");
-
-  const result = await col.insertMany(docs);
-
-  return NextResponse.json(
-    { ok: true, insertedIds: Object.values(result.insertedIds).map(String) },
-    { status: 201 },
-  );
 }

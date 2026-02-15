@@ -120,7 +120,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-white px-4 text-sm text-black outline-none",
+        "h-11 w-full rounded-xl bg-white px-4 text-md text-black outline-none",
         "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
         props.className || "",
       )}
@@ -133,7 +133,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-white px-4 text-sm text-black outline-none",
+        "h-11 w-full rounded-xl bg-white px-4 text-sm text-gray-500 outline-none",
         "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
         props.className || "",
       )}
@@ -157,7 +157,7 @@ function PrimaryButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-6 text-sm font-extrabold tracking-wide",
+        "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
         "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
         "disabled:opacity-50 disabled:hover:bg-white",
         className || "",
@@ -184,7 +184,7 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-sm font-extrabold tracking-wide text-white",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
         "bg-black hover:bg-black/90",
         "disabled:opacity-50",
         className || "",
@@ -495,7 +495,7 @@ export default function InstansiPage() {
             {/* Table */}
             <div className="mt-6 overflow-hidden rounded-2xl bg-white ring-1 ring-blue-200 ">
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
+                <table className="min-w-full text-md">
                   <thead className="bg-blue-200 text-black ring-2 ring-blue-300">
                     <tr>
                       {[
@@ -527,7 +527,7 @@ export default function InstansiPage() {
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-sm"
+                          className="px-4 py-12 text-center text-md"
                         >
                           Loading...
                         </td>
@@ -584,7 +584,7 @@ export default function InstansiPage() {
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-sm text-black/60"
+                          className="px-4 py-12 text-center text-md text-black/60"
                         >
                           Tidak ada data.
                         </td>
@@ -596,7 +596,7 @@ export default function InstansiPage() {
 
               {/* Pagination Bar */}
               <div className="flex flex-col gap-3 border-t border-black/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-xs text-black/60">
+                <div className="text-md text-gray-500">
                   Menampilkan{" "}
                   <b className="text-black">
                     {(page - 1) * limit + 1} - {Math.min(page * limit, resp?.total ?? 0)}
@@ -624,7 +624,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage(1)}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
                       title="First"
                     >
                       ⏮
@@ -632,20 +632,20 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
                       title="Prev"
                     >
                       ◀
                     </button>
 
-                    <div className="px-8 py-8 text-lg font-bold text-black">
+                    <div className="px-8 py-8 text-md font-extrabold text-gray-500 whitespace-nowrap">
                       {page} / {totalPages}
                     </div>
 
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
                       title="Next"
                     >
                       ▶
@@ -653,7 +653,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
                       title="Last"
                     >
                       ⏭
@@ -676,7 +676,7 @@ export default function InstansiPage() {
         subtitle="Tambah instansi langsung APPROVED (khusus SUPER ADMIN)."
         widthClass="max-w-5xl"
       >
-        <div className="text-sm">
+        <div className="text-md">
           <div className="grid grid-cols-1 gap-4">
             <Field label="NAMA INSTITUSI">
               <Input
@@ -792,10 +792,10 @@ export default function InstansiPage() {
         onClose={() => setOpenPending(false)}
         title="REQUEST PENDING"
         subtitle="Daftar instansi dari USER/LEADER yang menunggu persetujuan."
-        widthClass="max-w-6xl"
+        widthClass="item-center max-w-8xl"
       >
         {pendingLoading ? (
-          <div className="py-12 text-center text-sm text-black/60">Loading...</div>
+          <div className="py-12 text-center text-md text-black/60">Loading...</div>
         ) : pending.length === 0 ? (
           <div className="py-12 text-center text-sm text-black/60">
             Tidak ada request pending.
@@ -803,7 +803,7 @@ export default function InstansiPage() {
         ) : (
           <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-md">
                 <thead className="bg-white">
                   <tr>
                     {[
@@ -833,7 +833,7 @@ export default function InstansiPage() {
                     <tr key={p._id} className="border-t border-black/10">
                       <td className="px-4 py-4">{p.kota_kab ?? "-"}</td>
                       <td className="px-4 py-4">{p.klpd ?? "-"}</td>
-                      <td className="px-4 py-4 font-semibold">{p.institusi_kerja ?? "-"}</td>
+                      <td className="px-4 py-4">{p.institusi_kerja ?? "-"}</td>
                       <td className="px-4 py-4">{p.satuan_kerja ?? "-"}</td>
                       <td className="px-4 py-4">{p.pic_default?.nama ?? "-"}</td>
                       <td className="px-4 py-4">{p.pic_default?.no_telp ?? "-"}</td>

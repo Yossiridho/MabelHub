@@ -1,72 +1,80 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import RegisterCompanyModal from "@/components/modals/RegisterCompanyModal";
 
-type PlanRow = {
-  id: string;
-  tanggal: string;
-  kota: string;
-  klpd: string;
+type Company = {
+  _id: string;
   institusi_kerja: string;
+  kota_kab: string;
+  klpd: string;
   satuan_kerja: string;
-  status: string;
+  status_ring?: string;
+  pic_default?: {
+    nama?: string;
+    no_telp?: string;
+    jabatan?: string;
+    role?: string;
+  };
 };
 
-function uidTemp() {
-  return `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+type PlanItem = {
+  id: string; // local id untuk render
+  status_ring: string;
+  institusiQuery: string;
+  selectedCompany: Company | null;
 
-function emptyRow(): PlanRow {
+  kota_kab: string;
+  klpd: string;
+  satuan_kerja: string;
+
+  pic_default: {
+    nama: string;
+    no_telp: string;
+    jabatan: string;
+    role: string;
+  };
+
+  showSug: boolean;
+  loadingSug: boolean;
+  sugs: Company[];
+};
+
+function newItem(): PlanItem {
   return {
-    id: uidTemp(), // hanya untuk key UI, bukan id DB
-    tanggal: "",
-    kota: "",
+    id: crypto.randomUUID(),
+    status_ring: "",
+    institusiQuery: "",
+    selectedCompany: null,
+
+    kota_kab: "",
     klpd: "",
-    institusi_kerja: "",
     satuan_kerja: "",
-    status: "",
+
+    pic_default: {
+      nama: "",
+      no_telp: "",
+      jabatan: "",
+      role: "",
+    },
+
+    showSug: false,
+    loadingSug: false,
+    sugs: [],
   };
 }
 
-async function apiGetPlan(id: string): Promise<PlanRow | null> {
-  const res = await fetch(`/api/visits/${id}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  const json = await res.json().catch(() => ({}));
-  return (json?.data ?? null) as PlanRow | null;
-}
-
-async function apiCreatePlans(items: Omit<PlanRow, "id">[]) {
-  const res = await fetch("/api/visits", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items }),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.error ?? "Gagal submit");
-  return json;
-}
-
-async function apiUpdatePlan(id: string, patch: Partial<Omit<PlanRow, "id">>) {
-  const res = await fetch(`/api/visits/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.error ?? "Gagal update");
-  return json?.data as PlanRow;
-}
-
 export default function AddPlansPage() {
+  const [openReg, setOpenReg] = useState(false);
   const router = useRouter();
   const sp = useSearchParams();
-  const editId = sp.get("edit");
-
+  const editId = sp.get("edit"); // kalau edit single (nanti), sekarang fokus add multi
   const { user, loading: sessionLoading } = useSession();
 
+  // Guard
   useEffect(() => {
     if (!sessionLoading && user) {
       const ok =
@@ -78,83 +86,142 @@ export default function AddPlansPage() {
     }
   }, [sessionLoading, user, router]);
 
-  const [rows, setRows] = useState<PlanRow[]>([emptyRow()]);
+  // ====== tanggal cuma 1 ======
+  const [tanggal, setTanggal] = useState("");
+
+  // ====== banyak plan item ======
+  const [items, setItems] = useState<PlanItem[]>([newItem()]);
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
 
-  // load edit from DB
+  // NOTE: sekarang belum handle edit multi (lebih kompleks).
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!editId) return;
-
-      const found = await apiGetPlan(editId);
-      if (!mounted) return;
-
-      if (found) {
-        setRows([{ ...found }]); // found.id adalah id DB
-      } else {
-        setErr("Data tidak ditemukan.");
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
+    if (editId) {
+      // untuk edit plan single, sebaiknya kamu pakai page terpisah /plan-activity/edit/[id]
+      // biar tidak bentrok dengan bulk mode.
+    }
   }, [editId]);
 
-  function addCard() {
-    setRows((prev) => [...prev, emptyRow()]);
+  function addItem() {
+    setItems((prev) => [...prev, newItem()]);
   }
 
-  function removeCard(id: string) {
-    setRows((prev) => prev.filter((r) => r.id !== id));
+  function removeItem(id: string) {
+    setItems((prev) => prev.filter((x) => x.id !== id));
   }
 
-  function patchRow(id: string, patch: Partial<PlanRow>) {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  function patchItem(id: string, updates: Partial<PlanItem>) {
+    setItems((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, ...updates } : x)),
+    );
   }
 
-  async function submit() {
+  function resetCompanyFields(id: string) {
+    patchItem(id, {
+      selectedCompany: null,
+      institusiQuery: "",
+      sugs: [],
+      showSug: false,
+      kota_kab: "",
+      klpd: "",
+      satuan_kerja: "",
+      pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
+    } as any);
+  }
+
+  function pickCompany(id: string, c: Company) {
+    patchItem(id, {
+      selectedCompany: c,
+      institusiQuery: c.institusi_kerja,
+      showSug: false,
+      kota_kab: c.kota_kab || "",
+      klpd: c.klpd || "",
+      satuan_kerja: c.satuan_kerja || "",
+      pic_default: {
+        nama: c.pic_default?.nama || "",
+        no_telp: c.pic_default?.no_telp || "",
+        jabatan: c.pic_default?.jabatan || "",
+        role: c.pic_default?.role || "",
+      },
+    });
+  }
+
+  async function fetchSuggestion(itemId: string, q: string) {
+    const it = items.find((x) => x.id === itemId);
+    if (!it?.status_ring) return;
+
     try {
-      setErr("");
-      setSaving(true);
+      patchItem(itemId, { loadingSug: true, showSug: true });
 
-      const cleaned = rows
-        .map((r) => ({
-          tanggal: r.tanggal,
-          kota: r.kota,
-          klpd: r.klpd,
-          institusi_kerja: r.institusi_kerja,
-          satuan_kerja: r.satuan_kerja,
-          status: r.status,
-        }))
-        .filter(
-          (r) =>
-            r.tanggal ||
-            r.kota ||
-            r.klpd ||
-            r.institusi_kerja ||
-            r.satuan_kerja ||
-            r.status,
-        );
+      const qs = new URLSearchParams({
+        ring: it.status_ring,
+        q: q || "",
+        limit: "10",
+      });
 
-      if (cleaned.length === 0) {
-        router.push("/plan-activity");
+      const res = await fetch(`/api/companies/suggest?${qs.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        patchItem(itemId, { sugs: [], loadingSug: false });
         return;
       }
 
-      if (editId) {
-        // hanya update 1 row (sesuai UI edit)
-        await apiUpdatePlan(editId, cleaned[0]);
-      } else {
-        // bulk insert
-        await apiCreatePlans(cleaned);
+      const data = await res.json().catch(() => ({}));
+      patchItem(itemId, {
+        sugs: (data?.items ?? []) as Company[],
+        loadingSug: false,
+      });
+    } catch {
+      patchItem(itemId, { sugs: [], loadingSug: false });
+    }
+  }
+
+  const canSubmit = useMemo(() => {
+    if (!tanggal) return false;
+    if (!items.length) return false;
+
+    // tiap item minimal ring + institusi (dan sebaiknya dipilih dari suggestion -> selectedCompany)
+    return items.every((it) => Boolean(it.status_ring && it.institusiQuery));
+  }, [tanggal, items]);
+
+  async function submitAll() {
+    if (!canSubmit) {
+      alert("Tanggal wajib, dan setiap plan wajib punya Ring + Institusi.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const payload = {
+        tanggal, // yyyy-mm-dd
+        createdBy: user?.userId || null, // ✅ pakai userId dari SessionProvider
+        nama_sales: user?.fullName || null, // ✅ fullName jadi nama_sales
+        items: items.map((it) => ({
+          status_ring: it.status_ring,
+          institusi_kerja: it.institusiQuery,
+          kota_kab: it.kota_kab,
+          klpd: it.klpd,
+          satuan_kerja: it.satuan_kerja,
+          pic_default: it.pic_default,
+        })),
+      };
+
+      const res = await fetch("/api/visits/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || "Gagal menyimpan");
+        return;
       }
 
+      alert("Plan berhasil disimpan ke database");
       router.push("/plan-activity");
-    } catch (e: any) {
-      setErr(e?.message ?? "Gagal submit");
     } finally {
       setSaving(false);
     }
@@ -181,139 +248,179 @@ export default function AddPlansPage() {
                 </h1>
               </div>
 
-              <button
-                type="button"
-                className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-white"
-              >
-                REGISTER COMPANY
-              </button>
+              {/* tombol register company untuk SALES (sesuai kode kamu sebelumnya) */}
+              {user?.role === "SALES" && (
+                <button
+                  type="button"
+                  onClick={() => setOpenReg(true)}
+                  className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                >
+                  Register Company
+                </button>
+              )}
             </div>
 
-            {err ? (
-              <div className="mb-4 rounded bg-red-100 px-4 py-2 text-sm text-red-700">
-                {err}
-              </div>
-            ) : null}
+            {/* TANGGAL cuma 1 */}
+            <div className="mb-6 rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10">
+              <label className="text-sm">Tanggal (1 untuk semua plan)</label>
+              <input
+                type="date"
+                value={tanggal}
+                onChange={(e) => setTanggal(e.target.value)}
+                className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
+              />
+            </div>
 
-            <div className="space-y-6">
-              {rows.map((r, idx) => (
+            {/* LIST ITEM */}
+            <div className="space-y-5">
+              {items.map((it, idx) => (
                 <div
-                  key={r.id}
-                  className="relative rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/10"
+                  key={it.id}
+                  className="rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10 relative"
                 >
-                  <div className="absolute left-6 top-6 grid h-10 w-10 place-items-center rounded-full bg-white text-sm font-bold text-gray-700">
-                    {idx + 1}
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="font-extrabold text-black">
+                      PLAN #{idx + 1}
+                    </div>
+
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(it.id)}
+                        className="text-sm font-bold text-red-700 hover:underline"
+                      >
+                        Hapus Plan
+                      </button>
+                    )}
                   </div>
 
-                  {!editId && rows.length > 1 && (
-                    <button
-                      onClick={() => removeCard(r.id)}
-                      className="absolute right-6 top-6 text-xl font-black text-black/80 hover:text-black"
-                      aria-label="Remove"
-                    >
-                      ×
-                    </button>
-                  )}
-
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="md:col-span-2 grid grid-cols-1 gap-6 md:grid-cols-2 md:items-end">
-                      <div className="md:pl-16">
-                        <label className="text-sm text-black">Tanggal</label>
-                        <div className="relative mt-2">
-                          <input
-                            type="date"
-                            value={r.tanggal}
-                            onChange={(e) =>
-                              patchRow(r.id, { tanggal: e.target.value })
-                            }
-                            className="h-11 w-full rounded-xl bg-white px-4 pr-10 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
-                            <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                            >
-                              <path
-                                d="M7 3v2M17 3v2M4 9h16M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-sm text-black">
-                          Status Segmen
-                        </label>
-                        <div className="relative mt-2">
-                          <select
-                            value={r.status}
-                            onChange={(e) =>
-                              patchRow(r.id, { status: e.target.value })
-                            }
-                            className="h-11 w-full appearance-none rounded-xl bg-white px-4 pr-10 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                          >
-                            <option value="">Pilih...</option>
-                            <option value="VISITED">VISITED</option>
-                            <option value="VISIT">VISIT</option>
-                            <option value="NOT VISITED">NOT VISITED</option>
-                          </select>
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-700">
-                            ▾
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="md:pl-16">
-                      <label className="text-sm text-black">Satuan Kerja</label>
-                      <input
-                        value={r.satuan_kerja}
-                        onChange={(e) =>
-                          patchRow(r.id, { satuan_kerja: e.target.value })
-                        }
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                      />
-                    </div>
-
+                    {/* RING */}
                     <div>
-                      <label className="text-sm text-black">K/L/PD</label>
-                      <input
-                        value={r.klpd}
-                        onChange={(e) =>
-                          patchRow(r.id, { klpd: e.target.value })
-                        }
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                      />
+                      <label className="text-sm">Status Ring</label>
+                      <select
+                        value={it.status_ring}
+                        onChange={(e) => {
+                          patchItem(it.id, { status_ring: e.target.value });
+                          resetCompanyFields(it.id);
+                        }}
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
+                      >
+                        <option value="">Pilih...</option>
+                        <option value="RING 1">RING 1</option>
+                        <option value="RING 2">RING 2</option>
+                        <option value="RING 3">RING 3</option>
+                        <option value="RING 4">RING 4</option>
+                      </select>
                     </div>
 
-                    <div className="md:pl-16">
-                      <label className="text-sm text-black">
-                        Institusi Kerja
+                    <div />
+
+                    {/* Institusi autocomplete */}
+                    <div className="md:col-span-2">
+                      <label className="text-sm">
+                        Institusi (approved sesuai ring)
                       </label>
+
+                      <div className="relative mt-2">
+                        <input
+                          value={it.institusiQuery}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            patchItem(it.id, {
+                              institusiQuery: val,
+                              showSug: true,
+                            });
+                            if (it.status_ring) fetchSuggestion(it.id, val);
+                          }}
+                          onFocus={() => {
+                            if (it.status_ring)
+                              fetchSuggestion(it.id, it.institusiQuery);
+                          }}
+                          disabled={!it.status_ring}
+                          placeholder={
+                            !it.status_ring
+                              ? "Pilih Ring dulu"
+                              : "Ketik nama institusi..."
+                          }
+                          className="h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none disabled:bg-gray-100"
+                        />
+
+                        {it.showSug && it.status_ring && (
+                          <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl bg-white shadow ring-1 ring-black/10">
+                            {it.loadingSug ? (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                Loading...
+                              </div>
+                            ) : it.sugs.length === 0 ? (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                Tidak ada instansi approved untuk ring ini.
+                              </div>
+                            ) : (
+                              it.sugs.map((c) => (
+                                <button
+                                  key={c._id}
+                                  type="button"
+                                  onClick={() => pickCompany(it.id, c)}
+                                  className="block w-full px-4 py-3 text-left text-sm hover:bg-gray-50"
+                                >
+                                  <div className="font-semibold">
+                                    {c.institusi_kerja}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {c.satuan_kerja} • {c.kota_kab} • {c.klpd}
+                                  </div>
+                                </button>
+                              ))
+                            )}
+
+                            <div className="flex items-center justify-between border-t px-3 py-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  patchItem(it.id, { showSug: false })
+                                }
+                                className="rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                              >
+                                Tutup
+                              </button>
+
+                              <div className="text-xs text-gray-500">
+                                {it.selectedCompany
+                                  ? "Dipilih ✓"
+                                  : "Belum dipilih"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Autofill */}
+                    <div>
+                      <label className="text-sm">Kota/Kabupaten</label>
                       <input
-                        value={r.institusi_kerja}
-                        onChange={(e) =>
-                          patchRow(r.id, { institusi_kerja: e.target.value })
-                        }
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        value={it.kota_kab}
+                        readOnly
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="text-sm text-black">Kota</label>
+                      <label className="text-sm">KLPD</label>
                       <input
-                        value={r.kota}
-                        onChange={(e) =>
-                          patchRow(r.id, { kota: e.target.value })
-                        }
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        value={it.klpd}
+                        readOnly
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="text-sm">Satuan Kerja</label>
+                      <input
+                        value={it.satuan_kerja}
+                        readOnly
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
                   </div>
@@ -321,49 +428,37 @@ export default function AddPlansPage() {
               ))}
             </div>
 
-            {!editId && (
-              <div className="mt-6 flex items-center justify-between">
-                <button
-                  onClick={addCard}
-                  disabled={saving}
-                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  TAMBAH VISIT
-                </button>
+            {/* ACTIONS BOTTOM */}
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={addItem}
+                className="h-11 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+              >
+                + Tambah Plan
+              </button>
 
-                <button
-                  onClick={submit}
-                  disabled={saving}
-                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  {saving ? "SUBMIT..." : "SUBMIT"}
-                </button>
-              </div>
-            )}
-
-            {editId && (
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <button
-                  onClick={() => router.push("/plan-activity")}
-                  disabled={saving}
-                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  BATAL
-                </button>
-                <button
-                  onClick={submit}
-                  disabled={saving}
-                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  {saving ? "SIMPAN..." : "SIMPAN"}
-                </button>
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={submitAll}
+                disabled={!canSubmit || saving}
+                className="h-12 w-56 rounded-full bg-gray-300 text-base font-extrabold ring-1 ring-black/10 hover:bg-gray-200 disabled:opacity-50"
+              >
+                {saving ? "SAVING..." : "SUBMIT"}
+              </button>
+            </div>
 
             <div className="h-10" />
           </main>
         </div>
       </div>
+      <RegisterCompanyModal
+        open={openReg}
+        onClose={() => setOpenReg(false)}
+        role={user?.role || "SALES"}
+        onSuccess={() => {
+        }}
+      />
     </div>
   );
 }
