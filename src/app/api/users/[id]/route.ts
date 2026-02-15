@@ -27,6 +27,11 @@ function normalizeRole(role: string): UserRole | null {
   return null;
 }
 
+// helper: params bisa object atau Promise
+async function getParams<T>(p: T | Promise<T>) {
+  return await Promise.resolve(p);
+}
+
 // (opsional) ensure index unik supaya duplicate tertangkap konsisten
 declare global {
   // eslint-disable-next-line no-var
@@ -44,20 +49,21 @@ async function ensureUserIndexes(db: any) {
   await global.__mabel_users_indexes_promise;
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
+type Ctx = { params: { id: string } } | { params: Promise<{ id: string }> };
+
+export async function PUT(req: Request, context: Ctx) {
   const gate = assertSuperadmin(req);
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
 
+  const { id } = await getParams(context.params);
+
   // validasi ObjectId
-  if (!ObjectId.isValid(params.id)) {
+  if (!ObjectId.isValid(id)) {
     return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
-  const _id = new ObjectId(params.id);
+  const _id = new ObjectId(id);
 
   try {
     const client = await clientPromise;
@@ -112,9 +118,7 @@ export async function PUT(
       { $set },
       {
         returnDocument: "after",
-        projection: {
-          passwordHash: 0, // jangan kirim hash
-        },
+        projection: { passwordHash: 0 }, // jangan kirim hash
       },
     );
 
@@ -132,7 +136,6 @@ export async function PUT(
       },
     });
   } catch (e: any) {
-    // duplicate key
     if (e?.code === 11000) {
       const keys = Object.keys(e?.keyPattern ?? {});
       return NextResponse.json(
@@ -147,34 +150,31 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(req: Request, context: any) {
   const gate = assertSuperadmin(req);
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
 
-  if (!ObjectId.isValid(params.id)) {
+  const { id } = await context.params;
+
+  if (!ObjectId.isValid(id)) {
     return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
-  const _id = new ObjectId(params.id);
+
+  const _id = new ObjectId(id);
 
   try {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB || "MabelHub");
-    await ensureUserIndexes(db);
 
     const deleted = await db
       .collection<UserDoc>("users")
       .findOneAndDelete({ _id });
 
-    if (!deleted.value) {
-      return NextResponse.json(
-        { error: "User tidak ditemukan" },
-        { status: 404 },
-      );
+    // 🔥 FIX: cek langsung deleted, bukan deleted.value
+    if (!deleted) {
+      return NextResponse.json({ ok: true, alreadyDeleted: true });
     }
 
     return NextResponse.json({ ok: true });
