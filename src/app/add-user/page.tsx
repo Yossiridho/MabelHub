@@ -72,7 +72,6 @@ function IconTrash() {
   );
 }
 
-/** ====== API helpers (cookie session otomatis ikut) ====== **/
 async function apiListUsers(): Promise<UserRow[]> {
   const res = await fetch("/api/users", { cache: "no-store" });
   if (!res.ok) {
@@ -298,35 +297,27 @@ export default function AddUserPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-200">
+    <div className="min-h-screen bg-blue-100">
       <div className="flex">
         <Sidebar />
 
         <div className="flex-1 h-screen overflow-y-auto">
           <div className="p-6">
             {/* Header */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => history.back()}
-                className="grid h-9 w-9 place-items-center rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-50"
-                aria-label="Back"
-              >
-                ←
-              </button>
-              <div className="text-xl font-extrabold text-gray-900">
+            <div className="flex items-center">
+              <div className="text-xl font-extrabold pl-3 text-black">
                 ADD USER
               </div>
             </div>
 
             {/* Form Card */}
-            <div className="mt-4 rounded-lg bg-neutral-100 p-6 shadow-sm">
+            <div className="mt-8 rounded-lg bg-white p-6 ring-1 ring-blue-200 shadow-md">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field label="Nama Lengkap">
                   <input
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
                   />
                 </Field>
 
@@ -334,7 +325,7 @@ export default function AddUserPage() {
                   <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
                   />
                 </Field>
 
@@ -342,7 +333,7 @@ export default function AddUserPage() {
                   <input
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
                   />
                 </Field>
 
@@ -351,7 +342,7 @@ export default function AddUserPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
                   />
                 </Field>
 
@@ -359,7 +350,7 @@ export default function AddUserPage() {
                   <select
                     value={userRole}
                     onChange={(e) => setUserRole(e.target.value as UserRole)}
-                    className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
                   >
                     <option value="SUPERADMIN">Superadmin</option>
                     <option value="ADMIN">Admin</option>
@@ -374,10 +365,10 @@ export default function AddUserPage() {
                     disabled={saving}
                     onClick={onAdd}
                     className={cn(
-                      "h-11 rounded-lg px-6 text-sm font-extrabold shadow-sm",
+                      "h-11 rounded-lg px-6 text-md font-extrabold shadow-sm",
                       saving
-                        ? "bg-neutral-300 text-gray-600"
-                        : "bg-white text-gray-900 hover:bg-gray-50",
+                        ? "bg-white text-black ring-1 ring-gray-700"
+                        : "bg-blue-600 text-white hover:bg-blue-700",
                     )}
                   >
                     {saving ? "SAVING..." : "ADD USER"}
@@ -386,18 +377,18 @@ export default function AddUserPage() {
               </div>
 
               {err ? (
-                <div className="mt-4 rounded bg-red-100 px-4 py-2 text-sm text-red-700">
+                <div className="mt-4 rounded bg-red-100 px-4 py-3 text-sm text-red-700">
                   {err}
                 </div>
               ) : null}
             </div>
 
             {/* Table */}
-            <div className="mt-6 rounded-lg bg-neutral-100 shadow-sm">
+            <div className="mt-6 rounded-lg bg-blue-50 shadow-sm">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-md">
                   <thead>
-                    <tr className="bg-neutral-200 text-left text-gray-800">
+                    <tr className="bg-blue-200 text-left text-gray-800">
                       <th className="px-4 py-3 w-12">No</th>
                       <th className="px-4 py-3">Username</th>
                       <th className="px-4 py-3">Email</th>
@@ -477,7 +468,7 @@ export default function AddUserPage() {
 
       {/* ===== Edit Modal ===== */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)}>
-        <div className="rounded-lg bg-neutral-100 p-6 shadow-lg">
+          <div className="w-full max-w-6xl rounded-xl bg-white p-10 shadow-lg">
           <div className="text-lg font-extrabold text-gray-900">EDIT USER</div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -485,7 +476,7 @@ export default function AddUserPage() {
               <input
                 value={eFullName}
                 onChange={(e) => setEFullName(e.target.value)}
-                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
               />
             </Field>
 
@@ -493,7 +484,7 @@ export default function AddUserPage() {
               <input
                 value={eEmail}
                 onChange={(e) => setEEmail(e.target.value)}
-                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
               />
             </Field>
 
@@ -501,7 +492,7 @@ export default function AddUserPage() {
               <input
                 value={eUsername}
                 onChange={(e) => setEUsername(e.target.value)}
-                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
               />
             </Field>
 
@@ -511,7 +502,7 @@ export default function AddUserPage() {
                 value={ePassword}
                 onChange={(e) => setEPassword(e.target.value)}
                 placeholder="Kosongkan jika tidak diganti"
-                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
               />
             </Field>
 
@@ -519,7 +510,7 @@ export default function AddUserPage() {
               <select
                 value={eRole}
                 onChange={(e) => setERole(e.target.value as UserRole)}
-                className="h-10 w-full rounded bg-neutral-300 px-3 text-sm outline-none"
+                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
               >
                 <option value="SUPERADMIN">Superadmin</option>
                 <option value="ADMIN">Admin</option>
@@ -532,7 +523,7 @@ export default function AddUserPage() {
               <button
                 type="button"
                 onClick={() => setEditOpen(false)}
-                className="h-10 rounded-lg bg-white px-5 text-sm font-extrabold text-gray-800 hover:bg-gray-50"
+                className="h-10 rounded-lg bg-red-600 px-5 text-white text-md font-bold"
               >
                 CANCEL
               </button>
@@ -541,10 +532,10 @@ export default function AddUserPage() {
                 disabled={eSaving}
                 onClick={onSaveEdit}
                 className={cn(
-                  "h-10 rounded-lg px-5 text-sm font-extrabold",
+                  "h-10 rounded-lg px-5 text-md font-bold",
                   eSaving
-                    ? "bg-neutral-300 text-gray-600"
-                    : "bg-white text-gray-900 hover:bg-gray-50",
+                    ? "bg-white text-black"
+                    : "bg-blue-600 text-white hover:bg-blue-700",
                 )}
               >
                 {eSaving ? "SAVING..." : "EDIT USER"}
@@ -556,8 +547,8 @@ export default function AddUserPage() {
 
       {/* ===== Delete Confirm Modal ===== */}
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <div className="w-full max-w-md rounded-lg bg-neutral-100 p-6 shadow-lg">
-          <div className="text-lg font-extrabold text-gray-900">
+        <div className="w-full max-w-xl rounded-lg bg-white p-12 shadow-lg">
+          <div className="text-lg font-bold text-black">
             Konfirmasi Hapus
           </div>
           <div className="mt-3 text-sm text-gray-700">
@@ -565,11 +556,11 @@ export default function AddUserPage() {
             <span className="font-bold">{selected?.username}</span>?
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-8 flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setDeleteOpen(false)}
-              className="h-10 rounded-lg bg-white px-5 text-sm font-extrabold text-gray-800 hover:bg-gray-50"
+              className="h-10 rounded-lg bg-blue-400 px-5 text-sm font-extrabold text-white"
             >
               BATAL
             </button>
@@ -590,8 +581,6 @@ export default function AddUserPage() {
     </div>
   );
 }
-
-/** ====== small components (no components/ui) ====== **/
 
 function Field({
   label,
