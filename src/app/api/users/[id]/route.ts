@@ -35,7 +35,7 @@ declare global {
 async function ensureUserIndexes(db: any) {
   if (!global.__mabel_users_indexes_promise) {
     global.__mabel_users_indexes_promise = (async () => {
-      const col = db.collection<UserDoc>("users");
+      const col = db.collection("users");
       await col.createIndex({ email: 1 }, { unique: true });
       await col.createIndex({ username: 1 }, { unique: true });
       await col.createIndex({ createdAt: -1 });
@@ -107,7 +107,7 @@ export async function PUT(
 
     $set.updatedAt = now;
 
-    const result = await db.collection<UserDoc>("users").findOneAndUpdate(
+    const result = await db.collection("users").findOneAndUpdate(
       { _id },
       { $set },
       {
@@ -118,7 +118,7 @@ export async function PUT(
       },
     );
 
-    if (!result.value) {
+    if (!result) {
       return NextResponse.json(
         { error: "User tidak ditemukan" },
         { status: 404 },
@@ -167,7 +167,7 @@ export async function DELETE(
     await ensureUserIndexes(db);
 
     const deleted = await db
-      .collection<UserDoc>("users")
+      .collection("users")
       .findOneAndDelete({ _id });
 
     if (!deleted.value) {

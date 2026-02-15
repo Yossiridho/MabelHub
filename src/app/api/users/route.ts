@@ -1,49 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import clientPromise from "@/lib/mongodb";
 import { hashPassword } from "@/lib/password";
 import { assertSuperadmin } from "@/lib/auth-server";
-
-type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
-
-type UserDoc = {
-  fullName: string;
-  email: string;
-  username: string;
-  passwordHash: string;
-  role: UserRole;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  lastLoginAt?: Date | null;
-};
-
-// (opsional tapi bagus) ensure index unik untuk username & email
-declare global {
-  // eslint-disable-next-line no-var
-  var __mabel_users_indexes_promise: Promise<void> | undefined;
-}
-
-async function ensureUserIndexes(db: any) {
-  if (!global.__mabel_users_indexes_promise) {
-    global.__mabel_users_indexes_promise = (async () => {
-      const col = db.collection<UserDoc>("users");
-      await col.createIndex({ email: 1 }, { unique: true });
-      await col.createIndex({ username: 1 }, { unique: true });
-      await col.createIndex({ createdAt: -1 });
-    })();
-  }
-  await global.__mabel_users_indexes_promise;
-}
-
-function normalizeRole(role: string): UserRole | null {
-  const r = role.toUpperCase().trim();
-  if (r === "SUPERADMIN") return "SUPERADMIN";
-  if (r === "ADMIN") return "ADMIN";
-  if (r === "LEADER") return "LEADER";
-  if (r === "SALES") return "SALES";
-  return null;
-}
 
 type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -84,6 +42,11 @@ function normalizeRole(role: string): UserRole | null {
   if (r === "LEADER") return "LEADER";
   if (r === "SALES") return "SALES";
   return null;
+}
+// (opsional tapi bagus) ensure index unik untuk username & email
+declare global {
+  // eslint-disable-next-line no-var
+  var __mabel_users_indexes_promise: Promise<void> | undefined;
 }
 
 export async function GET(req: Request) {
@@ -190,22 +153,7 @@ export async function POST(req: Request) {
       .toLowerCase();
     const password = String(body?.password ?? "");
     const role = normalizeRole(String(body?.role ?? ""));
-    const fullName = String(body?.fullName ?? "").trim();
-    const email = String(body?.email ?? "")
-      .trim()
-      .toLowerCase();
-    const username = String(body?.username ?? "")
-      .trim()
-      .toLowerCase();
-    const password = String(body?.password ?? "");
-    const role = normalizeRole(String(body?.role ?? ""));
 
-    if (!fullName || !email || !username || !password || !role) {
-      return NextResponse.json(
-        { error: "Field wajib: fullName, email, username, password, role" },
-        { status: 400 },
-      );
-    }
     if (!fullName || !email || !username || !password || !role) {
       return NextResponse.json(
         { error: "Field wajib: fullName, email, username, password, role" },
@@ -215,10 +163,7 @@ export async function POST(req: Request) {
 
     const passwordHash = await hashPassword(password);
     const now = new Date();
-    const passwordHash = await hashPassword(password);
-    const now = new Date();
 
-    const doc: UserDoc = {
     const doc: UserDoc = {
       fullName,
       email,
@@ -238,24 +183,6 @@ export async function POST(req: Request) {
       lastLoginAt: null,
     };
 
-    const result = await db.collection<UserDoc>("users").insertOne(doc);
-
-    return NextResponse.json(
-      {
-        data: {
-          _id: String(result.insertedId),
-          fullName: doc.fullName,
-          email: doc.email,
-          username: doc.username,
-          role: doc.role,
-          isActive: doc.isActive,
-          createdAt: doc.createdAt,
-          updatedAt: doc.updatedAt,
-          lastLoginAt: doc.lastLoginAt,
-        },
-      },
-      { status: 201 },
-    );
     return NextResponse.json(
       {
         data: {
@@ -273,8 +200,6 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (e: any) {
-    // duplicate key error (Mongo)
-    // duplicate key error (Mongo)
     if (e?.code === 11000) {
       const keys = Object.keys(e?.keyPattern ?? {});
       return NextResponse.json(
@@ -293,4 +218,4 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
-}
+}}

@@ -26,6 +26,7 @@ export async function POST(
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB || "MabelHub");
 
+    const params = await ctx.params;
     const requestId = decodeURIComponent(params.requestId);
     const body = await req.json().catch(() => ({}));
 
@@ -41,7 +42,7 @@ export async function POST(
 
     // ✅ atomic: hanya bisa update kalau belum taken
     const result = await db
-      .collection<EProcDoc>("eproc_requests")
+      .collection("eproc_requests")
       .findOneAndUpdate(
         {
           requestId,
@@ -76,6 +77,13 @@ export async function POST(
           },
         },
       );
+
+    if (!result) {
+      return NextResponse.json(
+        { error: "Request sudah diambil admin lain / tidak ditemukan" },
+        { status: 409 },
+      );
+    }
 
     const updated = result.value;
 
