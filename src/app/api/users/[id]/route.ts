@@ -140,7 +140,7 @@ export async function PUT(req: Request, context: Ctx) {
       const keys = Object.keys(e?.keyPattern ?? {});
       return NextResponse.json(
         { error: `Duplicate: ${keys.join(", ")}` },
-        { status: 409 },
+        { status: 409 }
       );
     }
     return NextResponse.json(

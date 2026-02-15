@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 export type SessionUser = {
+  _id: string;
   userId: string;
   role: "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
   username: string;

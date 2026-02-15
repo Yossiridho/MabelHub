@@ -20,7 +20,7 @@ type EProcDoc = {
 
 export async function POST(
   req: Request,
-  { params }: { params: { requestId: string } },
+  ctx: { params: Promise<{ requestId: string }> }
 ) {
   try {
     const client = await clientPromise;
