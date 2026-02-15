@@ -43,50 +43,11 @@ function normalizeRole(role: string): UserRole | null {
   if (r === "SALES") return "SALES";
   return null;
 }
-// (opsional tapi bagus) ensure index unik untuk username & email
-declare global {
-  // eslint-disable-next-line no-var
-  var __mabel_users_indexes_promise: Promise<void> | undefined;
-}
 
 export async function GET(req: Request) {
   const gate = assertSuperadmin(req);
   if (!gate.ok) {
-  if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
-  }
-
-  try {
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB || "MabelHub");
-    await ensureUserIndexes(db);
-
-    const users = await db
-      .collection<UserDoc>("users")
-      .find(
-        {},
-        {
-          projection: {
-            passwordHash: 0, // jangan pernah kirim hash ke client
-          },
-        },
-      )
-      .sort({ createdAt: -1 })
-      .limit(500)
-      .toArray();
-
-    const data = users.map((u: any) => ({
-      ...u,
-      _id: String(u._id),
-    }));
-
-    return NextResponse.json({ data });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message ?? "Gagal mengambil data users" },
-      { status: 500 },
-    );
-  }
   }
 
   try {
@@ -125,21 +86,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const gate = assertSuperadmin(req);
   if (!gate.ok) {
-  if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
 
   try {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB || "MabelHub");
-    await ensureUserIndexes(db);
-
-    const body = await req.json().catch(() => ({}));
-  }
-
-  try {
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB || "mabelhub");
     await ensureUserIndexes(db);
 
     const body = await req.json().catch(() => ({}));
@@ -177,11 +129,6 @@ export async function POST(req: Request) {
     };
 
     const result = await db.collection<UserDoc>("users").insertOne(doc);
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
-      lastLoginAt: null,
-    };
 
     return NextResponse.json(
       {
@@ -200,6 +147,7 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (e: any) {
+    // duplicate key error (Mongo)
     if (e?.code === 11000) {
       const keys = Object.keys(e?.keyPattern ?? {});
       return NextResponse.json(
@@ -212,10 +160,5 @@ export async function POST(req: Request) {
       { error: e?.message ?? "Gagal membuat user" },
       { status: 500 },
     );
-
-    return NextResponse.json(
-      { error: e?.message ?? "Gagal membuat user" },
-      { status: 500 },
-    );
   }
-}}
+}

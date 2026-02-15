@@ -3,22 +3,22 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/components/session/SessionProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refresh } = useSession(); // ✅ ambil refresh dari provider
+
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // ✅ Jika sudah login, redirect otomatis
   useEffect(() => {
     async function checkSession() {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
-      if (json?.user) {
-        redirectByRole(json.user.role);
-      }
+      if (json?.user) redirectByRole(json.user.role);
     }
     checkSession();
   }, []);
@@ -49,13 +49,16 @@ export default function LoginPage() {
       });
 
       const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error ?? "Login gagal");
 
-      if (!res.ok) {
-        throw new Error(json?.error ?? "Login gagal");
-      }
+      // ✅ ini kuncinya: update SessionProvider agar Sidebar langsung dapat user
+      await refresh();
 
-      // ✅ redirect berdasarkan role
+      // ✅ redirect
       redirectByRole(json?.user?.role);
+
+      // (opsional tapi bagus) paksa server component ikut baca cookie terbaru
+      router.refresh();
     } catch (e: any) {
       setErr(e?.message ?? "Login gagal");
     } finally {
@@ -66,7 +69,6 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-blue-100">
       <div className="flex w-225 rounded-3xl bg-white p-10 shadow-lg border-l-8 border-blue-500">
-        {/* LEFT SECTION */}
         <div className="flex w-1/2 flex-col items-center justify-center">
           <Image
             src="/logo.png"
@@ -78,7 +80,6 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold text-black">MabelHub</h1>
         </div>
 
-        {/* RIGHT SECTION */}
         <div className="flex w-1/2 flex-col justify-center px-10">
           <h2 className="mb-8 text-center text-3xl font-semibold">LOGIN</h2>
 

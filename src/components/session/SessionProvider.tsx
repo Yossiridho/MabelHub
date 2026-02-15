@@ -25,7 +25,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   async function refresh() {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const res = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
       const json = await res.json().catch(() => ({}));
       setUser(json?.user ?? null);
     } finally {

@@ -34,7 +34,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       title: "Lainnya",
       items: [
         { label: "Add User", href: "/add-user" },
-        { label: "Parameter", href: "/parameter" },
+        { label: "Parameter", href: "/parameters" },
       ],
     },
   ],
