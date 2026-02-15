@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/mongodb";
-import EProcRequest from "@/models/EProcRequest";
+import clientPromise from "@/lib/mongodb";
 
 export async function POST(
   req: Request,
-  { params }: { params: { requestId: string } },
+  ctx: { params: Promise<{ requestId: string }> }
 ) {
-  await dbConnect();
+  const { requestId } = await ctx.params;
+  const decodedRequestId = decodeURIComponent(requestId);
 
-  const requestId = decodeURIComponent(params.requestId);
   const body = await req.json().catch(() => ({}));
 
   // NANTI: ambil dari session
@@ -19,24 +18,41 @@ export async function POST(
     return NextResponse.json({ error: "adminId wajib" }, { status: 400 });
   }
 
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
+
+  // ⚠️ pastikan nama collection benar
+  const col = db.collection("eproc_requests");
+
   const now = new Date();
 
-  const updated = await EProcRequest.findOneAndUpdate(
-    { requestId, takenByAdminId: null }, // <- kunci atomic
+  // ✅ Atomic claim: hanya berhasil jika takenByAdminId masih null
+  const result = await col.findOneAndUpdate(
+    { requestId: decodedRequestId, takenByAdminId: null },
     {
       $set: {
         takenByAdminId: adminId,
         takenByAdminName: adminName,
         takenAt: now,
+        updatedAt: now,
       },
     },
-    { new: true },
-  ).lean();
+    { returnDocument: "after" }
+  );
+
+  if (!result) {
+    return NextResponse.json(
+      { error: "Request sudah diambil admin lain / tidak ditemukan" },
+      { status: 409 }
+    );
+  }
+
+  const updated = result.value;
 
   if (!updated) {
     return NextResponse.json(
       { error: "Request sudah diambil admin lain / tidak ditemukan" },
-      { status: 409 },
+      { status: 409 }
     );
   }
 

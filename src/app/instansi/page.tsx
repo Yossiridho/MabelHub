@@ -394,7 +394,7 @@ export default function InstansiPage() {
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
-        <Sidebar role={role} />
+        <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <main className="mx-auto pt-4 max-w-9xl">

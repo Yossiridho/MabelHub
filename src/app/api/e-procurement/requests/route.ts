@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/mongodb";
-import EProcRequest from "@/models/EProcRequest";
+import clientPromise from "@/lib/mongodb";
 
 type Role = "SUPERADMIN" | "ADMIN" | string;
 
 export async function GET(req: Request) {
-  await dbConnect();
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
 
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("mode"); // takeable | taken
@@ -15,13 +15,12 @@ export async function GET(req: Request) {
   const filter: any = {};
 
   if (mode === "takeable") {
-    // hanya yg belum diambil
+    // yang belum diambil
     filter.takenByAdminId = null;
   } else if (mode === "taken") {
-    // default rekap: yg sudah diambil
     filter.takenByAdminId = { $ne: null };
 
-    // enforce rule:
+    // kalau bukan superadmin → hanya miliknya sendiri
     if (role !== "SUPERADMIN") {
       if (!adminId) {
         return NextResponse.json(
@@ -29,20 +28,36 @@ export async function GET(req: Request) {
           { status: 400 }
         );
       }
+
       filter.takenByAdminId = adminId;
     }
   } else {
-    // default aman: kembalikan takeable
+    // default aman
     filter.takenByAdminId = null;
   }
 
-  const data = await EProcRequest.find(filter)
+  const col = db.collection("eproc_requests"); 
+  // ⚠️ pastikan nama collection sesuai di MongoDB
+
+  const data = await col
+    .find(filter)
     .sort({ takenAt: -1, createdAt: -1 })
     .limit(200)
-    .select(
-      "requestId requestor pemohon lokasi segmen deadlineUsulan tanggalSubmit catatan takenByAdminId takenByAdminName takenAt"
-    )
-    .lean();
+    .project({
+      requestId: 1,
+      requestor: 1,
+      pemohon: 1,
+      lokasi: 1,
+      segmen: 1,
+      deadlineUsulan: 1,
+      tanggalSubmit: 1,
+      catatan: 1,
+      takenByAdminId: 1,
+      takenByAdminName: 1,
+      takenAt: 1,
+      createdAt: 1,
+    })
+    .toArray();
 
   return NextResponse.json({ data });
 }
