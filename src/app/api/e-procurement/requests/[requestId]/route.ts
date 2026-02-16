@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { assertLoggedIn, assertLeaderOrSales } from "@/lib/auth-server";
+import { assertLeaderOrSales } from "@/lib/auth-server";
 
 type ProductItem = {
   id: string;
@@ -49,7 +49,7 @@ export async function GET(
   req: Request,
   ctx: { params: { requestId: string } | Promise<{ requestId: string }> },
 ) {
-  const auth = assertLoggedIn(req);
+  const auth = assertLeaderOrSales(req);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -59,19 +59,47 @@ export async function GET(
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
+  const col = db.collection<EProcDoc>("eproc_requests");
 
-  const doc = await db
-    .collection<EProcDoc>("eproc_requests")
-    .findOne({ requestId: rid }, { projection: { _id: 0 } });
+  // rules: hanya owner, dan belum di-take admin
+  const doc = await col.findOne(
+    {
+      requestId: rid,
+      "createdBy.userId": auth.session.userId,
+    },
+    { projection: { _id: 0 } },
+  );
 
   if (!doc) {
     return NextResponse.json(
-      { error: "Request tidak ditemukan" },
+      { error: "Request tidak ditemukan / bukan milik anda" },
       { status: 404 },
     );
   }
 
-  return NextResponse.json({ data: doc });
+  if (doc.takenByAdminId) {
+    return NextResponse.json(
+      { error: "Request sudah diambil admin, tidak bisa direvisi" },
+      { status: 409 },
+    );
+  }
+
+  // kembalikan format yang enak buat page kamu
+  return NextResponse.json({
+    data: {
+      header: {
+        requestor: doc.requestor,
+        pemohon: doc.pemohon,
+        segmen: doc.segmen,
+        deadline: doc.deadlineUsulan,
+        lokasi: doc.lokasi,
+        catatanHeader: doc.catatan ?? "",
+      },
+      items: doc.items ?? [],
+      infoId: doc.requestId,
+      tanggalSubmit: doc.tanggalSubmit,
+    },
+  });
 }
 
 export async function PUT(
@@ -90,7 +118,7 @@ export async function PUT(
   const header = body?.header ?? {};
   const items: ProductItem[] = Array.isArray(body?.items) ? body.items : [];
 
-  // map dari payload page.tsx
+  // map payload dari page.tsx kamu
   const requestor = String(header.requestor ?? "").trim();
   const pemohon = String(header.pemohon ?? "").trim();
   const segmen = String(header.segmen ?? "").trim();
@@ -107,32 +135,38 @@ export async function PUT(
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
+  const col = db.collection<EProcDoc>("eproc_requests");
 
-  // rules: hanya pemilik (sales/leader pembuat) + belum di-take
-  const result = await db
-    .collection<EProcDoc>("eproc_requests")
-    .findOneAndUpdate(
-      {
-        requestId: rid,
-        "createdBy.userId": auth.session.userId,
-        takenByAdminId: null, // tidak boleh revisi kalau sudah diambil admin
-      },
-      {
-        $set: {
-          requestor,
-          pemohon,
-          segmen,
-          deadlineUsulan,
-          lokasi,
-          catatan,
-          items,
-          updatedAt: new Date(),
-        },
-      },
-      { returnDocument: "after", projection: { _id: 0 } },
-    );
+  const now = new Date();
 
-  if (!result.value) {
+  const rawResult = await col.findOneAndUpdate(
+    {
+      requestId: rid,
+      "createdBy.userId": auth.session.userId,
+      takenByAdminId: null, // tidak boleh revisi kalau sudah di-take
+    },
+    {
+      $set: {
+        requestor,
+        pemohon,
+        segmen,
+        deadlineUsulan,
+        lokasi,
+        catatan,
+        items,
+        updatedAt: now,
+      },
+    },
+    {
+      returnDocument: "after",
+      projection: { _id: 0 },
+    } as any, // <-- biar aman beda versi driver
+  );
+
+  // ✅ kompatibel semua versi: ambil dari .value kalau ada, atau langsung rawResult
+  const updated = (rawResult as any)?.value ?? rawResult ?? null;
+
+  if (!updated) {
     return NextResponse.json(
       {
         error:
@@ -142,5 +176,5 @@ export async function PUT(
     );
   }
 
-  return NextResponse.json({ data: result.value });
+  return NextResponse.json({ data: updated });
 }
