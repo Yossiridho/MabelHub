@@ -352,7 +352,7 @@ useEffect(() => {
                           Hanya bisa pilih sales anggota team kamu.
                         </div>
                       </div>
-                    ) : null}
+                    )}
 
                     {/* RING */}
                     <div>
