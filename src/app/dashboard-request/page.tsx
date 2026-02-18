@@ -42,18 +42,12 @@ export default function DashboardRequestPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingTable, setLoadingTable] = useState(true);
 
-  // SEARCH + NOTIF (UI only)
   const [search, setSearch] = useState("");
   const [unreadNotif, setUnreadNotif] = useState(3);
-
-  // Optional: jika mau “page ini hanya untuk SALES/LEADER”
-  // Kalau tidak perlu, hapus effect ini.
   useEffect(() => {
     if (!sessionLoading && user) {
-      // contoh rule: SUPERADMIN/ADMIN sebaiknya ke dashboard-response
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
-        // kalau kamu mau, redirect otomatis:
-        // router.replace("/dashboard-response");
+
       }
     }
   }, [sessionLoading, user, router]);

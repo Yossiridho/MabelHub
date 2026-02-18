@@ -17,7 +17,7 @@ type VisitRow = {
   status_ring: "RING 1" | "RING 2" | "RING 3" | "RING 4" | string;
 
   created_at: string;
-  market_status: string;
+  status_market: string;
   klpd: string;
   reschedule: string; // ISO or "-"
   institusi_kerja: string;
@@ -25,7 +25,7 @@ type VisitRow = {
   pic_role: string;
   tindak_lanjut: string;
   kegiatan_status: string;
-  deskripsi: string;
+  descriptions: string;
 };
 
 function cn(...s: Array<string | false | null | undefined>) {
@@ -485,7 +485,7 @@ export default function RekapitulasiVisitPage() {
                     />
                     <DetailItem
                       label="Market Status"
-                      value={selected.market_status}
+                      value={selected.status_market}
                     />
                     <DetailItem label="KLPD" value={selected.klpd} />
                     <DetailItem
@@ -521,7 +521,7 @@ export default function RekapitulasiVisitPage() {
                       DESKRIPSI
                     </div>
                     <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
-                      {selected.deskripsi || "-"}
+                      {selected.descriptions || "-"}
                     </div>
                   </div>
                 </div>

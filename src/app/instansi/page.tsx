@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
 import type { Role } from "@/lib/menu";
+import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
+import DeleteInstansiModal from "@/components/modals/DeleteInstansiModal";
+import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
+import EditInstansiModal from "@/components/modals/EditInstansiModal";
 
 type Company = {
   _id: string;
@@ -197,7 +201,8 @@ function SolidButton({
 
 function StatusPill({ value }: { value?: string }) {
   const v = (value || "-").toUpperCase();
-  const isB2G = v.includes("RING 1") || v.includes("RING 2") || v.includes("RING 3");
+  const isB2G =
+    v.includes("RING 1") || v.includes("RING 2") || v.includes("RING 3");
   const isB2B = v.includes("RING 4");
   return (
     <span
@@ -216,7 +221,8 @@ function StatusPill({ value }: { value?: string }) {
 
 export default function InstansiPage() {
   const router = useRouter();
-  const role: Role = "SUPERADMIN"; // TODO: ambil dari auth/session
+  const role: Role = "SUPERADMIN"; 
+  const [pendingCount, setPendingCount] = useState(0);
 
   // filters
   const [search, setSearch] = useState("");
@@ -236,6 +242,10 @@ export default function InstansiPage() {
   // modals
   const [openAdd, setOpenAdd] = useState(false);
   const [openPending, setOpenPending] = useState(false);
+  const [openHistory, setOpenHistory] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+  const [activeCompany, setActiveCompany] = useState<Company | null>(null);
 
   // add form
   const [form, setForm] = useState({
@@ -257,6 +267,20 @@ export default function InstansiPage() {
   const [pending, setPending] = useState<CompanyRequest[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  async function fetchPendingCount() {
+    try {
+      const res = await fetch("/api/company-requests?status=PENDING", {
+        cache: "no-store",
+      });
+      if (!res.ok) return setPendingCount(0);
+
+      const data = await res.json();
+      setPendingCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      setPendingCount(0);
+    }
+  }
+
   async function loadApproved() {
     setLoading(true);
     const qs = new URLSearchParams({
@@ -276,6 +300,7 @@ export default function InstansiPage() {
 
   useEffect(() => {
     loadApproved();
+    fetchPendingCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, kota, klpd, segmen]);
 
@@ -302,7 +327,9 @@ export default function InstansiPage() {
       !form.satuan_kerja ||
       !form.status_ring
     ) {
-      alert("Lengkapi: Nama Institusi, Kota/Kabupaten, KLPD, Satuan Kerja, Status Segmen.");
+      alert(
+        "Lengkapi: Nama Institusi, Kota/Kabupaten, KLPD, Satuan Kerja, Status Segmen.",
+      );
       return;
     }
 
@@ -363,6 +390,7 @@ export default function InstansiPage() {
   async function openPendingModal() {
     setOpenPending(true);
     await loadPending();
+    await fetchPendingCount();
   }
 
   async function approveRequest(id: string) {
@@ -374,6 +402,7 @@ export default function InstansiPage() {
     setBusyId(null);
     await loadPending();
     await loadApproved();
+    await fetchPendingCount();
   }
 
   async function rejectRequest(id: string) {
@@ -389,6 +418,7 @@ export default function InstansiPage() {
 
     setBusyId(null);
     await loadPending();
+    await fetchPendingCount();
   }
 
   return (
@@ -400,11 +430,8 @@ export default function InstansiPage() {
           <main className="mx-auto pt-4 max-w-9xl">
             {/* Top */}
             <div className="mb-6 flex items-center gap-4">
-
               <div className="flex-1">
-                <h1 className="text-2xl font-extrabold text-black">
-                  INSTANSI
-                </h1>
+                <h1 className="text-2xl font-extrabold text-black">INSTANSI</h1>
                 <p className="text-xs text-black">
                   Rekap instansi yang sudah <b>APPROVED</b>
                 </p>
@@ -412,11 +439,18 @@ export default function InstansiPage() {
 
               {role === "SUPERADMIN" ? (
                 <div className="flex gap-3">
-                  <PrimaryButton onClick={() => setOpenAdd(true)}>
+                  <PrimaryButton onClick={() => router.push("/tambah-instansi")}>
                     TAMBAH INSTANSI
                   </PrimaryButton>
                   <PrimaryButton onClick={openPendingModal}>
-                    REQUEST PENDING
+                    <span className="relative inline-flex items-center">
+                      REQUEST PENDING
+                      {pendingCount > 0 && (
+                        <span className="absolute -right-4 -top-3 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-extrabold text-white ring-2 ring-white">
+                          {pendingCount > 99 ? "99+" : pendingCount}
+                        </span>
+                      )}
+                    </span>
                   </PrimaryButton>
                 </div>
               ) : null}
@@ -534,10 +568,7 @@ export default function InstansiPage() {
                       </tr>
                     ) : resp?.items?.length ? (
                       resp.items.map((c) => (
-                        <tr
-                          key={c._id}
-                          className="border-t border-gray-300"
-                        >
+                        <tr key={c._id} className="border-t border-gray-300">
                           <td className="px-4 py-4">{c.kota_kab ?? "-"}</td>
                           <td className="px-4 py-4">{c.klpd ?? "-"}</td>
                           <td className="px-4 py-4 ">
@@ -545,10 +576,18 @@ export default function InstansiPage() {
                           </td>
                           <td className="px-4 py-4">{c.satuan_kerja ?? "-"}</td>
                           <td className="px-4 py-4">{c.kode_dinas ?? "-"}</td>
-                          <td className="px-4 py-4">{c.pic_default?.nama ?? "-"}</td>
-                          <td className="px-4 py-4">{c.pic_default?.no_telp ?? "-"}</td>
-                          <td className="px-4 py-4">{c.pic_default?.jabatan ?? "-"}</td>
-                          <td className="px-4 py-4">{c.pic_default?.role ?? "-"}</td>
+                          <td className="px-4 py-4">
+                            {c.pic_default?.nama ?? "-"}
+                          </td>
+                          <td className="px-4 py-4">
+                            {c.pic_default?.no_telp ?? "-"}
+                          </td>
+                          <td className="px-4 py-4">
+                            {c.pic_default?.jabatan ?? "-"}
+                          </td>
+                          <td className="px-4 py-4">
+                            {c.pic_default?.role ?? "-"}
+                          </td>
                           <td className="px-4 py-4">
                             <StatusPill value={c.status_ring} />
                           </td>
@@ -556,6 +595,10 @@ export default function InstansiPage() {
                             <button
                               className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
                               title="History"
+                              onClick={() => {
+                                setActiveCompany(c);
+                                setOpenHistory(true);
+                              }}
                             >
                               ⟲
                             </button>
@@ -565,14 +608,20 @@ export default function InstansiPage() {
                               <button
                                 className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
                                 title="Edit"
-                                onClick={() => alert("Nanti: halaman edit")}
+                                onClick={() => {
+                                  setActiveCompany(c);
+                                  setOpenEdit(true);
+                                }}
                               >
                                 ✎
                               </button>
                               <button
                                 className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
                                 title="Delete"
-                                onClick={() => alert("Nanti: API delete")}
+                                onClick={() => {
+                                  setActiveCompany(c);
+                                  setOpenDelete(true);
+                                }}
                               >
                                 🗑
                               </button>
@@ -599,7 +648,8 @@ export default function InstansiPage() {
                 <div className="text-md text-gray-500">
                   Menampilkan{" "}
                   <b className="text-black">
-                    {(page - 1) * limit + 1} - {Math.min(page * limit, resp?.total ?? 0)}
+                    {(page - 1) * limit + 1} -{" "}
+                    {Math.min(page * limit, resp?.total ?? 0)}
                   </b>{" "}
                   dari <b className="text-black">{resp?.total ?? 0}</b> data
                 </div>
@@ -643,7 +693,9 @@ export default function InstansiPage() {
                     </div>
 
                     <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={page === totalPages}
                       className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
                       title="Next"
@@ -668,210 +720,35 @@ export default function InstansiPage() {
         </div>
       </div>
 
-      {/* ================= MODAL: TAMBAH INSTANSI ================= */}
-      <Modal
-        open={openAdd}
-        onClose={() => setOpenAdd(false)}
-        title="REGISTER COMPANY"
-        subtitle="Tambah instansi langsung APPROVED (khusus SUPER ADMIN)."
-        widthClass="max-w-5xl"
-      >
-        <div className="text-md">
-          <div className="grid grid-cols-1 gap-4">
-            <Field label="NAMA INSTITUSI">
-              <Input
-                value={form.institusi_kerja}
-                onChange={(e) => setForm((p) => ({ ...p, institusi_kerja: e.target.value }))}
-                placeholder="Contoh: PLN / RSUD / Dinkes..."
-              />
-            </Field>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="KOTA/KABUPATEN">
-                <Input
-                  value={form.kota_kab}
-                  onChange={(e) => setForm((p) => ({ ...p, kota_kab: e.target.value }))}
-                  placeholder="Contoh: Kota Bandung"
-                />
-              </Field>
-
-              <Field label="KLPD">
-                <Input
-                  value={form.klpd}
-                  onChange={(e) => setForm((p) => ({ ...p, klpd: e.target.value }))}
-                  placeholder="Contoh: BUMN / B2B / Kementerian..."
-                />
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="SATUAN KERJA">
-                <Input
-                  value={form.satuan_kerja}
-                  onChange={(e) => setForm((p) => ({ ...p, satuan_kerja: e.target.value }))}
-                  placeholder="Contoh: Dinas / Office / Unit kerja..."
-                />
-              </Field>
-
-              <Field label="STATUS SEGMEN (RING)">
-                <Select
-                  value={form.status_ring}
-                  onChange={(e) => setForm((p) => ({ ...p, status_ring: e.target.value }))}
-                >
-                  <option value="">Pilih...</option>
-                  <option value="RING 1">RING 1</option>
-                  <option value="RING 2">RING 2</option>
-                  <option value="RING 3">RING 3</option>
-                  <option value="RING 4">RING 4</option>
-                </Select>
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="KODE DINAS (OPSIONAL)">
-                <Input
-                  value={form.kode_dinas}
-                  onChange={(e) => setForm((p) => ({ ...p, kode_dinas: e.target.value }))}
-                  placeholder="Contoh: B2-CSMS"
-                />
-              </Field>
-
-              <Field label="ROLE PIC (OPSIONAL)">
-                <Select
-                  value={form.pic_role}
-                  onChange={(e) => setForm((p) => ({ ...p, pic_role: e.target.value }))}
-                >
-                  <option value="">Pilih...</option>
-                  <option value="Kepala">Kepala</option>
-                  <option value="Staff">Staff</option>
-                  <option value="Pengadaan">Pengadaan</option>
-                  <option value="IT">IT</option>
-                </Select>
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="NAMA PIC (OPSIONAL)">
-                <Input
-                  value={form.pic_nama}
-                  onChange={(e) => setForm((p) => ({ ...p, pic_nama: e.target.value }))}
-                  placeholder="Contoh: Pak Rama"
-                />
-              </Field>
-
-              <Field label="NO. TELEPON PIC (OPSIONAL)">
-                <Input
-                  value={form.pic_telp}
-                  onChange={(e) => setForm((p) => ({ ...p, pic_telp: e.target.value }))}
-                  placeholder="Contoh: 62812xxxx"
-                />
-              </Field>
-            </div>
-
-            <Field label="JABATAN PIC (OPSIONAL)">
-              <Input
-                value={form.pic_jabatan}
-                onChange={(e) => setForm((p) => ({ ...p, pic_jabatan: e.target.value }))}
-                placeholder="Contoh: Pengadaan / IT / Kepala Bagian..."
-              />
-            </Field>
-          </div>
-
-          <div className="mt-6 flex justify-end gap-3">
-            <PrimaryButton onClick={() => setOpenAdd(false)}>BATAL</PrimaryButton>
-            <SolidButton onClick={submitAddInstansi} disabled={savingAdd}>
-              {savingAdd ? "MENYIMPAN..." : "SUBMIT"}
-            </SolidButton>
-          </div>
-        </div>
-      </Modal>
-
-      {/* ================= MODAL: REQUEST PENDING ================= */}
-      <Modal
+      <PendingRequestsModal
         open={openPending}
         onClose={() => setOpenPending(false)}
-        title="REQUEST PENDING"
-        subtitle="Daftar instansi dari USER/LEADER yang menunggu persetujuan."
-        widthClass="item-center max-w-8xl"
-      >
-        {pendingLoading ? (
-          <div className="py-12 text-center text-md text-black/60">Loading...</div>
-        ) : pending.length === 0 ? (
-          <div className="py-12 text-center text-sm text-black/60">
-            Tidak ada request pending.
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-md">
-                <thead className="bg-white">
-                  <tr>
-                    {[
-                      "Kota",
-                      "KLPD",
-                      "Institusi",
-                      "Satuan Kerja",
-                      "PIC",
-                      "No PIC",
-                      "Jabatan",
-                      "Role",
-                      "Segmen",
-                      "Aksi",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="whitespace-nowrap border-b border-black/10 px-4 py-3 text-left text-[11px] font-extrabold tracking-wide text-black/80"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+        pending={pending}
+        pendingLoading={pendingLoading}
+        busyId={busyId}
+        approveRequest={approveRequest}
+        rejectRequest={rejectRequest}
+      />
+      <HistoryInstansiModal
+        open={openHistory}
+        onClose={() => setOpenHistory(false)}
+        companyId={activeCompany?._id ?? null}
+      />
 
-                <tbody className="bg-white">
-                  {pending.map((p) => (
-                    <tr key={p._id} className="border-t border-black/10">
-                      <td className="px-4 py-4">{p.kota_kab ?? "-"}</td>
-                      <td className="px-4 py-4">{p.klpd ?? "-"}</td>
-                      <td className="px-4 py-4">{p.institusi_kerja ?? "-"}</td>
-                      <td className="px-4 py-4">{p.satuan_kerja ?? "-"}</td>
-                      <td className="px-4 py-4">{p.pic_default?.nama ?? "-"}</td>
-                      <td className="px-4 py-4">{p.pic_default?.no_telp ?? "-"}</td>
-                      <td className="px-4 py-4">{p.pic_default?.jabatan ?? "-"}</td>
-                      <td className="px-4 py-4">{p.pic_default?.role ?? "-"}</td>
-                      <td className="px-4 py-4">
-                        <StatusPill value={p.status_ring} />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            disabled={busyId === p._id}
-                            onClick={() => approveRequest(p._id)}
-                            className="h-10 rounded-xl bg-black px-4 text-xs font-extrabold text-white hover:bg-black/90 disabled:opacity-50"
-                          >
-                            {busyId === p._id ? "..." : "APPROVE"}
-                          </button>
-                          <button
-                            disabled={busyId === p._id}
-                            onClick={() => rejectRequest(p._id)}
-                            className="h-10 rounded-xl bg-white px-4 text-xs font-extrabold ring-1 ring-black/15 hover:bg-black/5 disabled:opacity-50"
-                          >
-                            REJECT
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      <EditInstansiModal
+        open={openEdit}
+        onClose={() => setOpenEdit(false)}
+        company={activeCompany}
+        onSaved={loadApproved}
+      />
 
-            <div className="border-t border-black/10 px-5 py-4 text-xs text-black/60">
-              Total pending: <b className="text-black">{pending.length}</b>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <DeleteInstansiModal
+        open={openDelete}
+        onClose={() => setOpenDelete(false)}
+        companyId={activeCompany?._id ?? null}
+        companyName={activeCompany?.institusi_kerja ?? "-"}
+        onDeleted={loadApproved}
+      />
     </div>
   );
 }
