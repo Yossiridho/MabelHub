@@ -1,9 +1,16 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import Sidebar from '@/components/sidebar/sidebar'
-import type { Role } from '@/lib/menu'
-import { number } from 'zod'
+import React, { useMemo, useState, useEffect } from "react";
+import Sidebar from "@/components/sidebar/sidebar";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
+
+type TeamMember = {
+  userId: string;
+  fullName: string;
+  username: string;
+  role: string;
+};
 
 type Segment = 'RING 1' | 'RING 2' | 'RING 3' | 'RING 4'
 
@@ -22,12 +29,70 @@ type ProductItem = {
 const SEGMENTS: Segment[] = ['RING 1', 'RING 2', 'RING 3', 'RING 4']
 
 function cn(...s: Array<string | false | null | undefined>) {
-  return s.filter(Boolean).join(' ')
+  return s.filter(Boolean).join(" ");
 }
 
-const role: Role = "SUPERADMIN";
+async function apiCreateEProc(payload: any) {
+  const res = await fetch("/api/e-procurement/requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal kirim request");
+  return json?.data;
+}
+
+async function apiLoadEProc(requestId: string) {
+  const res = await fetch(
+    `/api/e-procurement/requests/${encodeURIComponent(requestId)}`,
+    { cache: "no-store" },
+  );
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal load request");
+  return json?.data;
+}
+
+async function apiUpdateEProc(requestId: string, payload: any) {
+  const res = await fetch(
+    `/api/e-procurement/requests/${encodeURIComponent(requestId)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal update request");
+  return json?.data;
+}
 
 export default function EProcurementRequestPage() {
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+  const [salesOptions, setSalesOptions] = useState<TeamMember[]>([]);
+  const [assignedToUserId, setAssignedToUserId] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "LEADER") return;
+
+    fetch("/api/teams/me/members", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        const arr: TeamMember[] = Array.isArray(j?.members) ? j.members : [];
+        const sales = arr.filter((m) => m.role === "SALES");
+        setSalesOptions(sales);
+      })
+      .catch(() => setSalesOptions([]));
+  }, [user]);
+
+  // ✅ Guard (opsional): halaman request biasanya untuk SALES/LEADER
+  useEffect(() => {
+    if (!sessionLoading && user) {
+    }
+  }, [sessionLoading, user, router]);
+
   // ===== Header form state =====
   const [requestor, setRequestor] = useState('')
   const [pemohon, setPemohon] = useState('')
@@ -103,9 +168,31 @@ export default function EProcurementRequestPage() {
   const handleUploadProduk = () => setOpenUpload(true)
 
   const handleLoadId = async () => {
-    alert(`LOAD ID: ${revisiId || '-'}`)
-    setOpenRevisi(false)
-  }
+    try {
+      if (!revisiId.trim()) return alert("Masukkan Request ID");
+      const data = await apiLoadEProc(revisiId.trim());
+
+      // set header
+      setRequestor(data.requestor ?? "");
+      setPemohon(data.pemohon ?? "");
+      setSegmen((data.segmen ?? "") as any);
+      setDeadline(data.deadlineUsulan ?? "");
+      setLokasi(data.lokasi ?? "");
+      setCatatanHeader(data.catatan ?? "");
+
+      // set items
+      setItems(
+        Array.isArray(data.items) && data.items.length ? data.items : items,
+      );
+
+      // info id
+      setInfoId(data.requestId ?? "REQ-");
+
+      setOpenRevisi(false);
+    } catch (e: any) {
+      alert(e?.message ?? "Gagal load");
+    }
+  };
 
   const handlePickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
@@ -118,43 +205,98 @@ export default function EProcurementRequestPage() {
   }
 
   const handleKirim = async () => {
-    const payload = {
-      header: { requestor, pemohon, segmen, deadline, lokasi, catatanHeader },
-      items,
-      infoId,
-    };
-    console.log("SUBMIT:", payload);
-    alert("KIRIM REQUEST (placeholder). Cek console untuk payload.");
+    try {
+      const payload = {
+        header: {
+          requestor,
+          pemohon,
+          segmen,
+          deadline,
+          lokasi,
+          catatanHeader,
+          assignedToUserId:
+            user?.role === "LEADER" ? assignedToUserId : undefined,
+        },
+        items,
+      };
+
+      if (user?.role === "LEADER" && !assignedToUserId) {
+        return alert("Leader wajib memilih Sales team untuk request ini.");
+      }
+
+      if (infoId && infoId !== "REQ-") {
+        await apiUpdateEProc(infoId, payload);
+        alert("Revisi tersimpan ✅");
+      } else {
+        const created = await apiCreateEProc(payload);
+        setInfoId(created.requestId);
+        alert(`Request terkirim ✅ ID: ${created.requestId}`);
+      }
+    } catch (e: any) {
+      alert(e?.message ?? "Gagal kirim");
+    }
   };
 
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* SIDEBAR */}
-        <Sidebar role={role} />
+        <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
+          {/* ===== PAGE TITLE ===== */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-extrabold text-black">
+              E-Procurement
+            </h1>
+          </div>
+
           {/* ===== HEADER FORM CARD ===== */}
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {/* REQUESTOR */}
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   REQUESTOR
                 </label>
-                <div className='relative mt-2'>
-                  <select
-                    value={requestor}
-                    onChange={(e) => setRequestor(e.target.value)}
-                    className='h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                  >
-                    <option value=''>-- Pilih --</option>
-                    <option value='Sales A'>Sales A</option>
-                    <option value='Sales B'>Sales B</option>
-                    <option value='Sales C'>Sales C</option>
-                  </select>
-                  <span className='pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500'>
-                    <svg width='18' height='18' viewBox='0 0 24 24' fill='none'>
+                <div className="relative mt-2">
+                  {user?.role === "LEADER" ? (
+                    <select
+                      value={assignedToUserId}
+                      onChange={(e) => {
+                        const uid = e.target.value;
+                        setAssignedToUserId(uid);
+                        const picked = salesOptions.find(
+                          (x) => x.userId === uid,
+                        );
+                        // requestor tetap string, isi nama sales agar kebaca di dokumen
+                        setRequestor(
+                          picked?.fullName || picked?.username || "",
+                        );
+                      }}
+                      className="h-12 w-full ..."
+                    >
+                      <option value="">-- Pilih Sales Team --</option>
+                      {salesOptions.map((m) => (
+                        <option key={m.userId} value={m.userId}>
+                          {m.fullName || m.username}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value={requestor}
+                      onChange={(e) => setRequestor(e.target.value)}
+                      className="h-12 w-full ..."
+                    >
+                      <option value="">-- Pilih --</option>
+                      <option value="Sales A">Sales A</option>
+                      <option value="Sales B">Sales B</option>
+                      <option value="Sales C">Sales C</option>
+                    </select>
+                  )}
+
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                       <path
                         d='M6 9l6 6 6-6'
                         stroke='currentColor'
@@ -166,7 +308,6 @@ export default function EProcurementRequestPage() {
                 </div>
               </div>
 
-              {/* PEMOHON */}
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   PEMOHON (ENTITY)

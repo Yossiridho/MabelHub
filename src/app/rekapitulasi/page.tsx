@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
 
 type VisitRow = {
   _id: string;
@@ -13,27 +14,26 @@ type VisitRow = {
   city: string;
   pic_name: string;
   pic_phone: string;
-  status_ring: "RING 1" | "RING 2" | "RING 3" | "RING 4";
+  status_ring: "RING 1" | "RING 2" | "RING 3" | "RING 4" | string;
 
   created_at: string;
-  market_status: string;
+  status_market: string;
   klpd: string;
-  reschedule: string;
+  reschedule: string; // ISO or "-"
   institusi_kerja: string;
   pic_position: string;
   pic_role: string;
   tindak_lanjut: string;
   kegiatan_status: string;
-  deskripsi: string;
+  descriptions: string;
 };
 
 function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
 }
 
-const role: Role = "SUPERADMIN";
-
 function formatDateID(iso: string) {
+  if (!iso || iso === "-") return "-";
   try {
     return new Date(iso).toLocaleDateString("id-ID", {
       day: "2-digit",
@@ -61,7 +61,7 @@ function getPageWindow(current: number, totalPages: number, size: number) {
 }
 
 function StatusPill({ value }: { value: string }) {
-  const upper = value.toUpperCase();
+  const upper = (value || "-").toUpperCase();
   const isVisited = upper.includes("VISIT") && !upper.includes("NOT");
 
   return (
@@ -79,75 +79,20 @@ function StatusPill({ value }: { value: string }) {
 }
 
 export default function RekapitulasiVisitPage() {
-  const allRows: VisitRow[] = useMemo(
-    () => [
-      {
-        _id: "1",
-        nama_sales: "Beffry Rizkana",
-        visit_date: new Date().toISOString(),
-        status_visit: "Visited",
-        satuan_kerja: "UNPAD-FAKULTAS EKONOMI DAN BISNIS (FEB)",
-        city: "Kabupaten Sumedang",
-        pic_name: "Nendi",
-        pic_phone: "-",
-        status_ring: "RING 1",
-        created_at: new Date().toISOString(),
-        market_status: "Cold",
-        klpd: "Kementerian",
-        reschedule: "-",
-        institusi_kerja: "Rumah Sakit",
-        pic_position: "Penunjang Umum",
-        pic_role: "Staff",
-        tindak_lanjut: "Revisit dan tetap jalin komunikasi",
-        kegiatan_status: "Visit Pengembangan",
-        deskripsi:
-          "Follow up untuk pembelian laptop via siplah...\n1. Belira muser 4 unit\n2. Terompet king/jupiter 4 unit\n3. Tuba besar king/jupiter 2 unit\n4. Stick mayoret primere 150cm 2 unit\nSudah masuk di sheet.",
-      },
-      {
-        _id: "2",
-        nama_sales: "Beffry Rizkana",
-        visit_date: new Date().toISOString(),
-        status_visit: "Visited",
-        satuan_kerja: "UNPAD-FAKULTAS ILMU KOMUNIKASI (FIKOM)",
-        city: "Kabupaten Sumedang",
-        pic_name: "Pak Deni Rustiandi",
-        pic_phone: "6287821669805",
-        status_ring: "RING 1",
-        created_at: new Date().toISOString(),
-        market_status: "Warm",
-        klpd: "Kementerian",
-        reschedule: "-",
-        institusi_kerja: "Universitas",
-        pic_position: "Pengadaan",
-        pic_role: "PIC",
-        tindak_lanjut: "Kirim penawaran",
-        kegiatan_status: "Visit Pengembangan",
-        deskripsi: "Diskusi kebutuhan dan timeline pengadaan.",
-      },
-      {
-        _id: "3",
-        nama_sales: "Beffry Rizkana",
-        visit_date: new Date().toISOString(),
-        status_visit: "Not Visited",
-        satuan_kerja: "UNPAD-FAKULTAS ILMU SOSIAL DAN POLITIK",
-        city: "Kabupaten Sumedang",
-        pic_name: "-",
-        pic_phone: "-",
-        status_ring: "RING 1",
-        created_at: new Date().toISOString(),
-        market_status: "Cold",
-        klpd: "-",
-        reschedule: "15-Feb-2026",
-        institusi_kerja: "Universitas",
-        pic_position: "-",
-        pic_role: "-",
-        tindak_lanjut: "Reschedule",
-        kegiatan_status: "Plan Visit",
-        deskripsi: "Belum ada kunjungan.",
-      },
-    ],
-    [],
-  );
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
+  // ✅ Guard role (sesuaikan kalau ada rule akses lain)
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      const ok =
+        user.role === "SUPERADMIN" ||
+        user.role === "ADMIN" ||
+        user.role === "LEADER" ||
+        user.role === "SALES";
+      if (!ok) router.replace("/");
+    }
+  }, [sessionLoading, user, router]);
 
   // ====== filter state ======
   const [fSales, setFSales] = useState<string>("ALL");
@@ -165,51 +110,105 @@ export default function RekapitulasiVisitPage() {
   // ====== selected row for detail ======
   const [selected, setSelected] = useState<VisitRow | null>(null);
 
-  const salesOptions = useMemo(
-    () => Array.from(new Set(allRows.map((r) => r.nama_sales))).sort(),
-    [allRows],
+  // ====== server data ======
+  const [rows, setRows] = useState<VisitRow[]>([]);
+  const [loadingRows, setLoadingRows] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // ====== dropdown meta ======
+  const [salesOptions, setSalesOptions] = useState<string[]>([]);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [satkerOptions, setSatkerOptions] = useState<string[]>([]);
+
+  // fetch meta (dropdown) sekali
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/visits/meta", { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (!mounted) return;
+
+        setSalesOptions(Array.isArray(json?.sales) ? json.sales : []);
+        setCityOptions(Array.isArray(json?.cities) ? json.cities : []);
+        setSatkerOptions(Array.isArray(json?.satkers) ? json.satkers : []);
+      } catch {
+        if (!mounted) return;
+        setSalesOptions([]);
+        setCityOptions([]);
+        setSatkerOptions([]);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // fetch rows dari DB setiap filter/pagination berubah
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      setLoadingRows(true);
+
+      const qs = new URLSearchParams();
+      qs.set("limit", String(pageSize));
+      qs.set("page", String(page));
+
+      if (fSales !== "ALL") qs.set("sales", fSales);
+      if (fStatus !== "ALL") qs.set("status", fStatus);
+      if (fRing !== "ALL") qs.set("ring", fRing);
+      if (fCity !== "ALL") qs.set("city", fCity);
+      if (fSatker !== "ALL") qs.set("satker", fSatker);
+      if (fStart) qs.set("start", fStart);
+      if (fEnd) qs.set("end", fEnd);
+
+      try {
+        const res = await fetch(`/api/visits?${qs.toString()}`, {
+          cache: "no-store",
+        });
+        const json = await res.json().catch(() => ({}));
+
+        if (!mounted) return;
+
+        const items = Array.isArray(json?.items) ? json.items : [];
+        setRows(items);
+
+        const pg = json?.pagination ?? {};
+        setTotal(Number(pg?.total ?? 0));
+        setTotalPages(Number(pg?.totalPages ?? 1));
+
+        // reset detail kalau data berubah
+        setSelected(null);
+      } catch {
+        if (!mounted) return;
+        setRows([]);
+        setTotal(0);
+        setTotalPages(1);
+        setSelected(null);
+      } finally {
+        if (mounted) setLoadingRows(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [pageSize, page, fSales, fStatus, fRing, fCity, fSatker, fStart, fEnd]);
+
+  const safePage = useMemo(
+    () => Math.min(Math.max(1, page), Math.max(1, totalPages)),
+    [page, totalPages],
   );
-  const cityOptions = useMemo(
-    () => Array.from(new Set(allRows.map((r) => r.city))).sort(),
-    [allRows],
-  );
-  const satkerOptions = useMemo(
-    () => Array.from(new Set(allRows.map((r) => r.satuan_kerja))).sort(),
-    [allRows],
-  );
-
-  const filtered = useMemo(() => {
-    const start = fStart ? new Date(fStart).getTime() : null;
-    const end = fEnd ? new Date(fEnd).getTime() : null;
-
-    return allRows.filter((r) => {
-      if (fSales !== "ALL" && r.nama_sales !== fSales) return false;
-      if (fStatus !== "ALL" && r.status_visit !== fStatus) return false;
-      if (fRing !== "ALL" && r.status_ring !== fRing) return false;
-      if (fCity !== "ALL" && r.city !== fCity) return false;
-      if (fSatker !== "ALL" && r.satuan_kerja !== fSatker) return false;
-
-      const t = new Date(r.visit_date).getTime();
-      if (start !== null && t < start) return false;
-      if (end !== null && t > end) return false;
-
-      return true;
-    });
-  }, [allRows, fSales, fStatus, fRing, fCity, fSatker, fStart, fEnd]);
-
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-
-  const pageRows = useMemo(() => {
-    const start = (safePage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, safePage, pageSize]);
 
   const showingFrom = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const showingTo = Math.min(total, safePage * pageSize);
 
-  const gotoPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
+  const gotoPage = (p: number) =>
+    setPage(Math.min(Math.max(1, p), Math.max(1, totalPages)));
 
   const onChangeFilter = (fn: (v: string) => void, v: string) => {
     fn(v);
@@ -220,9 +219,9 @@ export default function RekapitulasiVisitPage() {
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex min-h-screen">
-        <Sidebar role={role} />
+        <Sidebar />
 
-        <div className="flex-1 bg-[#F2F7FF] p-8">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* HEADER */}
           <div className="mb-6 flex items-center gap-4">
             <h1 className="text-xl font-extrabold tracking-wide text-gray-900">
@@ -261,6 +260,7 @@ export default function RekapitulasiVisitPage() {
                   { label: "Semua Status", value: "ALL" },
                   { label: "Visited", value: "Visited" },
                   { label: "Not Visited", value: "Not Visited" },
+                  { label: "Stay Office", value: "Stay Office" },
                 ]}
               />
 
@@ -327,7 +327,16 @@ export default function RekapitulasiVisitPage() {
                 </thead>
 
                 <tbody>
-                  {pageRows.length === 0 ? (
+                  {loadingRows ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-6 py-12 text-center text-gray-500"
+                      >
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : rows.length === 0 ? (
                     <tr>
                       <td
                         colSpan={8}
@@ -337,7 +346,7 @@ export default function RekapitulasiVisitPage() {
                       </td>
                     </tr>
                   ) : (
-                    pageRows.map((r) => {
+                    rows.map((r) => {
                       const active = selected?._id === r._id;
                       return (
                         <tr
@@ -476,12 +485,16 @@ export default function RekapitulasiVisitPage() {
                     />
                     <DetailItem
                       label="Market Status"
-                      value={selected.market_status}
+                      value={selected.status_market}
                     />
                     <DetailItem label="KLPD" value={selected.klpd} />
                     <DetailItem
                       label="Reschedule"
-                      value={selected.reschedule}
+                      value={
+                        selected.reschedule && selected.reschedule !== "-"
+                          ? formatDateID(selected.reschedule)
+                          : "-"
+                      }
                     />
                     <DetailItem
                       label="Institusi Kerja"
@@ -508,7 +521,7 @@ export default function RekapitulasiVisitPage() {
                       DESKRIPSI
                     </div>
                     <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
-                      {selected.deskripsi || "-"}
+                      {selected.descriptions || "-"}
                     </div>
                   </div>
                 </div>
@@ -520,6 +533,8 @@ export default function RekapitulasiVisitPage() {
     </div>
   );
 }
+
+/* ----------------------------- UI Pieces ----------------------------- */
 
 function FilterSelect({
   label,

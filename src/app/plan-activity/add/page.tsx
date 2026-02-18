@@ -1,109 +1,273 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
-
-type PlanRow = {
-  id: string;
-  tanggal: string;
-  kota: string;
-  klpd: string;
-  institusi_kerja: string;
-  satuan_kerja: string;
-  status: string;
+import { useSession } from "@/components/session/SessionProvider";
+type TeamMember = {
+  userId: string;
+  fullName: string;
+  username: string;
+  role: string;
 };
 
-const LS_KEY = "mabelhub_plan_activity_v1";
+type Company = {
+  _id: string;
+  institusi_kerja: string;
+  kota_kab: string;
+  klpd: string;
+  satuan_kerja: string;
+  status_ring?: string;
+  pic_default?: {
+    nama?: string;
+    no_telp?: string;
+    jabatan?: string;
+    role?: string;
+  };
+};
 
-function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+type PlanItem = {
+  id: string; // local id untuk render
+  status_ring: string;
 
-function loadPlans(): PlanRow[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+  institusiQuery: string;
+  selectedCompany: Company | null;
 
-function savePlans(plans: PlanRow[]) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(plans));
-  } catch {}
-}
+  kota_kab: string;
+  klpd: string;
+  satuan_kerja: string;
 
-function emptyRow(): PlanRow {
+  pic_default: {
+    nama: string;
+    no_telp: string;
+    jabatan: string;
+    role: string;
+  };
+
+  // optional: leader buatkan untuk sales tertentu (isi userId mongodb string)
+  targetUserId?: string;
+
+  showSug: boolean;
+  loadingSug: boolean;
+  sugs: Company[];
+};
+
+function newItem(): PlanItem {
   return {
-    id: uid(),
-    tanggal: "",
-    kota: "",
+    id: crypto.randomUUID(),
+    status_ring: "",
+    institusiQuery: "",
+    selectedCompany: null,
+
+    kota_kab: "",
     klpd: "",
-    institusi_kerja: "",
     satuan_kerja: "",
-    status: "",
+
+    pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
+
+    targetUserId: "",
+
+    showSug: false,
+    loadingSug: false,
+    sugs: [],
   };
 }
 
 export default function AddPlansPage() {
-  const role: Role = "SUPERADMIN";
   const router = useRouter();
   const sp = useSearchParams();
-  const editId = sp.get("edit");
+  const editId = sp.get("edit"); // masih belum dipakai (bulk mode)
+  const { user, loading: sessionLoading } = useSession();
 
-  const [rows, setRows] = useState<PlanRow[]>([emptyRow()]);
+  // Guard
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      const ok =
+        user.role === "SALES" ||
+        user.role === "LEADER" ||
+        user.role === "ADMIN" ||
+        user.role === "SUPERADMIN";
+      if (!ok) router.replace("/");
+    }
+  }, [sessionLoading, user, router]);
+
+  const [tanggal, setTanggal] = useState("");
+  const [items, setItems] = useState<PlanItem[]>([newItem()]);
+  const [saving, setSaving] = useState(false);
+  const [salesOptions, setSalesOptions] = useState<
+  Array<{ userId: string; fullName: string; username: string; role: string }>
+>([]);
+
+useEffect(() => {
+  if (sessionLoading) return;
+  if (!user) return;
+  if (user.role !== "LEADER") return;
+
+  fetch("/api/teams/me/members", { cache: "no-store" })
+    .then((r) => r.json())
+    .then((j) => {
+      const members = Array.isArray(j?.members) ? j.members : [];
+      setSalesOptions(members.filter((m: any) => m?.role === "SALES"));
+    })
+    .catch(() => setSalesOptions([]));
+}, [sessionLoading, user]);
+
 
   useEffect(() => {
-    if (!editId) return;
-    const plans = loadPlans();
-    const found = plans.find((p) => p.id === editId);
-    if (found) setRows([{ ...found }]);
+    if (editId) {
+      // saran: edit single => bikin page /plan-activity/edit/[id]
+      // bulk mode tidak enak kalau dipaksa edit
+    }
   }, [editId]);
 
-  function addCard() {
-    setRows((prev) => [...prev, emptyRow()]);
+  function addItem() {
+    setItems((prev) => [...prev, newItem()]);
   }
-
-  function removeCard(id: string) {
-    setRows((prev) => prev.filter((r) => r.id !== id));
+  function removeItem(id: string) {
+    setItems((prev) => prev.filter((x) => x.id !== id));
   }
-
-  function patchRow(id: string, patch: Partial<PlanRow>) {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  }
-
-  function submit() {
-    const cleaned = rows.filter(
-      (r) => r.tanggal || r.kota || r.klpd || r.institusi_kerja || r.satuan_kerja || r.status,
+  function patchItem(id: string, updates: Partial<PlanItem>) {
+    setItems((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, ...updates } : x)),
     );
+  }
 
-    const existing = loadPlans();
+  function resetCompanyFields(id: string) {
+    patchItem(id, {
+      selectedCompany: null,
+      institusiQuery: "",
+      sugs: [],
+      showSug: false,
+      kota_kab: "",
+      klpd: "",
+      satuan_kerja: "",
+      pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
+    });
+  }
 
-    if (editId) {
-      // update
-      const next = existing.map((p) => (p.id === editId ? { ...cleaned[0], id: editId } : p));
-      savePlans(next);
-    } else {
-      // insert (prepend)
-      savePlans([...cleaned, ...existing]);
+  function pickCompany(id: string, c: Company) {
+    patchItem(id, {
+      selectedCompany: c,
+      institusiQuery: c.institusi_kerja,
+      showSug: false,
+      kota_kab: c.kota_kab || "",
+      klpd: c.klpd || "",
+      satuan_kerja: c.satuan_kerja || "",
+      pic_default: {
+        nama: c.pic_default?.nama || "",
+        no_telp: c.pic_default?.no_telp || "",
+        jabatan: c.pic_default?.jabatan || "",
+        role: c.pic_default?.role || "",
+      },
+    });
+  }
+
+  // ✅ biar gak stale closure: passing ring+q langsung
+  async function fetchSuggestion(itemId: string, ring: string, q: string) {
+    if (!ring) return;
+
+    try {
+      patchItem(itemId, { loadingSug: true, showSug: true });
+
+      const qs = new URLSearchParams({
+        ring,
+        q: q || "",
+        limit: "10",
+      });
+
+      const res = await fetch(`/api/companies/suggest?${qs.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        patchItem(itemId, { sugs: [], loadingSug: false });
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      patchItem(itemId, {
+        sugs: (data?.items ?? []) as Company[],
+        loadingSug: false,
+      });
+    } catch {
+      patchItem(itemId, { sugs: [], loadingSug: false });
+    }
+  }
+
+  const canSubmit = useMemo(() => {
+    if (!tanggal) return false;
+    if (!items.length) return false;
+
+    return items.every((it) => {
+      if (!it.status_ring) return false;
+      if (!it.institusiQuery.trim()) return false;
+
+      // leader mode: kalau leader isi targetUserId, harus ada nilainya
+      if (
+        user?.role === "LEADER" &&
+        (it.targetUserId ?? "").trim().length === 0
+      ) {
+        // leader wajib menentukan untuk siapa (biar jelas)
+        return false;
+      }
+      return true;
+    });
+  }, [tanggal, items, user?.role]);
+
+  async function submitAll() {
+    if (!canSubmit) {
+      alert(
+        user?.role === "LEADER"
+          ? "Tanggal wajib. Tiap plan wajib punya Ring + Institusi + Target UserId (sales) untuk leader."
+          : "Tanggal wajib, dan setiap plan wajib punya Ring + Institusi.",
+      );
+      return;
     }
 
-    router.push("/plan-activity");
+    try {
+      setSaving(true);
+
+      const payload = {
+        tanggal, // yyyy-mm-dd
+        items: items.map((it) => ({
+          status_ring: it.status_ring,
+          institusi_kerja: it.institusiQuery,
+          kota_kab: it.kota_kab,
+          klpd: it.klpd,
+          satuan_kerja: it.satuan_kerja,
+          pic_default: it.pic_default,
+          // optional leader
+          targetUserId: (it.targetUserId ?? "").trim() || null,
+        })),
+      };
+
+      const res = await fetch("/api/visits/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(json?.error || "Gagal menyimpan");
+        return;
+      }
+
+      alert(`Plan berhasil disimpan (${json?.insertedCount ?? 0} item).`);
+      router.push("/plan-activity");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar role={role} />
+        <Sidebar />
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
-            {/* TOP BAR */}
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
@@ -118,114 +282,210 @@ export default function AddPlansPage() {
                 </h1>
               </div>
 
-              <button
-                type="button"
-                className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-white"
-              >
-                REGISTER COMPANY
-              </button>
+              {user?.role === "SALES" && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/tambah-instansi")}
+                  className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                >
+                  Register Company
+                </button>
+              )}
             </div>
 
-            {/* CARDS */}
-            <div className="space-y-6">
-              {rows.map((r, idx) => (
+            {/* TANGGAL */}
+            <div className="mb-6 rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10">
+              <label className="text-sm">Tanggal (1 untuk semua plan)</label>
+              <input
+                type="date"
+                value={tanggal}
+                onChange={(e) => setTanggal(e.target.value)}
+                className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
+              />
+            </div>
+
+            {/* LIST ITEM */}
+            <div className="space-y-5">
+              {items.map((it, idx) => (
                 <div
-                  key={r.id}
-                  className="relative rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/10"
+                  key={it.id}
+                  className="rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10 relative"
                 >
-                  <div className="absolute left-6 top-6 grid h-10 w-10 place-items-center rounded-full bg-white text-sm font-bold text-gray-700">
-                    {idx + 1}
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="font-extrabold text-black">
+                      PLAN #{idx + 1}
+                    </div>
+
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(it.id)}
+                        className="text-sm font-bold text-red-700 hover:underline"
+                      >
+                        Hapus Plan
+                      </button>
+                    )}
                   </div>
 
-                  {rows.length > 1 && (
-                    <button
-                      onClick={() => removeCard(r.id)}
-                      className="absolute right-6 top-6 text-xl font-black text-black/80 hover:text-black"
-                      aria-label="Remove"
-                    >
-                      ×
-                    </button>
-                  )}
-
-                  {/* form layout mirip gambar */}
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="md:col-span-2 grid grid-cols-1 gap-6 md:grid-cols-2 md:items-end">
-                      <div className="md:pl-16">
-                        <label className="text-sm text-black">Tanggal</label>
-                        <div className="relative mt-2">
-                          <input
-                            type="date"
-                            value={r.tanggal}
-                            onChange={(e) => patchRow(r.id, { tanggal: e.target.value })}
-                            className="h-11 w-full rounded-xl bg-white px-4 pr-10 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                              <path
-                                d="M7 3v2M17 3v2M4 9h16M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
+                    {/* LEADER: target sales */}
+                    {user?.role === "LEADER" && (
+                      <div className="md:col-span-2">
+                        <label className="text-xs font-semibold text-gray-600">
+                          Assign ke Sales
+                        </label>
+                        <select
+                          value={(it.targetUserId || "").trim()}
+                          onChange={(e) =>
+                            patchItem(it.id, { targetUserId: e.target.value })
+                          }
+                          className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
+                        >
+                          <option value="">-- pilih sales team --</option>
+                          {salesOptions.map((m) => (
+                            <option key={m.userId} value={m.userId}>
+                              {m.fullName || m.username || m.userId}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="mt-1 text-xs text-gray-600">
+                          Hanya bisa pilih sales anggota team kamu.
                         </div>
                       </div>
+                    ) : null}
 
-                      <div>
-                        <label className="text-sm text-black">Status Segmen</label>
-                        <div className="relative mt-2">
-                          <select
-                            value={r.status}
-                            onChange={(e) => patchRow(r.id, { status: e.target.value })}
-                            className="h-11 w-full appearance-none rounded-xl bg-white px-4 pr-10 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                          >
-                            <option value="">Pilih...</option>
-                            <option value="VISITED">VISITED</option>
-                            <option value="VISIT">VISIT</option>
-                            <option value="NOT VISITED">NOT VISITED</option>
-                          </select>
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-700">
-                            ▾
-                          </span>
-                        </div>
+                    {/* RING */}
+                    <div>
+                      <label className="text-sm">Status Ring</label>
+                      <select
+                        value={it.status_ring}
+                        onChange={(e) => {
+                          const ring = e.target.value;
+                          patchItem(it.id, { status_ring: ring });
+                          resetCompanyFields(it.id);
+                        }}
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
+                      >
+                        <option value="">Pilih...</option>
+                        <option value="RING 1">RING 1</option>
+                        <option value="RING 2">RING 2</option>
+                        <option value="RING 3">RING 3</option>
+                        <option value="RING 4">RING 4</option>
+                      </select>
+                    </div>
+
+                    <div />
+
+                    {/* Institusi autocomplete */}
+                    <div className="md:col-span-2">
+                      <label className="text-sm">
+                        Institusi (approved sesuai ring)
+                      </label>
+
+                      <div className="relative mt-2">
+                        <input
+                          value={it.institusiQuery}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            patchItem(it.id, {
+                              institusiQuery: val,
+                              showSug: true,
+                            });
+                            if (it.status_ring)
+                              fetchSuggestion(it.id, it.status_ring, val);
+                          }}
+                          onFocus={() => {
+                            if (it.status_ring)
+                              fetchSuggestion(
+                                it.id,
+                                it.status_ring,
+                                it.institusiQuery,
+                              );
+                          }}
+                          disabled={!it.status_ring}
+                          placeholder={
+                            !it.status_ring
+                              ? "Pilih Ring dulu"
+                              : "Ketik nama institusi..."
+                          }
+                          className="h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none disabled:bg-gray-100"
+                        />
+
+                        {it.showSug && it.status_ring && (
+                          <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl bg-white shadow ring-1 ring-black/10">
+                            {it.loadingSug ? (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                Loading...
+                              </div>
+                            ) : it.sugs.length === 0 ? (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                Tidak ada instansi approved untuk ring ini.
+                              </div>
+                            ) : (
+                              it.sugs.map((c) => (
+                                <button
+                                  key={c._id}
+                                  type="button"
+                                  onClick={() => pickCompany(it.id, c)}
+                                  className="block w-full px-4 py-3 text-left text-sm hover:bg-gray-50"
+                                >
+                                  <div className="font-semibold">
+                                    {c.institusi_kerja}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {c.satuan_kerja} • {c.kota_kab} • {c.klpd}
+                                  </div>
+                                </button>
+                              ))
+                            )}
+
+                            <div className="flex items-center justify-between border-t px-3 py-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  patchItem(it.id, { showSug: false })
+                                }
+                                className="rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                              >
+                                Tutup
+                              </button>
+
+                              <div className="text-xs text-gray-500">
+                                {it.selectedCompany
+                                  ? "Dipilih ✓"
+                                  : "Belum dipilih"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="md:pl-16">
-                      <label className="text-sm text-black">Satuan Kerja</label>
+                    {/* Autofill */}
+                    <div>
+                      <label className="text-sm">Kota/Kabupaten</label>
                       <input
-                        value={r.satuan_kerja}
-                        onChange={(e) => patchRow(r.id, { satuan_kerja: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        value={it.kota_kab}
+                        readOnly
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="text-sm text-black">K/L/PD</label>
+                      <label className="text-sm">KLPD</label>
                       <input
-                        value={r.klpd}
-                        onChange={(e) => patchRow(r.id, { klpd: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        value={it.klpd}
+                        readOnly
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
 
-                    <div className="md:pl-16">
-                      <label className="text-sm text-black">Institusi Kerja</label>
+                    <div className="md:col-span-2">
+                      <label className="text-sm">Satuan Kerja</label>
                       <input
-                        value={r.institusi_kerja}
-                        onChange={(e) => patchRow(r.id, { institusi_kerja: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-black">Kota</label>
-                      <input
-                        value={r.kota}
-                        onChange={(e) => patchRow(r.id, { kota: e.target.value })}
-                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-black/15 focus:ring-2 focus:ring-black/20"
+                        value={it.satuan_kerja}
+                        readOnly
+                        className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
                   </div>
@@ -233,41 +493,25 @@ export default function AddPlansPage() {
               ))}
             </div>
 
-            {/* FOOTER BUTTONS */}
-            {!editId && (
-              <div className="mt-6 flex items-center justify-between">
-                <button
-                  onClick={addCard}
-                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
-                >
-                  TAMBAH VISIT
-                </button>
+            {/* ACTIONS */}
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={addItem}
+                className="h-11 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+              >
+                + Tambah Plan
+              </button>
 
-                <button
-                  onClick={submit}
-                  className="h-12 w-64 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
-                >
-                  SUBMIT
-                </button>
-              </div>
-            )}
-
-            {editId && (
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <button
-                  onClick={() => router.push("/plan-activity")}
-                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
-                >
-                  BATAL
-                </button>
-                <button
-                  onClick={submit}
-                  className="h-12 w-48 rounded-full bg-white text-base font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
-                >
-                  SIMPAN
-                </button>
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={submitAll}
+                disabled={!canSubmit || saving}
+                className="h-12 w-56 rounded-full bg-gray-300 text-base font-extrabold ring-1 ring-black/10 hover:bg-gray-200 disabled:opacity-50"
+              >
+                {saving ? "SAVING..." : "SUBMIT"}
+              </button>
+            </div>
 
             <div className="h-10" />
           </main>

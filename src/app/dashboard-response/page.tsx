@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Search,
@@ -14,13 +15,19 @@ import {
   PackageOpen,
 } from "lucide-react";
 
-type EprocOrder = {
-  id: string;
+type EProcRow = {
+  requestId: string;
   requestor: string;
-  deadline: string;
   pemohon: string;
+  lokasi: string;
   segmen: string;
-  kota: string;
+  deadlineUsulan: string | Date;
+  tanggalSubmit: string | Date;
+  catatan?: string;
+
+  takenByAdminId?: string | null;
+  takenByAdminName?: string | null;
+  takenAt?: string | Date | null;
 };
 
 type Summary = {
@@ -30,28 +37,57 @@ type Summary = {
   byStatus: Array<{ label: string; value: number }>;
 };
 
-async function fetchTakeableOrders(): Promise<EprocOrder[]> {
-  try {
-    const res = await fetch("/api/eprocurement/orders?takeable=1", {
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return (json?.data ?? json ?? []) as EprocOrder[];
-  } catch {
-    return [];
-  }
+function fmtDate(d: string | Date) {
+  const dt = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(dt.getTime())) return "-";
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const yyyy = dt.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+async function apiListTakeable(): Promise<EProcRow[]> {
+  const res = await fetch("/api/e-procurement/requests?mode=takeable", {
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const json = await res.json().catch(() => ({}));
+  return (json?.data ?? []) as EProcRow[];
+}
+
+async function apiTake(requestId: string) {
+  const res = await fetch(`/api/e-procurement/requests/${requestId}/take`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // adminId tidak perlu dikirim karena diambil dari session di backend
+    body: JSON.stringify({}),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "Gagal mengambil request");
+  return true;
 }
 
 export default function DashboardResponsePage() {
-  const role: Role = "SUPERADMIN";
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
-  const [orders, setOrders] = useState<EprocOrder[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [rows, setRows] = useState<EProcRow[]>([]);
+  const [loadingRows, setLoadingRows] = useState(true);
+  const [takingId, setTakingId] = useState<string | null>(null);
+
   const [q, setQ] = useState("");
   const [notifCount, setNotifCount] = useState(3);
 
-  // Dummy summary (samakan nanti dari API)
+  // Guard: dashboard response untuk ADMIN/SUPERADMIN saja (opsional tapi masuk akal)
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      if (user.role !== "SUPERADMIN" && user.role !== "ADMIN") {
+        router.replace("/dashboard-request");
+      }
+    }
+  }, [sessionLoading, user, router]);
+
+  // Dummy summary (nanti bisa dari API)
   const summary: Summary = useMemo(
     () => ({
       total: 30,
@@ -77,23 +113,58 @@ export default function DashboardResponsePage() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      setLoadingOrders(true);
-      const data = await fetchTakeableOrders();
-      if (mounted) setOrders(data);
-      if (mounted) setLoadingOrders(false);
+      if (sessionLoading) return;
+      if (!user) return;
+
+      setLoadingRows(true);
+      const data = await apiListTakeable();
+      if (mounted) setRows(data);
+      if (mounted) setLoadingRows(false);
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [sessionLoading, user]);
 
-  const hasOrders = orders.length > 0;
+  const filtered = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    if (!qq) return rows;
+    return rows.filter((r) =>
+      [
+        r.requestId,
+        r.requestor,
+        r.pemohon,
+        r.lokasi,
+        r.segmen,
+        fmtDate(r.deadlineUsulan),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(qq),
+    );
+  }, [rows, q]);
+
+  const hasOrders = filtered.length > 0;
+
+  async function onTake(requestId: string) {
+    try {
+      setTakingId(requestId);
+      await apiTake(requestId);
+      // refresh list
+      const data = await apiListTakeable();
+      setRows(data);
+    } catch (e: any) {
+      alert(e?.message ?? "Gagal mengambil request");
+    } finally {
+      setTakingId(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-blue-100">
       <div className="flex">
         {/* Sidebar */}
-        <Sidebar role={role} />
+        <Sidebar />
 
         {/* Content */}
         <div className="flex-1 h-screen overflow-y-auto">
@@ -172,20 +243,28 @@ export default function DashboardResponsePage() {
                 </div>
 
                 <div className="hidden md:block text-xs text-neutral-600">
-                  Queue: <span className="font-semibold">{orders.length}</span>
+                  Queue:{" "}
+                  <span className="font-semibold">{filtered.length}</span>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {loadingOrders ? (
+                {loadingRows ? (
                   <>
                     <TakeCardSkeleton />
                     <TakeCardSkeleton />
                   </>
                 ) : hasOrders ? (
-                  orders
+                  filtered
                     .slice(0, 2)
-                    .map((o) => <TakeCard key={o.id} order={o} />)
+                    .map((r) => (
+                      <TakeCard
+                        key={r.requestId}
+                        row={r}
+                        taking={takingId === r.requestId}
+                        onTake={() => onTake(r.requestId)}
+                      />
+                    ))
                 ) : (
                   <EmptyTakeState />
                 )}
@@ -281,7 +360,15 @@ function MiniTable({
   );
 }
 
-function TakeCard({ order }: { order: EprocOrder }) {
+function TakeCard({
+  row,
+  onTake,
+  taking,
+}: {
+  row: EProcRow;
+  onTake: () => void;
+  taking: boolean;
+}) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -290,35 +377,36 @@ function TakeCard({ order }: { order: EprocOrder }) {
             REQUEST ID
           </div>
           <div className="mt-1 text-sm font-semibold text-neutral-900">
-            {order.id}
+            {row.requestId}
           </div>
         </div>
 
         <button
           className="h-9 rounded-full bg-neutral-900 px-4 text-xs font-semibold text-white hover:bg-neutral-800 active:scale-[0.98]"
-          onClick={() => alert(`TAKE: ${order.id}`)}
+          onClick={onTake}
+          disabled={taking}
         >
-          TAKE
+          {taking ? "TAKING..." : "TAKE"}
         </button>
       </div>
 
       <div className="mt-3 h-px w-full bg-neutral-200" />
 
       <div className="mt-3 grid grid-cols-2 gap-4">
-        <Info label="REQUESTOR" value={order.requestor} />
-        <Info label="DEADLINE USULAN" value={order.deadline} />
+        <Info label="REQUESTOR" value={row.requestor} />
+        <Info label="DEADLINE USULAN" value={fmtDate(row.deadlineUsulan)} />
 
         <div className="col-span-2">
-          <Info label="PEMOHON" value={order.pemohon} bold />
+          <Info label="PEMOHON" value={row.pemohon} bold />
         </div>
 
-        <Info label="SEGMEN" value={order.segmen} />
+        <Info label="SEGMEN" value={row.segmen} />
         <div>
           <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
-            KOTA
+            KOTA/LOKASI
           </div>
           <div className="mt-1 inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-800">
-            {order.kota}
+            {row.lokasi}
           </div>
         </div>
       </div>
