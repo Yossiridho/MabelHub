@@ -44,11 +44,10 @@ export default function DashboardRequestPage() {
 
   const [search, setSearch] = useState("");
   const [unreadNotif, setUnreadNotif] = useState(3);
-
   useEffect(() => {
     if (!sessionLoading && user) {
-      // contoh rule: SUPERADMIN/ADMIN sebaiknya ke dashboard-response
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
+
       }
     }
   }, [sessionLoading, user, router]);
