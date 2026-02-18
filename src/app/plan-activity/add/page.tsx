@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+type TeamMember = {
+  userId: string;
+  fullName: string;
+  username: string;
+  role: string;
+};
 
 type Company = {
   _id: string;
@@ -23,6 +29,7 @@ type Company = {
 type PlanItem = {
   id: string; // local id untuk render
   status_ring: string;
+
   institusiQuery: string;
   selectedCompany: Company | null;
 
@@ -36,6 +43,9 @@ type PlanItem = {
     jabatan: string;
     role: string;
   };
+
+  // optional: leader buatkan untuk sales tertentu (isi userId mongodb string)
+  targetUserId?: string;
 
   showSug: boolean;
   loadingSug: boolean;
@@ -53,12 +63,9 @@ function newItem(): PlanItem {
     klpd: "",
     satuan_kerja: "",
 
-    pic_default: {
-      nama: "",
-      no_telp: "",
-      jabatan: "",
-      role: "",
-    },
+    pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
+
+    targetUserId: "",
 
     showSug: false,
     loadingSug: false,
@@ -69,7 +76,7 @@ function newItem(): PlanItem {
 export default function AddPlansPage() {
   const router = useRouter();
   const sp = useSearchParams();
-  const editId = sp.get("edit"); // kalau edit single (nanti), sekarang fokus add multi
+  const editId = sp.get("edit"); // masih belum dipakai (bulk mode)
   const { user, loading: sessionLoading } = useSession();
 
   // Guard
@@ -84,29 +91,41 @@ export default function AddPlansPage() {
     }
   }, [sessionLoading, user, router]);
 
-  // ====== tanggal cuma 1 ======
   const [tanggal, setTanggal] = useState("");
-
-  // ====== banyak plan item ======
   const [items, setItems] = useState<PlanItem[]>([newItem()]);
   const [saving, setSaving] = useState(false);
+  const [salesOptions, setSalesOptions] = useState<
+  Array<{ userId: string; fullName: string; username: string; role: string }>
+>([]);
 
-  // NOTE: sekarang belum handle edit multi (lebih kompleks).
+useEffect(() => {
+  if (sessionLoading) return;
+  if (!user) return;
+  if (user.role !== "LEADER") return;
+
+  fetch("/api/teams/me/members", { cache: "no-store" })
+    .then((r) => r.json())
+    .then((j) => {
+      const members = Array.isArray(j?.members) ? j.members : [];
+      setSalesOptions(members.filter((m: any) => m?.role === "SALES"));
+    })
+    .catch(() => setSalesOptions([]));
+}, [sessionLoading, user]);
+
+
   useEffect(() => {
     if (editId) {
-      // untuk edit plan single, sebaiknya kamu pakai page terpisah /plan-activity/edit/[id]
-      // biar tidak bentrok dengan bulk mode.
+      // saran: edit single => bikin page /plan-activity/edit/[id]
+      // bulk mode tidak enak kalau dipaksa edit
     }
   }, [editId]);
 
   function addItem() {
     setItems((prev) => [...prev, newItem()]);
   }
-
   function removeItem(id: string) {
     setItems((prev) => prev.filter((x) => x.id !== id));
   }
-
   function patchItem(id: string, updates: Partial<PlanItem>) {
     setItems((prev) =>
       prev.map((x) => (x.id === id ? { ...x, ...updates } : x)),
@@ -123,7 +142,7 @@ export default function AddPlansPage() {
       klpd: "",
       satuan_kerja: "",
       pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
-    } as any);
+    });
   }
 
   function pickCompany(id: string, c: Company) {
@@ -143,15 +162,15 @@ export default function AddPlansPage() {
     });
   }
 
-  async function fetchSuggestion(itemId: string, q: string) {
-    const it = items.find((x) => x.id === itemId);
-    if (!it?.status_ring) return;
+  // ✅ biar gak stale closure: passing ring+q langsung
+  async function fetchSuggestion(itemId: string, ring: string, q: string) {
+    if (!ring) return;
 
     try {
       patchItem(itemId, { loadingSug: true, showSug: true });
 
       const qs = new URLSearchParams({
-        ring: it.status_ring,
+        ring,
         q: q || "",
         limit: "10",
       });
@@ -179,13 +198,29 @@ export default function AddPlansPage() {
     if (!tanggal) return false;
     if (!items.length) return false;
 
-    // tiap item minimal ring + institusi (dan sebaiknya dipilih dari suggestion -> selectedCompany)
-    return items.every((it) => Boolean(it.status_ring && it.institusiQuery));
-  }, [tanggal, items]);
+    return items.every((it) => {
+      if (!it.status_ring) return false;
+      if (!it.institusiQuery.trim()) return false;
+
+      // leader mode: kalau leader isi targetUserId, harus ada nilainya
+      if (
+        user?.role === "LEADER" &&
+        (it.targetUserId ?? "").trim().length === 0
+      ) {
+        // leader wajib menentukan untuk siapa (biar jelas)
+        return false;
+      }
+      return true;
+    });
+  }, [tanggal, items, user?.role]);
 
   async function submitAll() {
     if (!canSubmit) {
-      alert("Tanggal wajib, dan setiap plan wajib punya Ring + Institusi.");
+      alert(
+        user?.role === "LEADER"
+          ? "Tanggal wajib. Tiap plan wajib punya Ring + Institusi + Target UserId (sales) untuk leader."
+          : "Tanggal wajib, dan setiap plan wajib punya Ring + Institusi.",
+      );
       return;
     }
 
@@ -194,8 +229,6 @@ export default function AddPlansPage() {
 
       const payload = {
         tanggal, // yyyy-mm-dd
-        createdBy: user?.userId || null, // ✅ pakai userId dari SessionProvider
-        nama_sales: user?.fullName || null, // ✅ fullName jadi nama_sales
         items: items.map((it) => ({
           status_ring: it.status_ring,
           institusi_kerja: it.institusiQuery,
@@ -203,6 +236,8 @@ export default function AddPlansPage() {
           klpd: it.klpd,
           satuan_kerja: it.satuan_kerja,
           pic_default: it.pic_default,
+          // optional leader
+          targetUserId: (it.targetUserId ?? "").trim() || null,
         })),
       };
 
@@ -212,13 +247,14 @@ export default function AddPlansPage() {
         body: JSON.stringify(payload),
       });
 
+      const json = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err?.error || "Gagal menyimpan");
+        alert(json?.error || "Gagal menyimpan");
         return;
       }
 
-      alert("Plan berhasil disimpan ke database");
+      alert(`Plan berhasil disimpan (${json?.insertedCount ?? 0} item).`);
       router.push("/plan-activity");
     } finally {
       setSaving(false);
@@ -246,7 +282,6 @@ export default function AddPlansPage() {
                 </h1>
               </div>
 
-              {/* tombol register company untuk SALES (sesuai kode kamu sebelumnya) */}
               {user?.role === "SALES" && (
                 <button
                   type="button"
@@ -258,7 +293,7 @@ export default function AddPlansPage() {
               )}
             </div>
 
-            {/* TANGGAL cuma 1 */}
+            {/* TANGGAL */}
             <div className="mb-6 rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10">
               <label className="text-sm">Tanggal (1 untuk semua plan)</label>
               <input
@@ -293,13 +328,40 @@ export default function AddPlansPage() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {/* LEADER: target sales */}
+                    {user?.role === "LEADER" && (
+                      <div className="md:col-span-2">
+                        <label className="text-xs font-semibold text-gray-600">
+                          Assign ke Sales
+                        </label>
+                        <select
+                          value={(it.targetUserId || "").trim()}
+                          onChange={(e) =>
+                            patchItem(it.id, { targetUserId: e.target.value })
+                          }
+                          className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
+                        >
+                          <option value="">-- pilih sales team --</option>
+                          {salesOptions.map((m) => (
+                            <option key={m.userId} value={m.userId}>
+                              {m.fullName || m.username || m.userId}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="mt-1 text-xs text-gray-600">
+                          Hanya bisa pilih sales anggota team kamu.
+                        </div>
+                      </div>
+                    ) : null}
+
                     {/* RING */}
                     <div>
                       <label className="text-sm">Status Ring</label>
                       <select
                         value={it.status_ring}
                         onChange={(e) => {
-                          patchItem(it.id, { status_ring: e.target.value });
+                          const ring = e.target.value;
+                          patchItem(it.id, { status_ring: ring });
                           resetCompanyFields(it.id);
                         }}
                         className="mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none"
@@ -329,11 +391,16 @@ export default function AddPlansPage() {
                               institusiQuery: val,
                               showSug: true,
                             });
-                            if (it.status_ring) fetchSuggestion(it.id, val);
+                            if (it.status_ring)
+                              fetchSuggestion(it.id, it.status_ring, val);
                           }}
                           onFocus={() => {
                             if (it.status_ring)
-                              fetchSuggestion(it.id, it.institusiQuery);
+                              fetchSuggestion(
+                                it.id,
+                                it.status_ring,
+                                it.institusiQuery,
+                              );
                           }}
                           disabled={!it.status_ring}
                           placeholder={
@@ -426,7 +493,7 @@ export default function AddPlansPage() {
               ))}
             </div>
 
-            {/* ACTIONS BOTTOM */}
+            {/* ACTIONS */}
             <div className="mt-6 flex items-center justify-between">
               <button
                 type="button"

@@ -99,7 +99,10 @@ export default function ParameterPage() {
 
   async function onAdd() {
     const v = value.trim();
-    if (!v) return;
+    if (!v) {
+      setErr("Value harus diisi terlebih dahulu.");
+      return;
+    }
 
     setSaving(true);
     setErr("");
@@ -215,10 +218,10 @@ export default function ParameterPage() {
               <div className="md:col-span-2 md:flex md:justify-end">
                 <button
                   onClick={onAdd}
-                  disabled={saving || !value.trim()}
+                  disabled={saving}
                   className={cn(
                     "h-12 w-full rounded-xl px-4 text-sm font-extrabold shadow ring-1 ring-black/10",
-                    saving || !value.trim()
+                    saving
                       ? "bg-gray-200 text-gray-500"
                       : "bg-white hover:bg-gray-50",
                   )}
@@ -308,7 +311,7 @@ function CardList({
                 <div
                   key={v}
                   className={cn(
-                    "flex items-center justify-between rounded-xl px-4 py-3 ring-1",
+                    "flex items-start gap-3 rounded-xl px-4 py-3 ring-1",
                     isActive
                       ? "bg-gray-200 ring-gray-300"
                       : "bg-gray-100 ring-gray-200 hover:bg-gray-200/70",
@@ -317,8 +320,8 @@ function CardList({
                   <button
                     type="button"
                     onClick={() => onPick(v)}
-                    className="flex-1 text-left text-sm font-semibold text-gray-900"
-                    title="Klik untuk pilih"
+                    className="min-w-0 flex-1 text-left text-sm font-semibold text-gray-900 break-words whitespace-normal"
+                    title={v}
                   >
                     {v}
                   </button>
@@ -328,7 +331,7 @@ function CardList({
                     disabled={disabled}
                     onClick={() => onDelete(v)}
                     className={cn(
-                      "ml-3 grid h-9 w-9 place-items-center rounded-lg",
+                      "shrink-0 grid h-9 w-9 place-items-center rounded-lg",
                       disabled
                         ? "bg-gray-200 text-gray-400"
                         : "bg-white text-gray-700 ring-1 ring-black/10 hover:bg-gray-50",

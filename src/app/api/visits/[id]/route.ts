@@ -1,135 +1,105 @@
 import { NextResponse } from "next/server";
-<<<<<<< HEAD
-import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import clientPromise from "@/lib/mongodb";
+import { assertLoggedIn } from "@/lib/auth-server";
 
-function badId() {
-  return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+type TeamDoc = {
+  leaderId: string; // string ObjectId user
+  memberIds: string[]; // string ObjectId user
+};
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = (await db
+    .collection<TeamDoc>("teams")
+    .findOne({ leaderId })) as TeamDoc | null;
+
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+function isAdminRole(role: string) {
+  return role === "ADMIN" || role === "SUPERADMIN";
+}
+
+// whitelist field yang boleh diupdate dari client
+function pickAllowedPatch(body: any) {
+  const patch: Record<string, any> = {};
+
+  // field yang memang wajar diedit setelah visit berjalan
+  const allow = [
+    "status_visit",
+    "status_market",
+    "descriptions",
+    "tindak_lanjut",
+    "kegiatan_status",
+    "no_visit_per_month",
+    "reschedule_date",
+    "visit_image",
+
+    "pic_name",
+    "pic_phone",
+    "pic_position",
+    "pic_role",
+
+    // kalau kamu memang mau izinkan edit header plan:
+    "visit_date",
+    "city",
+    "klpd",
+    "institusi_kerja",
+    "satuan_kerja",
+    "status_ring",
+  ];
+
+  for (const k of allow) {
+    if (body?.[k] !== undefined) patch[k] = body[k];
+  }
+
+  return patch;
 }
 
 export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-
-  if (!ObjectId.isValid(id)) return badId();
-
-  const client = await clientPromise;
-  const db = client.db("MabelHub");
-  const col = db.collection("VisitActivity");
-
-  const doc = await col.findOne({ _id: new ObjectId(id) });
-  if (!doc) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ data: doc });
-=======
-import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
-
-export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
-  }
-
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB || "MabelHub");
-  const col = db.collection("VisitActivity");
-
-  const doc = await col.findOne({ _id: new ObjectId(id) });
-  if (!doc) return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
-
-  return NextResponse.json({ data: { ...doc, _id: String((doc as any)._id) } });
->>>>>>> 1214f264cd1b38567be8233af102dc18a6f9acf8
-}
-
-export async function PUT(
   req: Request,
-<<<<<<< HEAD
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-  if (!ObjectId.isValid(id)) return badId();
-
-  const body = await req.json().catch(() => ({}));
-
-  const $set: any = {};
-  if (body.visit_date !== undefined)
-    $set.visit_date = body.visit_date ? new Date(body.visit_date) : null;
-  if (body.city !== undefined) $set.city = String(body.city ?? "");
-  if (body.klpd !== undefined) $set.klpd = String(body.klpd ?? "");
-  if (body.institusi_kerja !== undefined)
-    $set.institusi_kerja = String(body.institusi_kerja ?? "");
-  if (body.satuan_kerja !== undefined)
-    $set.satuan_kerja = String(body.satuan_kerja ?? "");
-  if (body.status_visit !== undefined)
-    $set.status_visit = String(body.status_visit ?? "");
-  if (body.status_ring !== undefined)
-    $set.status_ring = String(body.status_ring ?? "");
-
-  const client = await clientPromise;
-  const db = client.db("MabelHub");
-  const col = db.collection("VisitActivity");
-
-  const result = await col.findOneAndUpdate(
-    { _id: new ObjectId(id) },
-    { $set },
-    { returnDocument: "after" },
-  );
-
-  if (!result.value) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ data: result.value });
-}
-
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-  if (!ObjectId.isValid(id)) return badId();
-
-  const client = await clientPromise;
-  const db = client.db("MabelHub");
-  const col = db.collection("VisitActivity");
-
-  const result = await col.deleteOne({ _id: new ObjectId(id) });
-  if (result.deletedCount === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ ok: true });
-}
-=======
   ctx: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await ctx.params;
+  const auth = assertLoggedIn(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  const session = auth.session;
 
+  const { id } = await ctx.params;
   if (!ObjectId.isValid(id)) {
     return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
-
-  const body = await req.json().catch(() => ({}));
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
   const col = db.collection("VisitActivity");
 
-  const updated = await col.findOneAndUpdate(
-    { _id: new ObjectId(id) },
-    { $set: body },
-    { returnDocument: "after" },
-  );
-
-  // ✅ TS-safe: updated bisa null
-  const doc = updated?.value;
+  const doc = await col.findOne({ _id: new ObjectId(id) });
   if (!doc) {
-    return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Data tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  // =========================
+  // ACCESS CHECK (ROLE)
+  // =========================
+  const ownerUserId = String((doc as any).user_id || "");
+
+  if (session.role === "SALES") {
+    if (ownerUserId !== session.userId) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else if (session.role === "LEADER") {
+    const allowed = await getLeaderAllowedUserIds(db, session.userId);
+    if (!allowed.includes(ownerUserId)) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else {
+    // ADMIN/SUPERADMIN allowed
   }
 
   return NextResponse.json({
@@ -137,4 +107,151 @@ export async function DELETE(
   });
 }
 
->>>>>>> 1214f264cd1b38567be8233af102dc18a6f9acf8
+export async function PUT(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  const session = auth.session;
+
+  const { id } = await ctx.params;
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
+  const col = db.collection("VisitActivity");
+
+  // Ambil dokumen dulu untuk cek ownership/team
+  const existing = await col.findOne(
+    { _id: new ObjectId(id) },
+    { projection: { user_id: 1 } },
+  );
+
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Data tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  const ownerUserId = String((existing as any).user_id || "");
+
+  // =========================
+  // ACCESS CHECK (ROLE)
+  // =========================
+  if (session.role === "SALES") {
+    if (ownerUserId !== session.userId) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else if (session.role === "LEADER") {
+    const allowed = await getLeaderAllowedUserIds(db, session.userId);
+    if (!allowed.includes(ownerUserId)) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else if (!isAdminRole(session.role)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  // =========================
+  // PATCH SANITIZE
+  // =========================
+  const patch = pickAllowedPatch(body);
+
+  // Kalau tidak ada field yang valid untuk diupdate
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json(
+      { error: "Tidak ada field yang bisa diupdate" },
+      { status: 400 },
+    );
+  }
+
+  // audit info
+  patch.updated_by_user_id = session.userId;
+  patch.updated_by_name = session.fullName || session.username;
+  patch.updated_at = new Date().toISOString();
+
+  const updated = await col.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: patch },
+    { returnDocument: "after" },
+  );
+
+  const doc = updated?.value;
+  if (!doc) {
+    return NextResponse.json(
+      { error: "Data tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    data: { ...doc, _id: String((doc as any)._id) },
+  });
+}
+
+export async function DELETE(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  const session = auth.session;
+
+  const { id } = await ctx.params;
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+  }
+
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
+  const col = db.collection("VisitActivity");
+
+  const existing = await col.findOne(
+    { _id: new ObjectId(id) },
+    { projection: { user_id: 1 } },
+  );
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Data tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  const ownerUserId = String((existing as any).user_id || "");
+
+  // policy delete:
+  // - SALES: boleh hapus miliknya (opsional, kalau mau batasi tinggal forbid)
+  // - LEADER: boleh hapus data tim (opsional)
+  // - ADMIN/SUPERADMIN: boleh
+  if (session.role === "SALES") {
+    if (ownerUserId !== session.userId) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else if (session.role === "LEADER") {
+    const allowed = await getLeaderAllowedUserIds(db, session.userId);
+    if (!allowed.includes(ownerUserId)) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else if (!isAdminRole(session.role)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const del = await col.deleteOne({ _id: new ObjectId(id) });
+  if (del.deletedCount === 0) {
+    return NextResponse.json(
+      { error: "Data tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({ ok: true });
+}

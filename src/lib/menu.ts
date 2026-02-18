@@ -35,6 +35,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Add User", href: "/add-user" },
         { label: "Parameter", href: "/parameters" },
+        { label: "Teams", href: "/teams" },
       ],
     },
   ],
