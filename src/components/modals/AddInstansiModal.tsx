@@ -2,33 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-
-type InstansiForm = {
-  institusi_kerja: string;
-  kota_kab: string;
-  klpd: string;
-  satuan_kerja: string;
-  status_ring: string;
-  kode_dinas: string;
-  pic_nama: string;
-  pic_telp: string;
-  pic_jabatan: string;
-  pic_role: string;
-};
-
-const emptyForm = (): InstansiForm => ({
-  institusi_kerja: "",
-  kota_kab: "",
-  klpd: "",
-  satuan_kerja: "",
-  status_ring: "",
-  kode_dinas: "",
-  pic_nama: "",
-  pic_telp: "",
-  pic_jabatan: "",
-  pic_role: "",
-});
-
+/* ================== UI (SAMA SEPERTI SEBELUMNYA) ================== */
 function clsx(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
@@ -55,6 +29,7 @@ function Modal({
       <button
         onClick={onClose}
         className="absolute inset-0 bg-black/35"
+        aria-label="Close modal"
       />
       <div
         className={clsx(
@@ -67,13 +42,15 @@ function Modal({
             <h2 className="text-base font-extrabold tracking-wide text-black">
               {title}
             </h2>
-            {subtitle && (
+            {subtitle ? (
               <p className="mt-1 text-xs text-black/60">{subtitle}</p>
-            )}
+            ) : null}
           </div>
+
           <button
             onClick={onClose}
             className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-xl font-black text-black hover:bg-black/10"
+            aria-label="Close"
           >
             ×
           </button>
@@ -85,7 +62,13 @@ function Modal({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
       <label className="text-[11px] font-bold tracking-wide text-black/70">
@@ -126,16 +109,23 @@ function PrimaryButton({
   children,
   onClick,
   disabled,
+  className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  className?: string;
 }) {
   return (
     <button
       disabled={disabled}
       onClick={onClick}
-      className="h-11 rounded-full bg-white px-6 text-sm font-extrabold ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-50"
+      className={clsx(
+        "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
+        "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
+        "disabled:opacity-50 disabled:hover:bg-white",
+        className || "",
+      )}
     >
       {children}
     </button>
@@ -146,44 +136,73 @@ function SolidButton({
   children,
   onClick,
   disabled,
+  className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  className?: string;
 }) {
   return (
     <button
       disabled={disabled}
       onClick={onClick}
-      className="h-11 rounded-full bg-black px-7 text-sm font-extrabold text-white hover:bg-black/90 disabled:opacity-50"
+      className={clsx(
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
+        "bg-black hover:bg-black/90",
+        "disabled:opacity-50",
+        className || "",
+      )}
     >
       {children}
     </button>
   );
 }
 
+/* ================== LOGIC ================== */
+type InstansiForm = {
+  institusi_kerja: string;
+  kota_kab: string;
+  klpd: string;
+  satuan_kerja: string;
+  status_ring: string;
+  kode_dinas: string;
+  pic_nama: string;
+  pic_telp: string;
+  pic_jabatan: string;
+  pic_role: string;
+};
 
-export default function RegisterCompanyModal({
+const emptyForm = (): InstansiForm => ({
+  institusi_kerja: "",
+  kota_kab: "",
+  klpd: "",
+  satuan_kerja: "",
+  status_ring: "",
+  kode_dinas: "",
+  pic_nama: "",
+  pic_telp: "",
+  pic_jabatan: "",
+  pic_role: "",
+});
+
+export default function AddInstansiModal({
   open,
   onClose,
   onSaved,
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved?: () => Promise<void> | void; // refresh list pending/approved, suggestion, dll
+  onSaved: () => Promise<void> | void;
 }) {
-  const [saving, setSaving] = useState(false);
-
-  // ✅ multi forms
+  const [savingAdd, setSavingAdd] = useState(false);
   const [forms, setForms] = useState<InstansiForm[]>([emptyForm()]);
-
-  // file input for upload excel
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setForms([emptyForm()]);
-    setSaving(false);
+    setSavingAdd(false);
   }, [open]);
 
   function updateForm(idx: number, patch: Partial<InstansiForm>) {
@@ -208,63 +227,60 @@ export default function RegisterCompanyModal({
   const canSubmit = useMemo(() => {
     return forms.every(
       (f) =>
-        f.institusi_kerja.trim() &&
-        f.kota_kab.trim() &&
-        f.klpd.trim() &&
-        f.satuan_kerja.trim() &&
+        f.institusi_kerja &&
+        f.kota_kab &&
+        f.klpd &&
+        f.satuan_kerja &&
         f.status_ring,
     );
   }, [forms]);
 
-  async function submitRegister() {
+  async function submitAddInstansi() {
     if (!canSubmit) {
-      alert("Lengkapi: Nama Institusi, Kota/Kabupaten, KLPD, Satuan Kerja, Status Segmen.");
+      alert(
+        "Lengkapi: Nama Institusi, Kota/Kabupaten, KLPD, Satuan Kerja, Status Segmen.",
+      );
       return;
     }
 
-    setSaving(true);
+    setSavingAdd(true);
     try {
-      // ✅ kirim satu per satu agar tidak perlu ubah API
       for (const f of forms) {
         const payload = {
-          institusi_kerja: f.institusi_kerja.trim(),
-          kota_kab: f.kota_kab.trim(),
-          klpd: f.klpd.trim(),
-          satuan_kerja: f.satuan_kerja.trim(),
+          institusi_kerja: f.institusi_kerja,
+          kota_kab: f.kota_kab,
+          klpd: f.klpd,
+          satuan_kerja: f.satuan_kerja,
           status_ring: f.status_ring,
-          kode_dinas: f.kode_dinas.trim(),
+          kode_dinas: f.kode_dinas,
           pic_default: {
-            nama: f.pic_nama.trim(),
-            no_telp: f.pic_telp.trim(),
-            jabatan: f.pic_jabatan.trim(),
-            role: f.pic_role.trim(),
+            nama: f.pic_nama,
+            no_telp: f.pic_telp,
+            jabatan: f.pic_jabatan,
+            role: f.pic_role,
           },
         };
 
-        // ✅ Register company => masuk PENDING
-        const res = await fetch("/api/company-requests", {
+        const res = await fetch("/api/companies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
-        const json = await res.json().catch(() => ({}));
-
         if (!res.ok) {
-          alert(json?.error || "Gagal submit register (sebagian).");
+          const err = await res.json().catch(() => ({}));
+          alert(err?.error || "Gagal menambah instansi (sebagian).");
           return;
         }
       }
 
-      alert("Request instansi berhasil dikirim (Pending).");
-      await onSaved?.();
+      await onSaved();
       onClose();
     } finally {
-      setSaving(false);
+      setSavingAdd(false);
     }
   }
 
-  // ✅ Upload excel (client-side parsing)
   async function handleUploadExcel(file: File) {
     try {
       const XLSX = await import("xlsx");
@@ -316,18 +332,15 @@ export default function RegisterCompanyModal({
     }
   }
 
-  if (!open) return null;
-
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="REGISTER COMPANY"
-      subtitle="Request instansi akan masuk ke Pending untuk di-approve Super Admin."
+      title="Tambah Instansi"
+      subtitle="Tambah instansi langsung APPROVED (khusus SUPER ADMIN)."
       widthClass="max-w-5xl"
     >
       <div className="flex h-[72vh] flex-col">
-        {/* ====== Download template (panah biru) ====== */}
         <div className="-mt-3 mb-4 text-xs text-black/60">
           Download template?{" "}
           <a
@@ -339,7 +352,6 @@ export default function RegisterCompanyModal({
           </a>
         </div>
 
-        {/* ====== Body overflow (kotak hitam tengah) ====== */}
         <div className="flex-1 overflow-y-auto pr-2">
           <div className="grid grid-cols-1 gap-6">
             {forms.map((form, idx) => (
@@ -364,7 +376,9 @@ export default function RegisterCompanyModal({
                   <Field label="NAMA INSTITUSI">
                     <Input
                       value={form.institusi_kerja}
-                      onChange={(e) => updateForm(idx, { institusi_kerja: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        updateForm(idx, { institusi_kerja: e.target.value })
+                      }
                       placeholder="Contoh: PLN / RSUD / Dinkes..."
                     />
                   </Field>
@@ -373,7 +387,9 @@ export default function RegisterCompanyModal({
                     <Field label="KOTA/KABUPATEN">
                       <Input
                         value={form.kota_kab}
-                        onChange={(e) => updateForm(idx, { kota_kab: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateForm(idx, { kota_kab: e.target.value })
+                        }
                         placeholder="Contoh: Kota Bandung"
                       />
                     </Field>
@@ -381,7 +397,9 @@ export default function RegisterCompanyModal({
                     <Field label="KLPD">
                       <Input
                         value={form.klpd}
-                        onChange={(e) => updateForm(idx, { klpd: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateForm(idx, { klpd: e.target.value })
+                        }
                         placeholder="Contoh: BUMN / B2B / Kementerian..."
                       />
                     </Field>
@@ -391,7 +409,9 @@ export default function RegisterCompanyModal({
                     <Field label="SATUAN KERJA">
                       <Input
                         value={form.satuan_kerja}
-                        onChange={(e) => updateForm(idx, { satuan_kerja: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateForm(idx, { satuan_kerja: e.target.value })
+                        }
                         placeholder="Contoh: Dinas / Office / Unit kerja..."
                       />
                     </Field>
@@ -399,7 +419,9 @@ export default function RegisterCompanyModal({
                     <Field label="STATUS SEGMEN (RING)">
                       <Select
                         value={form.status_ring}
-                        onChange={(e) => updateForm(idx, { status_ring: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          updateForm(idx, { status_ring: e.target.value })
+                        }
                       >
                         <option value="">Pilih...</option>
                         <option value="RING 1">RING 1</option>
@@ -414,7 +436,9 @@ export default function RegisterCompanyModal({
                     <Field label="KODE DINAS (OPSIONAL)">
                       <Input
                         value={form.kode_dinas}
-                        onChange={(e) => updateForm(idx, { kode_dinas: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateForm(idx, { kode_dinas: e.target.value })
+                        }
                         placeholder="Contoh: B2-CSMS"
                       />
                     </Field>
@@ -422,7 +446,9 @@ export default function RegisterCompanyModal({
                     <Field label="ROLE PIC (OPSIONAL)">
                       <Select
                         value={form.pic_role}
-                        onChange={(e) => updateForm(idx, { pic_role: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          updateForm(idx, { pic_role: e.target.value })
+                        }
                       >
                         <option value="">Pilih...</option>
                         <option value="Kepala">Kepala</option>
@@ -437,7 +463,9 @@ export default function RegisterCompanyModal({
                     <Field label="NAMA PIC (OPSIONAL)">
                       <Input
                         value={form.pic_nama}
-                        onChange={(e) => updateForm(idx, { pic_nama: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateForm(idx, { pic_nama: e.target.value })
+                        }
                         placeholder="Contoh: Pak Rama"
                       />
                     </Field>
@@ -445,7 +473,9 @@ export default function RegisterCompanyModal({
                     <Field label="NO. TELEPON PIC (OPSIONAL)">
                       <Input
                         value={form.pic_telp}
-                        onChange={(e) => updateForm(idx, { pic_telp: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateForm(idx, { pic_telp: e.target.value })
+                        }
                         placeholder="Contoh: 62812xxxx"
                       />
                     </Field>
@@ -454,7 +484,9 @@ export default function RegisterCompanyModal({
                   <Field label="JABATAN PIC (OPSIONAL)">
                     <Input
                       value={form.pic_jabatan}
-                      onChange={(e) => updateForm(idx, { pic_jabatan: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        updateForm(idx, { pic_jabatan: e.target.value })
+                      }
                       placeholder="Contoh: Pengadaan / IT / Kepala Bagian..."
                     />
                   </Field>
@@ -468,21 +500,23 @@ export default function RegisterCompanyModal({
           </div>
         </div>
 
-        {/* ====== Footer fix (kotak hijau bawah) ====== */}
+        {/* KOTAK HIJAU BAWAH (FIX) */}
         <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-          {/* tambah instansi lagi */}
-          <PrimaryButton onClick={addMore} disabled={saving}>
-            + TAMBAH INSTANSI
-          </PrimaryButton>
+          <PrimaryButton onClick={addMore}>+ TAMBAH INSTANSI</PrimaryButton>
 
           <div className="flex gap-3">
-            {/* upload excel */}
-            <PrimaryButton onClick={() => fileRef.current?.click()} disabled={saving}>
+            <PrimaryButton
+              onClick={() => fileRef.current?.click()}
+              disabled={savingAdd}
+            >
               UPLOAD
             </PrimaryButton>
 
-            <SolidButton onClick={submitRegister} disabled={saving || !canSubmit}>
-              {saving ? "MENYIMPAN..." : "SUBMIT"}
+            <SolidButton
+              onClick={submitAddInstansi}
+              disabled={savingAdd || !canSubmit}
+            >
+              {savingAdd ? "MENYIMPAN..." : "SUBMIT"}
             </SolidButton>
           </div>
 
@@ -491,7 +525,7 @@ export default function RegisterCompanyModal({
             type="file"
             accept=".xlsx,.xls"
             className="hidden"
-            onChange={async (e) => {
+            onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
               const f = e.target.files?.[0];
               e.target.value = "";
               if (!f) return;
