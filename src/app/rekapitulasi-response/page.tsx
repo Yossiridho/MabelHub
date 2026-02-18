@@ -163,7 +163,7 @@ export default function RekapitulasiResponsePage() {
             {/* Table */}
             <div className="mt-6 overflow-hidden rounded-xl bg-white shadow-md">
               <div className="border-b border-neutral-200 px-4 py-3 text-sm font-semibold">
-                Data Rekap ({filtered.length})
+                Data Rekap({filtered.length})
               </div>
 
               {sessionLoading || loading ? (
@@ -174,7 +174,7 @@ export default function RekapitulasiResponsePage() {
                 </div>
               ) : (
                 <div className="w-full overflow-x-auto">
-                  <table className="min-w-[1100px] w-full text-sm">
+                  <table className="min-w-275 w-full text-sm">
                     <thead className="bg-neutral-50 text-neutral-600">
                       <tr className="border-b border-neutral-200">
                         <th className="px-4 py-3 text-left">Request ID</th>
