@@ -5,7 +5,6 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
 import type { Role } from "@/lib/menu";
 import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
-import AddInstansiModal from "@/components/modals/AddInstansiModal";
 import DeleteInstansiModal from "@/components/modals/DeleteInstansiModal";
 import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
@@ -222,7 +221,7 @@ function StatusPill({ value }: { value?: string }) {
 
 export default function InstansiPage() {
   const router = useRouter();
-  const role: Role = "SUPERADMIN"; // TODO: ambil dari auth/session
+  const role: Role = "SUPERADMIN"; 
   const [pendingCount, setPendingCount] = useState(0);
 
   // filters
@@ -440,7 +439,7 @@ export default function InstansiPage() {
 
               {role === "SUPERADMIN" ? (
                 <div className="flex gap-3">
-                  <PrimaryButton onClick={() => setOpenAdd(true)}>
+                  <PrimaryButton onClick={() => router.push("/tambah-instansi")}>
                     TAMBAH INSTANSI
                   </PrimaryButton>
                   <PrimaryButton onClick={openPendingModal}>
@@ -721,11 +720,6 @@ export default function InstansiPage() {
         </div>
       </div>
 
-      <AddInstansiModal
-        open={openAdd}
-        onClose={() => setOpenAdd(false)}
-        onSaved={loadApproved}
-      />
       <PendingRequestsModal
         open={openPending}
         onClose={() => setOpenPending(false)}

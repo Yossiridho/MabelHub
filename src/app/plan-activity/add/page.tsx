@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
-import RegisterCompanyModal from "@/components/modals/RegisterCompanyModal";
 
 type Company = {
   _id: string;
@@ -68,7 +67,6 @@ function newItem(): PlanItem {
 }
 
 export default function AddPlansPage() {
-  const [openReg, setOpenReg] = useState(false);
   const router = useRouter();
   const sp = useSearchParams();
   const editId = sp.get("edit"); // kalau edit single (nanti), sekarang fokus add multi
@@ -252,7 +250,7 @@ export default function AddPlansPage() {
               {user?.role === "SALES" && (
                 <button
                   type="button"
-                  onClick={() => setOpenReg(true)}
+                  onClick={() => router.push("/tambah-instansi")}
                   className="rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
                 >
                   Register Company
@@ -452,13 +450,6 @@ export default function AddPlansPage() {
           </main>
         </div>
       </div>
-      <RegisterCompanyModal
-        open={openReg}
-        onClose={() => setOpenReg(false)}
-        role={user?.role || "SALES"}
-        onSuccess={() => {
-        }}
-      />
     </div>
   );
 }
