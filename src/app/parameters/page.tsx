@@ -153,21 +153,14 @@ export default function ParameterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <div className="flex-1 bg-[#E9E9E9] p-8">
+        <div className="flex-1 p-6">
           {/* Top bar */}
           <div className="mb-6 flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="grid h-10 w-10 place-items-center rounded-full bg-white text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-gray-50"
-              aria-label="Back"
-            >
-              ←
-            </button>
-            <h1 className="text-xl font-extrabold tracking-wide text-gray-900">
+            <h1 className="text-xl font-extrabold pl-3 tracking-wide text-gray-900">
               PARAMETER
             </h1>
           </div>
@@ -176,7 +169,7 @@ export default function ParameterPage() {
           <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/10">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-center">
               <div className="md:col-span-5">
-                <div className="text-xs font-extrabold tracking-wider text-gray-700">
+                <div className="text-md font-extrabold tracking-wider text-black">
                   Parameter
                 </div>
                 <div className="relative mt-2">
@@ -198,7 +191,7 @@ export default function ParameterPage() {
               </div>
 
               <div className="md:col-span-5">
-                <div className="text-xs font-extrabold tracking-wider text-gray-700">
+                <div className="text-md font-extrabold tracking-wider text-black">
                   Value
                 </div>
                 <input
@@ -212,31 +205,25 @@ export default function ParameterPage() {
                 />
               </div>
 
-              <div className="md:col-span-2 md:flex md:justify-end">
+              <div className="mt-8 md:col-span-2 md:flex md:justify-end">
                 <button
                   onClick={onAdd}
                   disabled={saving || !value.trim()}
                   className={cn(
-                    "h-12 w-full rounded-xl px-4 text-sm font-extrabold shadow ring-1 ring-black/10",
+                    "h-12 w-full rounded-xl px-5 text-md font-semibold shadow-sm",
                     saving || !value.trim()
-                      ? "bg-gray-200 text-gray-500"
-                      : "bg-white hover:bg-gray-50",
+                      ? "bg-blue-700 text-white"
+                      : "bg-blue-700 text-white",
                   )}
                 >
                   TAMBAH
                 </button>
               </div>
             </div>
-
-            {err ? (
-              <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
-                {err}
-              </div>
-            ) : null}
           </section>
 
           {/* Grid lists */}
-          <section className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <section className="mt-6 grid gap-6 md:grid-cols-3">
             {(
               [
                 ["sales", "segmen", "status_kunjungan"],
@@ -257,8 +244,6 @@ export default function ParameterPage() {
                 />
               ))}
           </section>
-
-          <div className="h-12" />
         </div>
       </div>
     </div>
@@ -288,17 +273,19 @@ function CardList({
   );
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
-      <div className="px-5 py-4 text-sm font-extrabold text-gray-900">
-        {title}
-      </div>
+<div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
+  
+  {/* TITLE */}
+  <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
+    {title}
+  </div>
 
-      <div className="h-px w-full bg-gray-200" />
+  {/* CONTENT */}
+  <div className="bg-white">
+  </div>
 
-      <div className="p-4">
-        {loading ? (
-          <div className="text-sm text-gray-500">Loading...</div>
-        ) : sorted.length === 0 ? (
+      <div className="p-2">
+        {  sorted.length === 0 ? (
           <div className="text-sm text-gray-500">Belum ada data.</div>
         ) : (
           <div className="space-y-2">
@@ -310,14 +297,14 @@ function CardList({
                   className={cn(
                     "flex items-center justify-between rounded-xl px-4 py-3 ring-1",
                     isActive
-                      ? "bg-gray-200 ring-gray-300"
-                      : "bg-gray-100 ring-gray-200 hover:bg-gray-200/70",
+                      ? "bg-gray-100 ring-gray-300"
+                      : "bg-gray-50 ring-gray-200 hover:bg-gray-200/70",
                   )}
                 >
                   <button
                     type="button"
                     onClick={() => onPick(v)}
-                    className="flex-1 text-left text-sm font-semibold text-gray-900"
+                    className="flex-1 text-left text-sm font-semibold text-black"
                     title="Klik untuk pilih"
                   >
                     {v}
@@ -330,8 +317,8 @@ function CardList({
                     className={cn(
                       "ml-3 grid h-9 w-9 place-items-center rounded-lg",
                       disabled
-                        ? "bg-gray-200 text-gray-400"
-                        : "bg-white text-gray-700 ring-1 ring-black/10 hover:bg-gray-50",
+                        ? "bg-white"
+                        : "bg-gray-100 ring-1 ring-black/10 hover:bg-gray-50",
                     )}
                     aria-label="Delete"
                     title="Hapus"

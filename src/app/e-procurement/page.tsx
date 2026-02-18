@@ -135,19 +135,19 @@ export default function EProcurementRequestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         {/* SIDEBAR */}
         <Sidebar />
 
        <div className="flex-1 p-6 h-screen overflow-y-auto">
-
-  {/* ===== PAGE TITLE ===== */}
-  <div className="mb-6">
-    <h1 className="text-2xl font-extrabold text-black">
-      E-Procurement
-    </h1>
-  </div>
+      <div className="px-3 pt-2 pb-2">
+        <h1 className="text-2xl font-extrabold pl-4 text-black">
+        E-PROCUREMENT
+        </h1>
+        <div className="px-6 pb-6">
+        </div>
+     </div>
 
   {/* ===== HEADER FORM CARD ===== */}
   <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">

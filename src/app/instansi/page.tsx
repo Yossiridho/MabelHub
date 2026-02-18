@@ -158,7 +158,7 @@ function PrimaryButton({
       onClick={onClick}
       className={clsx(
         "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
-        "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
+        "ring-1 ring-black/15 shadow-sm hover:bg-black/5",
         "disabled:opacity-50 disabled:hover:bg-white",
         className || "",
       )}
@@ -184,7 +184,7 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide",
         "bg-black hover:bg-black/90",
         "disabled:opacity-50",
         className || "",
@@ -412,10 +412,12 @@ export default function InstansiPage() {
 
               {role === "SUPERADMIN" ? (
                 <div className="flex gap-3">
-                  <PrimaryButton onClick={() => setOpenAdd(true)}>
+                  <PrimaryButton onClick={() => setOpenAdd(true)}
+                  className="bg-green-600 text-white hover:bg-green-700">
                     TAMBAH INSTANSI
                   </PrimaryButton>
-                  <PrimaryButton onClick={openPendingModal}>
+                  <PrimaryButton onClick={openPendingModal}
+                  className="bg-yellow-400 text-white hover:bg-yellow-500">
                     REQUEST PENDING
                   </PrimaryButton>
                 </div>
@@ -433,9 +435,6 @@ export default function InstansiPage() {
                       placeholder="Cari institusi / satuan kerja / PIC..."
                       className="pr-10"
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      🔍
-                    </span>
                   </div>
                 </Field>
 
@@ -624,7 +623,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage(1)}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="First"
                     >
                       ⏮
@@ -632,7 +631,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="Prev"
                     >
                       ◀
@@ -645,7 +644,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="Next"
                     >
                       ▶
@@ -653,7 +652,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="Last"
                     >
                       ⏭
@@ -662,8 +661,6 @@ export default function InstansiPage() {
                 </div>
               </div>
             </div>
-
-            <div className="h-10" />
           </main>
         </div>
       </div>
@@ -674,9 +671,9 @@ export default function InstansiPage() {
         onClose={() => setOpenAdd(false)}
         title="REGISTER COMPANY"
         subtitle="Tambah instansi langsung APPROVED (khusus SUPER ADMIN)."
-        widthClass="max-w-5xl"
+        widthClass="max-w-5xl bg-gray-50 ring-gray-200"
       >
-        <div className="text-md">
+        <div className="text-md bg-gray-50 rounded-xl p-6">
           <div className="grid grid-cols-1 gap-4">
             <Field label="NAMA INSTITUSI">
               <Input
@@ -777,12 +774,21 @@ export default function InstansiPage() {
             </Field>
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
-            <PrimaryButton onClick={() => setOpenAdd(false)}>BATAL</PrimaryButton>
-            <SolidButton onClick={submitAddInstansi} disabled={savingAdd}>
-              {savingAdd ? "MENYIMPAN..." : "SUBMIT"}
-            </SolidButton>
-          </div>
+<div className="mt-6 flex justify-end gap-3">
+  <PrimaryButton
+    onClick={() => setOpenAdd(false)}
+    className="bg-red-600 text-gray-100 hover:bg-red-700"
+  >
+    BATAL
+  </PrimaryButton>
+  <SolidButton
+    onClick={submitAddInstansi}
+    disabled={savingAdd}
+    className="bg-blue-600 text-gray-100 hover:bg-blue-700"
+  >
+    {savingAdd ? "MENYIMPAN..." : "SUBMIT"}
+  </SolidButton>
+</div>
         </div>
       </Modal>
 
@@ -847,14 +853,14 @@ export default function InstansiPage() {
                           <button
                             disabled={busyId === p._id}
                             onClick={() => approveRequest(p._id)}
-                            className="h-10 rounded-xl bg-black px-4 text-xs font-extrabold text-white hover:bg-black/90 disabled:opacity-50"
+                            className="h-10 rounded-xl bg-blue-600 px-4 text-md font-extrabold text-white hover:bg-black/90 disabled:opacity-50"
                           >
                             {busyId === p._id ? "..." : "APPROVE"}
                           </button>
                           <button
                             disabled={busyId === p._id}
                             onClick={() => rejectRequest(p._id)}
-                            className="h-10 rounded-xl bg-white px-4 text-xs font-extrabold ring-1 ring-black/15 hover:bg-black/5 disabled:opacity-50"
+                            className="h-10 rounded-xl bg-red-600 px-4 text-md font-extrabold ring-1 ring-black/15 hover:bg-black/5 disabled:opacity-50"
                           >
                             REJECT
                           </button>

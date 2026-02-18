@@ -238,7 +238,7 @@ export default function PlanActivityPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold tracking-wide text-black">
+              <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
                 PLAN ACTIVITY
               </h2>
 

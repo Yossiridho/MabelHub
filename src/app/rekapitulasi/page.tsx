@@ -217,20 +217,21 @@ export default function RekapitulasiVisitPage() {
   };
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          {/* HEADER */}
-          <div className="mb-6 flex items-center gap-4">
-            <h1 className="text-xl font-extrabold tracking-wide text-gray-900">
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
+        <h1 className="text-2xl font-extrabold pl-4 text-black">
               REKAPITULASI VISIT
             </h1>
+      <div className="px-6 pb-6">
+        </div>
           </div>
 
           {/* FILTER CARD */}
-          <section className="rounded-2xl bg-white p-7 shadow-sm ring-1 ring-blue-200">
+          <section className="rounded-2xl bg-white p-7 shadow-sm">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
               <FilterSelect
                 label="SALES PERSON"

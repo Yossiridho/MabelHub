@@ -107,35 +107,24 @@ export default function EProcurementResponsePage() {
   const isEmpty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar />
 
-        <div className="flex-1 h-screen overflow-y-auto">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.back()}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-5 w-5 text-neutral-700" />
-              </button>
-
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
               <div>
-                <div className="text-2xl font-bold text-neutral-900">
+                <div className="text-2xl pl-4 font-extrabold text-black">
                   E-PROCUREMENT RESPONSE
                 </div>
-                <div className="text-sm text-neutral-600">
+                <div className="text-sm ml-4 text-gray-600">
                   Request e-procurement yang bisa diambil admin.
                 </div>
               </div>
-            </div>
 
             {/* Main container */}
-            <div className="mt-6 rounded-xl bg-white shadow-md overflow-hidden">
-              <div className="px-4 py-3 border-b border-neutral-200 text-sm font-semibold">
+            <div className="mt-6 rounded-2xl bg-white shadow-md overflow-hidden">
+              <div className="px-4 py-3 bg-blue-300 border-b border-gray-300 text-md font-semibold">
                 Request List ({rows.length})
               </div>
 
