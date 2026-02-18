@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 import { assertLoggedIn, assertLeaderOrSales } from "@/lib/auth-server";
 
 type Segment = "RING 1" | "RING 2" | "RING 3" | "RING 4" | string;
@@ -38,6 +39,13 @@ type EProcDoc = {
   createdAt: Date;
   updatedAt: Date;
 
+  assignedTo: {
+    userId: string;
+    role: string;
+    username: string;
+    fullName: string;
+  };
+
   takenByAdminId: string | null;
   takenByAdminName: string | null;
   takenAt: Date | null;
@@ -56,6 +64,7 @@ async function ensureIndexes(db: any) {
       await col.createIndex({ takenByAdminId: 1, takenAt: -1 });
       await col.createIndex({ createdAt: -1 });
       await col.createIndex({ "createdBy.userId": 1, createdAt: -1 });
+      await col.createIndex({ "assignedTo.userId": 1, createdAt: -1 });
     })();
   }
   await global.__eproc_indexes_promise;
@@ -96,7 +105,10 @@ export async function GET(req: Request) {
     }
   } else if (mode === "mine") {
     // untuk sales/leader lihat punya sendiri
-    filter["createdBy.userId"] = auth.session.userId;
+    filter.$or = [
+      { "createdBy.userId": auth.session.userId },
+      { "assignedTo.userId": auth.session.userId },
+    ];
   } else {
     // fallback aman
     filter.takenByAdminId = null;
@@ -118,9 +130,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-
   const header = body?.header ?? {};
   const items: ProductItem[] = Array.isArray(body?.items) ? body.items : [];
+
+  const assignedToUserId = String(header.assignedToUserId ?? "").trim();
 
   const requestor = String(header.requestor ?? "").trim();
   const pemohon = String(header.pemohon ?? "").trim();
@@ -136,8 +149,66 @@ export async function POST(req: Request) {
     );
   }
 
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
+  await ensureIndexes(db);
+
   const requestId = makeRequestId();
   const now = new Date();
+
+  let assignedUserId = auth.session.userId;
+
+  // SALES selalu ke dirinya
+  if (auth.session.role === "SALES") {
+    assignedUserId = auth.session.userId;
+  }
+
+  // LEADER boleh assign ke member team
+  if (auth.session.role === "LEADER") {
+    if (!assignedToUserId) {
+      return NextResponse.json(
+        { error: "assignedToUserId wajib untuk leader" },
+        { status: 400 },
+      );
+    }
+    if (!ObjectId.isValid(assignedToUserId)) {
+      return NextResponse.json(
+        { error: "assignedToUserId tidak valid" },
+        { status: 400 },
+      );
+    }
+
+    // ✅ validasi team leader
+    const team = await db
+      .collection("teams")
+      .findOne({ leaderId: auth.session.userId });
+    const memberIds: string[] = Array.isArray((team as any)?.memberIds)
+      ? (team as any).memberIds.map(String)
+      : [];
+    const allowed = new Set([auth.session.userId, ...memberIds]);
+
+    if (!allowed.has(assignedToUserId)) {
+      return NextResponse.json(
+        { error: "FORBIDDEN: sales bukan anggota team leader" },
+        { status: 403 },
+      );
+    }
+
+    assignedUserId = assignedToUserId;
+  }
+
+  const usersCol = db.collection("users");
+  const assignedUser = await usersCol.findOne(
+    { _id: new ObjectId(assignedUserId) },
+    { projection: { fullName: 1, username: 1, role: 1 } },
+  );
+
+  if (!assignedUser) {
+    return NextResponse.json(
+      { error: "Assigned user tidak ditemukan" },
+      { status: 404 },
+    );
+  }
 
   const doc: EProcDoc = {
     requestId,
@@ -161,14 +232,17 @@ export async function POST(req: Request) {
     createdAt: now,
     updatedAt: now,
 
+    assignedTo: {
+      userId: assignedUserId,
+      role: (assignedUser as any)?.role ?? "",
+      username: (assignedUser as any)?.username ?? "",
+      fullName: (assignedUser as any)?.fullName ?? "",
+    },
+
     takenByAdminId: null,
     takenByAdminName: null,
     takenAt: null,
   };
-
-  const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB || "MabelHub");
-  await ensureIndexes(db);
 
   await db.collection<EProcDoc>("eproc_requests").insertOne(doc);
 

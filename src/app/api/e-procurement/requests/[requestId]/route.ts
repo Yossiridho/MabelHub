@@ -36,6 +36,13 @@ type EProcDoc = {
   createdAt: Date;
   updatedAt: Date;
 
+  assignedTo: {
+    userId: string;
+    role: string;
+    username: string;
+    fullName: string;
+  };
+
   takenByAdminId: string | null;
   takenByAdminName: string | null;
   takenAt: Date | null;
@@ -65,7 +72,10 @@ export async function GET(
   const doc = await col.findOne(
     {
       requestId: rid,
-      "createdBy.userId": auth.session.userId,
+      $or: [
+        { "createdBy.userId": auth.session.userId },
+        { "assignedTo.userId": auth.session.userId },
+      ],
     },
     { projection: { _id: 0 } },
   );
@@ -142,8 +152,11 @@ export async function PUT(
   const rawResult = await col.findOneAndUpdate(
     {
       requestId: rid,
-      "createdBy.userId": auth.session.userId,
-      takenByAdminId: null, // tidak boleh revisi kalau sudah di-take
+      takenByAdminId: null,
+      $or: [
+        { "createdBy.userId": auth.session.userId },
+        { "assignedTo.userId": auth.session.userId },
+      ],
     },
     {
       $set: {

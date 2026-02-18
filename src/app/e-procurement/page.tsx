@@ -5,6 +5,13 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 
+type TeamMember = {
+  userId: string;
+  fullName: string;
+  username: string;
+  role: string;
+};
+
 type Segment = "RING 1" | "RING 2" | "RING 3" | "RING 4";
 
 type ProductItem = {
@@ -63,6 +70,22 @@ async function apiUpdateEProc(requestId: string, payload: any) {
 export default function EProcurementRequestPage() {
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
+  const [salesOptions, setSalesOptions] = useState<TeamMember[]>([]);
+  const [assignedToUserId, setAssignedToUserId] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "LEADER") return;
+
+    fetch("/api/teams/me/members", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        const arr: TeamMember[] = Array.isArray(j?.members) ? j.members : [];
+        const sales = arr.filter((m) => m.role === "SALES");
+        setSalesOptions(sales);
+      })
+      .catch(() => setSalesOptions([]));
+  }, [user]);
 
   // ✅ Guard (opsional): halaman request biasanya untuk SALES/LEADER
   useEffect(() => {
@@ -191,9 +214,15 @@ export default function EProcurementRequestPage() {
           deadline,
           lokasi,
           catatanHeader,
+          assignedToUserId:
+            user?.role === "LEADER" ? assignedToUserId : undefined,
         },
         items,
       };
+
+      if (user?.role === "LEADER" && !assignedToUserId) {
+        return alert("Leader wajib memilih Sales team untuk request ini.");
+      }
 
       if (infoId && infoId !== "REQ-") {
         await apiUpdateEProc(infoId, payload);
@@ -230,16 +259,41 @@ export default function EProcurementRequestPage() {
                   REQUESTOR
                 </label>
                 <div className="relative mt-2">
-                  <select
-                    value={requestor}
-                    onChange={(e) => setRequestor(e.target.value)}
-                    className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                  >
-                    <option value="">-- Pilih --</option>
-                    <option value="Sales A">Sales A</option>
-                    <option value="Sales B">Sales B</option>
-                    <option value="Sales C">Sales C</option>
-                  </select>
+                  {user?.role === "LEADER" ? (
+                    <select
+                      value={assignedToUserId}
+                      onChange={(e) => {
+                        const uid = e.target.value;
+                        setAssignedToUserId(uid);
+                        const picked = salesOptions.find(
+                          (x) => x.userId === uid,
+                        );
+                        // requestor tetap string, isi nama sales agar kebaca di dokumen
+                        setRequestor(
+                          picked?.fullName || picked?.username || "",
+                        );
+                      }}
+                      className="h-12 w-full ..."
+                    >
+                      <option value="">-- Pilih Sales Team --</option>
+                      {salesOptions.map((m) => (
+                        <option key={m.userId} value={m.userId}>
+                          {m.fullName || m.username}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value={requestor}
+                      onChange={(e) => setRequestor(e.target.value)}
+                      className="h-12 w-full ..."
+                    >
+                      <option value="">-- Pilih --</option>
+                      <option value="Sales A">Sales A</option>
+                      <option value="Sales B">Sales B</option>
+                      <option value="Sales C">Sales C</option>
+                    </select>
+                  )}
 
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
