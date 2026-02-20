@@ -77,7 +77,6 @@ export default function RekapitulasiEProcurementPage() {
 
   // details panel
   const [selected, setSelected] = useState<EProcDoc | null>(null);
-  const [showDetail, setShowDetail] = useState(true);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,7 +86,7 @@ export default function RekapitulasiEProcurementPage() {
   async function fetchData() {
     try {
       setLoading(true);
-      const res = await fetch("/api/e-procurement/request?mode=taken", {
+      const res = await fetch("/api/e-procurement/requests?mode=all", {
         cache: "no-store",
       });
       const json = await res.json().catch(() => ({}));
@@ -113,8 +112,7 @@ export default function RekapitulasiEProcurementPage() {
   // ===== mapping status sesuai kebutuhan UI (sementara) =====
   // kamu bisa ubah nanti kalau field "status usulan / current status / tindak lanjut" sudah ada di DB
   function getStatusUsulan(r: EProcDoc) {
-    // karena mode=taken, ini umumnya sudah diambil admin
-    return r.takenByAdminId ? "MASUK" : "MASUK";
+    return "MASUK";
   }
   function getCurrentStatus(r: EProcDoc) {
     return r.takenByAdminId ? "DIAMBIL ADMIN" : "MASUK";
@@ -193,7 +191,6 @@ export default function RekapitulasiEProcurementPage() {
 
   function onRowClick(r: EProcDoc) {
     setSelected(r);
-    setShowDetail(true);
     setOpenItemId(null);
   }
 
@@ -525,16 +522,18 @@ export default function RekapitulasiEProcurementPage() {
                     <span>Rincian Informasi Request</span>
                   </div>
 
-                  <button
-                    onClick={() => setShowDetail((v) => !v)}
-                    className="grid h-8 w-8 place-items-center rounded-full bg-[#d9d9d9] text-lg font-black ring-1 ring-black/10"
-                    title="Tutup"
-                  >
-                    ×
-                  </button>
+                  {selected && (
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="grid h-8 w-8 place-items-center rounded-full bg-[#d9d9d9] text-lg font-black ring-1 ring-black/10 transition-colors hover:bg-black/10"
+                      title="Tutup"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
 
-                {showDetail && selected ? (
+                {selected ? (
                   <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-black/70 md:grid-cols-6">
                     <div>
                       <div className="text-xs text-black/50">Request ID</div>
@@ -590,7 +589,7 @@ export default function RekapitulasiEProcurementPage() {
                   </div>
                 ) : (
                   <div className="mt-3 text-sm text-black/50">
-                    {selected ? "Detail ditutup." : "Klik salah satu row untuk melihat rincian."}
+                    Klik salah satu row untuk melihat rincian.
                   </div>
                 )}
               </div>
