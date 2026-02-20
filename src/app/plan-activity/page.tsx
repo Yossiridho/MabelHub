@@ -235,7 +235,7 @@ export default function PlanActivityPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold tracking-wide text-black">
+              <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
                 PLAN ACTIVITY
               </h2>
 
@@ -370,7 +370,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Prev
               </button>
@@ -379,7 +379,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Next
               </button>

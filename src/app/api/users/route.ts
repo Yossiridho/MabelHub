@@ -26,7 +26,7 @@ declare global {
 async function ensureUserIndexes(db: any) {
   if (!global.__mabel_users_indexes_promise) {
     global.__mabel_users_indexes_promise = (async () => {
-      const col = db.collection<UserDoc>("users");
+      const col = db.collection("users");
       await col.createIndex({ email: 1 }, { unique: true });
       await col.createIndex({ username: 1 }, { unique: true });
       await col.createIndex({ createdAt: -1 });

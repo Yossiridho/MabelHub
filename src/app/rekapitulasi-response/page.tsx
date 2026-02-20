@@ -125,16 +125,15 @@ export default function RekapitulasiResponsePage() {
   }, [rows, adminFilter, q, isSuperAdmin]);
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* ✅ Sidebar pakai session */}
         <Sidebar />
 
-        <div className="flex-1 h-screen overflow-y-auto">
-          <div className="p-6">
-            <div className="text-2xl font-bold text-neutral-900">
-              REKAPITULASI
-            </div>
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
+        <h1 className="text-2xl font-extrabold pl-4 text-black">
+              REKAPITULASI RESPONSE
+              </h1>
             <div className="mt-1 text-sm text-neutral-600">
               Menampilkan request e-procurement yang sudah diambil admin.
             </div>

@@ -162,7 +162,7 @@ function PrimaryButton({
       onClick={onClick}
       className={clsx(
         "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
-        "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
+        "ring-1 ring-black/15 shadow-sm hover:bg-black/5",
         "disabled:opacity-50 disabled:hover:bg-white",
         className || "",
       )}
@@ -188,7 +188,7 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide",
         "bg-black hover:bg-black/90",
         "disabled:opacity-50",
         className || "",
@@ -467,9 +467,6 @@ export default function InstansiPage() {
                       placeholder="Cari institusi / satuan kerja / PIC..."
                       className="pr-10"
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      🔍
-                    </span>
                   </div>
                 </Field>
 
@@ -674,7 +671,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage(1)}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="First"
                     >
                       ⏮
@@ -682,7 +679,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="Prev"
                     >
                       ◀
@@ -697,7 +694,7 @@ export default function InstansiPage() {
                         setPage((p) => Math.min(totalPages, p + 1))
                       }
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="Next"
                     >
                       ▶
@@ -705,7 +702,7 @@ export default function InstansiPage() {
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5 disabled:opacity-40"
+                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
                       title="Last"
                     >
                       ⏭
@@ -714,12 +711,11 @@ export default function InstansiPage() {
                 </div>
               </div>
             </div>
-
-            <div className="h-10" />
           </main>
         </div>
       </div>
 
+      {/* ================= MODAL: REQUEST PENDING ================= */}
       <PendingRequestsModal
         open={openPending}
         onClose={() => setOpenPending(false)}
