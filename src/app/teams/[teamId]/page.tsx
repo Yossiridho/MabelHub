@@ -170,14 +170,32 @@ export default function TeamDetailPage() {
       return;
     }
 
+    // ✅ hitung memberIds final agar kompatibel dengan API PUT kamu
+    const current = Array.isArray(team.memberIds)
+      ? team.memberIds.map(String)
+      : [];
+    const removeSet = new Set(toRemove.map(String));
+    const addSet = new Set(toAdd.map(String));
+
+    // start dari current, buang yang remove
+    let next = current.filter((id) => !removeSet.has(id));
+
+    // tambahkan add yang belum ada
+    for (const id of addSet) {
+      if (!next.includes(id)) next.push(id);
+    }
+
+    // jaga-jaga: jangan pernah memasukkan leader
+    next = next.filter((id) => id && id !== team.leaderId);
+
     setSaving(true);
     try {
       const res = await fetch(
         `/api/teams/${encodeURIComponent(team._id)}/members`,
         {
-          method: "PATCH",
+          method: "PUT", // ✅ pakai PUT (sesuai API kamu)
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ add: toAdd, remove: toRemove }),
+          body: JSON.stringify({ memberIds: next }), // ✅ sesuai API
         },
       );
 

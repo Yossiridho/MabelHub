@@ -62,12 +62,20 @@ export async function PUT(
       _id: { $in: memberOids },
       $or: [
         { role: { $ne: "SALES" } },
-        { teamId: { $exists: true, $ne: null, $ne: String(team._id) } },
+        {
+          teamId: { $exists: true, $ne: null },
+          $and: [{ teamId: { $ne: String(team._id) } }],
+        },
       ],
     });
     if (bad) {
       return NextResponse.json(
-        { error: "Ada member bukan SALES atau sudah tergabung team lain" },
+        {
+          error: "Ada member bukan SALES atau sudah tergabung team lain",
+          badUserId: String((bad as any)._id),
+          badRole: String((bad as any).role || ""),
+          badTeamId: (bad as any).teamId ?? null,
+        },
         { status: 409 },
       );
     }
