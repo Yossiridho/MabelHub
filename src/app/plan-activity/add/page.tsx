@@ -183,7 +183,6 @@ export default function AddPlansPage() {
   // NOTE: sekarang belum handle edit multi.
   useEffect(() => {
     if (editId) {
-      // noop
     }
   }, [editId]);
 
@@ -280,7 +279,9 @@ export default function AddPlansPage() {
 
       // ✅ kirim targetUserId per item ("" = self)
       const payload = {
-        tanggal,
+        tanggal, 
+        createdBy: user?.userId || null, 
+        nama_sales: user?.fullName || null, 
         items: items.map((it) => ({
           status_ring: it.status_ring,
           institusi_kerja: it.institusiQuery,

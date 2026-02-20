@@ -317,23 +317,21 @@ export default function AddInstansiPage() {
           <main className="mx-auto pt-4 max-w-10xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <div className="flex items-start gap-3">
-                  <button
-                    onClick={() => router.back()}
-                    className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
-                    aria-label="Back"
-                  >
-                    ←
-                  </button>
-                  <div className="flex flex-col">
-                    <h1 className="text-2xl font-extrabold text-black">
-                      {title}
-                    </h1>
-                    <p className="text-xs text-black/60">{subtitle}</p>
-                  </div>
-                </div>
+              <div className="flex items-start gap-3">
+             <button
+                onClick={() => router.back()}
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
+                aria-label="Back"
+              >
+                ←
+              </button>
+                <div className="flex flex-col">
+                <h1 className="text-2xl font-extrabold text-black">{title}</h1>
+                <p className="text-xs text-black/60">{subtitle}</p>
+              </div>
               </div>
             </div>
+           </div>
 
             {/* card container */}
             <div className="pt-6 rounded-2xl bg-white p-6 ring-1 ring-gray-200">
@@ -508,10 +506,8 @@ export default function AddInstansiPage() {
 
                 {/* footer fixed */}
                 <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-                  <PrimaryButton
-                    onClick={addMore}
-                    className="bg-blue-600 text-gray-100 hover:bg-blue-700"
-                  >
+                  <PrimaryButton onClick={addMore}
+                    className="bg-blue-600 text-gray-100 hover:bg-blue-700">
                     TAMBAH INSTANSI
                   </PrimaryButton>
 

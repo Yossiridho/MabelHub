@@ -273,14 +273,16 @@ function CardList({
   );
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
-      {/* TITLE */}
-      <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
-        {title}
-      </div>
+<div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
+  
+  {/* TITLE */}
+  <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
+    {title}
+  </div>
 
-      {/* CONTENT */}
-      <div className="bg-white"></div>
+  {/* CONTENT */}
+  <div className="bg-white">
+  </div>
 
       <div className="p-2">
         {sorted.length === 0 ? (

@@ -105,16 +105,15 @@ export default function DashboardRequestPage() {
   }, [sessionLoading, user]);
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* SIDEBAR */}
         <Sidebar />
 
         {/* CONTENT */}
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-semibold">VISIT DASHBOARD</h2>
+            <h2 className="text-2xl pl-4 font-extrabold">VISIT DASHBOARD</h2>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
@@ -251,63 +250,6 @@ export default function DashboardRequestPage() {
                 <option>Semua Satker</option>
               </select>
             </div>
-          </div>
-
-          {/* TABLE */}
-          <div className="rounded-xl bg-white shadow-lg">
-            <table className="w-full text-sm">
-              <thead className="bg-white text-blue-700">
-                <tr>
-                  {[
-                    "NAMA SALES",
-                    "VISIT DATE",
-                    "STATUS",
-                    "SATUAN KERJA",
-                    "CITY",
-                    "PIC NAME",
-                    "PIC PHONE",
-                    "RING",
-                  ].map((header) => (
-                    <th key={header} className="rounded-xl px-4 py-3 text-left">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {loadingTable ? (
-                  <tr>
-                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
-                      Loading data...
-                    </td>
-                  </tr>
-                ) : visits.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
-                      Belum ada data.
-                    </td>
-                  </tr>
-                ) : (
-                  visits.map((row) => (
-                    <tr key={row._id} className="border-t">
-                      <td className="px-4 py-3">{row.nama_sales ?? "-"}</td>
-                      <td className="px-4 py-3">
-                        {row.visit_date
-                          ? new Date(row.visit_date).toLocaleDateString("id-ID")
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3">{row.status_visit ?? "-"}</td>
-                      <td className="px-4 py-3">{row.satuan_kerja ?? "-"}</td>
-                      <td className="px-4 py-3">{row.city ?? "-"}</td>
-                      <td className="px-4 py-3">{row.pic_name ?? "-"}</td>
-                      <td className="px-4 py-3">{row.pic_phone ?? "-"}</td>
-                      <td className="px-4 py-3">{row.status_ring ?? "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>

@@ -221,12 +221,13 @@ export default function RekapitulasiVisitPage() {
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <div className="px-3 pt-2 pb-2">
-            <h1 className="text-2xl font-extrabold pl-4 text-black">
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
+        <h1 className="text-2xl font-extrabold pl-4 text-black">
               REKAPITULASI VISIT
             </h1>
-            <div className="px-6 pb-6"></div>
+      <div className="px-6 pb-6">
+        </div>
           </div>
 
           {/* FILTER CARD */}
