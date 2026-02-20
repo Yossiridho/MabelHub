@@ -107,7 +107,7 @@ export default function PendingRequestsModal({
         </div>
       ) : pending.length === 0 ? (
         <div className="py-12 text-center text-sm text-black/60">
-          Tidak ada request pending.
+          Tidak ada request.
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">

@@ -1,0 +1,732 @@
+"use client";
+
+import { useEffect, useMemo, useState, Fragment } from "react";
+import Sidebar from "@/components/sidebar/sidebar";
+import { useRouter } from "next/navigation";
+
+type ProductItem = {
+  id: string;
+  merek: string;
+  subKategori: string;
+  qty: number;
+  spesifikasi: string;
+  paguPerItem: number | "";
+  hargaTayang: number | "";
+  linkInaproc: string;
+  linkEcom: string;
+};
+
+type EProcDoc = {
+  requestId: string;
+  requestor: string;
+  pemohon: string;
+  lokasi: string;
+  segmen: string;
+  deadlineUsulan: string;
+  tanggalSubmit: string;
+  catatan?: string;
+
+  items: ProductItem[];
+
+  takenByAdminId: string | null;
+  takenByAdminName: string | null;
+  takenAt?: string | null;
+};
+
+function clsx(...v: Array<string | false | undefined | null>) {
+  return v.filter(Boolean).join(" ");
+}
+
+function formatDateTime(iso?: string | null) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatDateOnly(iso?: string | null) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+}
+
+export default function RekapitulasiEProcurementPage() {
+  const router = useRouter();
+
+  const [rows, setRows] = useState<EProcDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // filters (sesuai UI gambar)
+  const [requestor, setRequestor] = useState("ALL");
+  const [pemohon, setPemohon] = useState("ALL");
+  const [status, setStatus] = useState("ALL");
+  const [tindakLanjut, setTindakLanjut] = useState("ALL");
+
+  const [startDate, setStartDate] = useState(""); // yyyy-mm-dd (input date)
+  const [endDate, setEndDate] = useState(""); // yyyy-mm-dd
+  const [searchId, setSearchId] = useState("");
+
+  // pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+
+  // details panel
+  const [selected, setSelected] = useState<EProcDoc | null>(null);
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/e-procurement/requests?mode=all", {
+        cache: "no-store",
+      });
+      const json = await res.json().catch(() => ({}));
+      setRows(Array.isArray(json?.data) ? json.data : []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // options dropdown (dari database)
+  const requestorOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => set.add((r.requestor || "").trim()));
+    return Array.from(set).filter(Boolean).sort();
+  }, [rows]);
+
+  const pemohonOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => set.add((r.pemohon || "").trim()));
+    return Array.from(set).filter(Boolean).sort();
+  }, [rows]);
+
+  // ===== mapping status sesuai kebutuhan UI (sementara) =====
+  // kamu bisa ubah nanti kalau field "status usulan / current status / tindak lanjut" sudah ada di DB
+  function getStatusUsulan(r: EProcDoc) {
+    return "MASUK";
+  }
+  function getCurrentStatus(r: EProcDoc) {
+    return r.takenByAdminId ? "DIAMBIL ADMIN" : "MASUK";
+  }
+  function getTindakLanjutValue(_r: EProcDoc) {
+    // belum ada field di schema kamu → placeholder "-"
+    return "-";
+  }
+
+  const filtered = useMemo(() => {
+    const q = searchId.trim().toLowerCase();
+
+    return rows
+      .slice()
+      .sort((a, b) => {
+        // newest first: takenAt desc, lalu tanggalSubmit desc
+        const ta = a.takenAt ? new Date(a.takenAt).getTime() : 0;
+        const tb = b.takenAt ? new Date(b.takenAt).getTime() : 0;
+        if (tb !== ta) return tb - ta;
+
+        const sa = a.tanggalSubmit ? new Date(a.tanggalSubmit).getTime() : 0;
+        const sb = b.tanggalSubmit ? new Date(b.tanggalSubmit).getTime() : 0;
+        return sb - sa;
+      })
+      .filter((r) => {
+        if (requestor !== "ALL" && r.requestor !== requestor) return false;
+        if (pemohon !== "ALL" && r.pemohon !== pemohon) return false;
+
+        if (status !== "ALL") {
+          const s = getCurrentStatus(r);
+          if (s !== status) return false;
+        }
+
+        if (tindakLanjut !== "ALL") {
+          const t = getTindakLanjutValue(r);
+          if (t !== tindakLanjut) return false;
+        }
+
+        // filter tanggal (gunakan tanggalSubmit)
+        const submit = r.tanggalSubmit ? new Date(r.tanggalSubmit) : null;
+        if (submit && startDate) {
+          const from = new Date(startDate + "T00:00:00");
+          if (submit < from) return false;
+        }
+        if (submit && endDate) {
+          const to = new Date(endDate + "T23:59:59");
+          if (submit > to) return false;
+        }
+
+        if (q) {
+          const blob = `${r.requestId} ${r.requestor} ${r.pemohon} ${r.lokasi}`.toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+
+        return true;
+      });
+  }, [rows, requestor, pemohon, status, tindakLanjut, startDate, endDate, searchId]);
+
+  // pagination derived
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const safePage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalPages]);
+
+  const pageItems = useMemo(() => {
+    const start = (safePage - 1) * limit;
+    return filtered.slice(start, start + limit);
+  }, [filtered, safePage, limit]);
+
+  const shownFrom = total === 0 ? 0 : (safePage - 1) * limit + 1;
+  const shownTo = Math.min(safePage * limit, total);
+
+  function onRowClick(r: EProcDoc) {
+    setSelected(r);
+    setOpenItemId(null);
+  }
+
+  function toggleItem(id: string) {
+    setOpenItemId((p) => (p === id ? null : id));
+  }
+
+  return (
+    <div className="min-h-screen bg-[#d9d9d9]">
+      <div className="flex">
+        <Sidebar />
+
+        <div className="flex-1 h-screen overflow-y-auto p-6">
+          <main className="mx-auto max-w-[1220px]">
+            {/* Header */}
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className="grid h-9 w-9 place-items-center rounded-full bg-[#efefef] ring-1 ring-black/10 hover:bg-white"
+                aria-label="Back"
+              >
+                ←
+              </button>
+              <h1 className="text-lg font-extrabold tracking-wide text-black">
+                REKAPITULASI E-PROCUREMENT
+              </h1>
+            </div>
+
+            {/* Filters box (persis pola screenshot) */}
+            <div className="rounded-2xl bg-[#efefef] p-4 ring-1 ring-black/10">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-6 md:items-end">
+                {/* Requestor */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Requestor
+                  </div>
+                  <select
+                    value={requestor}
+                    onChange={(e) => {
+                      setRequestor(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  >
+                    <option value="ALL">Semua Sales</option>
+                    {requestorOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Tanggal Mulai */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Tanggal Mulai
+                  </div>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  />
+                </div>
+
+                {/* Tanggal Selesai */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Tanggal Selesai
+                  </div>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  />
+                </div>
+
+                {/* Status */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Status
+                  </div>
+                  <select
+                    value={status}
+                    onChange={(e) => {
+                      setStatus(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  >
+                    <option value="ALL">Semua Status</option>
+                    <option value="MASUK">Masuk</option>
+                    <option value="DIAMBIL ADMIN">Diambil Admin</option>
+                  </select>
+                </div>
+
+                {/* Tindak Lanjut */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Tindak Lanjut
+                  </div>
+                  <select
+                    value={tindakLanjut}
+                    onChange={(e) => {
+                      setTindakLanjut(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  >
+                    <option value="ALL">Semua Tindakan</option>
+                    <option value="-">-</option>
+                  </select>
+                </div>
+
+                {/* Spacer */}
+                <div className="hidden md:block md:col-span-1" />
+
+                {/* Pemohon */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Pemohon
+                  </div>
+                  <select
+                    value={pemohon}
+                    onChange={(e) => {
+                      setPemohon(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  >
+                    <option value="ALL">Semua Pemohon</option>
+                    {pemohonOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Search ID */}
+                <div className="md:col-span-5">
+                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
+                    Search ID
+                  </div>
+                  <div className="relative">
+                    <input
+                      value={searchId}
+                      onChange={(e) => {
+                        setSearchId(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 pr-10 text-sm ring-1 ring-black/10 outline-none"
+                      placeholder=""
+                    />
+                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black/60">
+                      🔍
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table big */}
+            <div className="mt-4 overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-white">
+                    <tr className="border-b border-black/10">
+                      {[
+                        "Tindak Lanjut",
+                        "Requestor ID",
+                        "Nama Requestor",
+                        "Pemohon (Entity)",
+                        "Lokasi",
+                        "Deadline Usulan",
+                        "Status Usulan",
+                        "Current Status",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="whitespace-nowrap px-3 py-2 text-left text-xs font-extrabold text-black"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="px-3 py-10 text-center text-black/60">
+                          Loading...
+                        </td>
+                      </tr>
+                    ) : pageItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-3 py-10 text-center text-black/60">
+                          Tidak ada data.
+                        </td>
+                      </tr>
+                    ) : (
+                      pageItems.map((r) => (
+                        <tr
+                          key={r.requestId}
+                          onClick={() => onRowClick(r)}
+                          className={clsx(
+                            "cursor-pointer border-b border-black/5",
+                            selected?.requestId === r.requestId && "bg-black/[0.03]",
+                          )}
+                        >
+                          <td className="px-3 py-2">{getTindakLanjutValue(r)}</td>
+                          <td className="px-3 py-2">{r.requestId}</td>
+                          <td className="px-3 py-2">{r.requestor || "-"}</td>
+                          <td className="px-3 py-2">{r.pemohon || "-"}</td>
+                          <td className="px-3 py-2">{r.lokasi || "-"}</td>
+                          <td className="px-3 py-2">{r.deadlineUsulan || "-"}</td>
+                          <td className="px-3 py-2">{getStatusUsulan(r)}</td>
+                          <td className="px-3 py-2">{getCurrentStatus(r)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination bar (mirip screenshot) */}
+              <div className="flex flex-col gap-3 border-t border-black/10 bg-[#efefef] px-5 py-4 md:flex-row md:items-center md:justify-between">
+                <div className="text-sm text-black/70">
+                  Menampilkan{" "}
+                  <b className="text-black">
+                    {shownFrom} - {shownTo}
+                  </b>{" "}
+                  dari <b className="text-black">{total}</b> data
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <select
+                    value={String(limit)}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="h-10 rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                  >
+                    {[10, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>
+                        {n} / Halaman
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage(1)}
+                      disabled={safePage <= 1}
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
+                      title="First"
+                    >
+                      ⏮
+                    </button>
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={safePage <= 1}
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
+                      title="Prev"
+                    >
+                      ◀
+                    </button>
+
+                    {/* angka halaman (tampilan ringkas seperti gambar) */}
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                        const num = i + 1;
+                        return (
+                          <button
+                            key={num}
+                            onClick={() => setPage(num)}
+                            className={clsx(
+                              "h-9 w-9 rounded-lg text-sm font-extrabold ring-1 ring-black/10",
+                              safePage === num ? "bg-white" : "bg-[#d9d9d9]",
+                            )}
+                          >
+                            {num}
+                          </button>
+                        );
+                      })}
+                      {totalPages > 5 ? (
+                        <div className="px-1 text-black/60">…</div>
+                      ) : null}
+                    </div>
+
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePage >= totalPages}
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
+                      title="Next"
+                    >
+                      ▶
+                    </button>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      disabled={safePage >= totalPages}
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
+                      title="Last"
+                    >
+                      ⏭
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Detail panels bawah (sesuai screenshot) */}
+            <div className="mt-6 rounded-2xl bg-[#efefef] p-5 ring-1 ring-black/10">
+              {/* Rincian Informasi Request */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between border-b border-black/20 pb-2">
+                  <div className="flex items-center gap-2 font-extrabold text-black/70">
+                    <span>📖</span>
+                    <span>Rincian Informasi Request</span>
+                  </div>
+
+                  {selected && (
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="grid h-8 w-8 place-items-center rounded-full bg-[#d9d9d9] text-lg font-black ring-1 ring-black/10 transition-colors hover:bg-black/10"
+                      title="Tutup"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {selected ? (
+                  <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-black/70 md:grid-cols-6">
+                    <div>
+                      <div className="text-xs text-black/50">Request ID</div>
+                      <div className="font-semibold text-black">{selected.requestId}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Nama Requestor</div>
+                      <div className="font-semibold text-black">{selected.requestor}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Pemohon</div>
+                      <div className="font-semibold text-black">{selected.pemohon}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Lokasi</div>
+                      <div className="font-semibold text-black">{selected.lokasi}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Status Usulan</div>
+                      <div className="font-semibold text-black">{getStatusUsulan(selected)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Status Akhir</div>
+                      <div className="font-semibold text-black">{getCurrentStatus(selected)}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-black/50">Deadline Usulan</div>
+                      <div className="font-semibold text-black">
+                        {selected.deadlineUsulan || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Tanggal Submit</div>
+                      <div className="font-semibold text-black">
+                        {formatDateTime(selected.tanggalSubmit)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">Segmen</div>
+                      <div className="font-semibold text-black">{selected.segmen || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-black/50">PIC Admin</div>
+                      <div className="font-semibold text-black">
+                        {selected.takenByAdminName || "-"}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="text-xs text-black/50">Catatan</div>
+                      <div className="font-semibold text-black">{selected.catatan || "-"}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 text-sm text-black/50">
+                    Klik salah satu row untuk melihat rincian.
+                  </div>
+                )}
+              </div>
+
+              {/* List Barang */}
+              <div>
+                <div className="flex items-center gap-2 border-b border-black/20 pb-2 font-extrabold text-black/70">
+                  <span>🗂</span>
+                  <span>List Barang</span>
+                </div>
+
+                <div className="mt-3 overflow-hidden rounded-xl bg-white ring-1 ring-black/10">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-white">
+                        <tr className="border-b border-black/10 text-black/60">
+                          {[
+                            "Merek Product",
+                            "Sub-Kategori",
+                            "Qty",
+                            "Tanggal Proses",
+                            "Tanggal Done",
+                            "Status Barang",
+                            "Tayang Inaproc",
+                            "Update Admin",
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="whitespace-nowrap px-3 py-3 text-left text-xs font-extrabold"
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {!selected?.items?.length ? (
+                          <tr>
+                            <td colSpan={8} className="px-3 py-10 text-center text-black/50">
+                              Pilih request terlebih dahulu.
+                            </td>
+                          </tr>
+                        ) : (
+                          selected.items.map((it) => {
+                            const isOpen = openItemId === it.id;
+                            return (
+                              <Fragment key={it.id}>
+                                <tr
+                                  onClick={() => toggleItem(it.id)}
+                                  className="cursor-pointer border-t border-black/5 hover:bg-black/[0.02]"
+                                >
+                                  <td className="px-3 py-3">{it.merek || "-"}</td>
+                                  <td className="px-3 py-3">{it.subKategori || "-"}</td>
+                                  <td className="px-3 py-3">{it.qty ?? "-"}</td>
+                                  <td className="px-3 py-3">-</td>
+                                  <td className="px-3 py-3">-</td>
+                                  <td className="px-3 py-3">Masuk</td>
+                                  <td className="px-3 py-3">-</td>
+                                  <td className="px-3 py-3">-</td>
+                                </tr>
+
+                                {isOpen ? (
+                                  <tr className="border-t border-black/5">
+                                    <td colSpan={8} className="bg-[#efefef] px-4 py-4">
+                                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                        <div>
+                                          <div className="text-xs font-extrabold text-blue-600">
+                                            Spesifikasi Barang
+                                          </div>
+                                          <div className="mt-1 text-sm text-black/70 whitespace-pre-line">
+                                            {it.spesifikasi || "-"}
+                                          </div>
+                                        </div>
+
+                                        <div>
+                                          <div className="text-xs font-extrabold text-blue-600">
+                                            Link Inaproc
+                                          </div>
+                                          <div className="mt-1 text-sm">
+                                            {it.linkInaproc ? (
+                                              <a
+                                                className="text-blue-600 underline"
+                                                href={it.linkInaproc}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                              >
+                                                {it.linkInaproc}
+                                              </a>
+                                            ) : (
+                                              <span className="text-black/50">-</span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div>
+                                          <div className="text-xs font-extrabold text-blue-600">
+                                            Link E-Commerce
+                                          </div>
+                                          <div className="mt-1 text-sm">
+                                            {it.linkEcom ? (
+                                              <a
+                                                className="text-blue-600 underline"
+                                                href={it.linkEcom}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                              >
+                                                {it.linkEcom}
+                                              </a>
+                                            ) : (
+                                              <span className="text-black/50">-</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ) : null}
+                              </Fragment>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-xs text-black/50">
+                  Klik baris barang untuk membuka detail (slide down).
+                </div>
+              </div>
+            </div>
+
+            <div className="h-10" />
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -59,7 +59,7 @@ declare global {
 async function ensureIndexes(db: any) {
   if (!global.__eproc_indexes_promise) {
     global.__eproc_indexes_promise = (async () => {
-      const col = db.collection<EProcDoc>("eproc_requests");
+      const col = db.collection("eproc_requests");
       await col.createIndex({ requestId: 1 }, { unique: true });
       await col.createIndex({ takenByAdminId: 1, takenAt: -1 });
       await col.createIndex({ createdAt: -1 });
@@ -109,6 +109,14 @@ export async function GET(req: Request) {
       { "createdBy.userId": auth.session.userId },
       { "assignedTo.userId": auth.session.userId },
     ];
+  } else if (mode === "all") {
+    // untuk halaman rekapitulasi: tampilkan semua untuk Admin/Superadmin
+    if (auth.session.role !== "ADMIN" && auth.session.role !== "SUPERADMIN") {
+      filter.$or = [
+        { "createdBy.userId": auth.session.userId },
+        { "assignedTo.userId": auth.session.userId },
+      ];
+    }
   } else {
     // fallback aman
     filter.takenByAdminId = null;
