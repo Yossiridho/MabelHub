@@ -87,8 +87,7 @@ function PrimaryButton({
       onClick={onClick}
       className={clsx(
         "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
-        "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
-        "disabled:opacity-50 disabled:hover:bg-white",
+        "ring-1 ring-black/15 shadow-sm hover:bg-black/5",
         className || "",
       )}
     >
@@ -116,9 +115,8 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
-        "bg-black hover:bg-black/90",
-        "disabled:opacity-50",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wider ring-1",
+        "ring-1 ring-black/15 shadow-sm hover:bg-black/5",
         className || "",
       )}
     >
@@ -281,7 +279,6 @@ export default function AddInstansiPage() {
           satuan_kerja: String(r["Satuan Kerja"] || "").trim(),
           status_ring: String(r["Status Ring"] || "").trim(),
 
-          // template kamu tidak punya kode_dinas → kosongkan saja
           kode_dinas: "",
 
           pic_nama: String(r["Nama PIC"] || "").trim(),
@@ -289,7 +286,6 @@ export default function AddInstansiPage() {
           pic_jabatan: String(r["Jabatan PIC"] || "").trim(),
           pic_role: String(r["Role PIC"] || "").trim(),
         }))
-        // anggap row valid kalau minimal ada institusi/kota/klpd/satuan kerja
         .filter(
           (x) =>
             x.institusi_kerja ||
@@ -313,32 +309,33 @@ export default function AddInstansiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar />
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <main className="mx-auto pt-4 max-w-5xl">
-            {/* top bar */}
+        <div className="flex-1 p-6 min-h-screen overflow-y-auto">
+          <main className="mx-auto pt-4 max-w-10xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-extrabold text-black">{title}</h1>
-                <p className="text-xs text-black/60">{subtitle}</p>
-              </div>
-
-              <button
+              <div className="flex items-start gap-3">
+             <button
                 onClick={() => router.back()}
                 className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
                 aria-label="Back"
               >
                 ←
               </button>
+                <div className="flex flex-col">
+                <h1 className="text-2xl font-extrabold text-black">{title}</h1>
+                <p className="text-xs text-black/60">{subtitle}</p>
+              </div>
+              </div>
             </div>
+           </div>
 
             {/* card container */}
-            <div className="rounded-2xl bg-[#f7f2f2] p-6 shadow-2xl ring-1 ring-black/10">
-              {/* download template (kalau kamu pakai) */}
-              <div className="-mt-1 mb-4 text-xs text-black/60">
+            <div className="pt-6 rounded-2xl bg-white p-6 ring-1 ring-gray-200">
+              <div className="mt-4 mb-4 text-md text-black">
                 Download template?{" "}
                 <a
                   href="/templates/template_instansi.xlsx"
@@ -350,23 +347,23 @@ export default function AddInstansiPage() {
               </div>
 
               {/* layout: middle scroll */}
-              <div className="flex h-[72vh] flex-col">
+              <div className="flex flex-col">
                 <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 gap-6">
                     {forms.map((form, idx) => (
                       <div key={idx}>
                         <div className="mb-3 flex items-center justify-between">
-                          <div className="text-xs font-extrabold tracking-wide text-black/70">
-                            INSTANSI #{idx + 1}
+                          <div className="text-md font-extrabold tracking-wide text-black">
+                            INSTANSI {idx + 1}
                           </div>
 
                           {forms.length > 1 ? (
                             <button
                               type="button"
                               onClick={() => removeAt(idx)}
-                              className="rounded-lg bg-white px-3 py-2 text-xs font-extrabold ring-1 ring-black/15 hover:bg-black/5"
+                              className="rounded-full bg-white px-3 py-2 text-xs font-extrabold ring-1 ring-gray-300 hover:bg-gray-300"
                             >
-                              HAPUS
+                              X
                             </button>
                           ) : null}
                         </div>
@@ -509,15 +506,16 @@ export default function AddInstansiPage() {
 
                 {/* footer fixed */}
                 <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-                  <PrimaryButton onClick={addMore}>
-                    + TAMBAH INSTANSI
+                  <PrimaryButton onClick={addMore}
+                    className="bg-blue-600 text-gray-100 hover:bg-blue-700">
+                    TAMBAH INSTANSI
                   </PrimaryButton>
 
                   <div className="flex gap-3">
-                    {/* kalau kamu masih butuh upload: tinggal aktifkan lagi */}
                     <PrimaryButton
                       onClick={() => fileRef.current?.click()}
                       disabled={saving}
+                      className="bg-green-600 text-gray-100 hover:bg-green-700"
                     >
                       UPLOAD
                     </PrimaryButton>
@@ -525,6 +523,7 @@ export default function AddInstansiPage() {
                     <SolidButton
                       onClick={submit}
                       disabled={saving || !canSubmit}
+                      className="bg-blue-600 text-gray-100 hover:bg-blue-700"
                     >
                       {saving ? "MENYIMPAN..." : "SUBMIT"}
                     </SolidButton>

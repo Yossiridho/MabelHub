@@ -236,17 +236,6 @@ export default function EProcurementRequestPage() {
                     onChange={(e) => setDeadline(e.target.value)}
                     className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
                   />
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M7 3v2M17 3v2M4 9h16M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
                 </div>
               </div>
 
@@ -278,7 +267,7 @@ export default function EProcurementRequestPage() {
 
           <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-1.5">
-              <h2 className="text-3xl my-6 font-semibold text-gray-700">
+              <h2 className="text-3xl my-6 font-semibold text-black">
                 Daftar Produk
               </h2>
               <span className="grid h-10 min-w-10 place-items-center rounded-xl bg-gray-600 px-3 text-white">
@@ -318,18 +307,11 @@ export default function EProcurementRequestPage() {
 
                 <button
                   onClick={() => removeItem(it.id)}
-                  className="absolute right-6 top-6 text-gray-500 hover:text-gray-800"
+                  className="absolute right-6 top-4 rounded-full px-3 py-2 ring-1 ring-gray-300 bg-white text-black font-extrabold hover:bg-gray-100"
                   aria-label="Remove item"
                   title="Remove item"
                 >
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M18 6 6 18M6 6l12 12"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                X
                 </button>
 
                 <div className="mb-6 p-8 pl-20">
@@ -475,14 +457,14 @@ export default function EProcurementRequestPage() {
               <div className="md:col-span-8 flex w-full justify-end gap-4">
                 <button
                   onClick={addItem}
-                  className="inline-flex h-14 items-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                  className="inline-flex h-14 items-center gap-2 rounded-full bg-blue-600 px-6 text-md font-extrabold text-gray-50 shadow-sm hover:bg-blue-700"
                 >
-                  <span className="text-lg leading-none">+</span> Tambah Barang
+                  <span className="text-lg leading-none"></span> TAMBAH PRODUK
                 </button>
 
                 <button
                   onClick={handleKirim}
-                  className="h-14 rounded-2xl bg-green-700 px-32 text-sm font-extrabold tracking-wide text-white shadow-sm hover:bg-green-800 active:scale-[0.99]"
+                  className="h-14 rounded-full bg-green-600 px-32 text-md font-extrabold tracking-wide text-gray-50 shadow-sm hover:bg-green-700"
                 >
                   KIRIM REQUEST
                 </button>

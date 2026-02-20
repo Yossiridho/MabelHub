@@ -373,7 +373,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Prev
               </button>
@@ -382,7 +382,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Next
               </button>

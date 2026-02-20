@@ -462,9 +462,9 @@ export default function RekapitulasiVisitPage() {
               {selected && (
                 <button
                   onClick={() => setSelected(null)}
-                  className="rounded-lg bg-white px-4 py-2 text-sm font-extrabold text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                  className="rounded-full bg-white px-4 py-2 text-md font-extrabold text-black ring-1 ring-gray-200 hover:bg-gray-100"
                 >
-                  TUTUP
+                  X
                 </button>
               )}
             </div>
@@ -586,7 +586,7 @@ function FilterDate({
 }) {
   return (
     <div>
-      <div className="text-xs font-extrabold tracking-wider text-[#0B6AA9]">
+      <div className="text-xs font-extrabold tracking-wider text-blue-600">
         {label}
       </div>
       <div className="relative mt-2">
@@ -596,17 +596,6 @@ function FilterDate({
           onChange={(e) => onChange(e.target.value)}
           className="h-12 w-full rounded-xl border border-blue-200 bg-white px-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-200"
         />
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-700">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M7 3v2M17 3v2M4 9h16M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
       </div>
     </div>
   );
