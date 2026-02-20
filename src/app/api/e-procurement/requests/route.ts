@@ -59,7 +59,7 @@ declare global {
 async function ensureIndexes(db: any) {
   if (!global.__eproc_indexes_promise) {
     global.__eproc_indexes_promise = (async () => {
-      const col = db.collection<EProcDoc>("eproc_requests");
+      const col = db.collection("eproc_requests");
       await col.createIndex({ requestId: 1 }, { unique: true });
       await col.createIndex({ takenByAdminId: 1, takenAt: -1 });
       await col.createIndex({ createdAt: -1 });
