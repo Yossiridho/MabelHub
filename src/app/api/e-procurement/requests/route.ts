@@ -138,6 +138,14 @@ export async function GET(req: Request) {
       { "createdBy.userId": auth.session.userId },
       { "assignedTo.userId": auth.session.userId },
     ];
+  } else if (mode === "all") {
+    // untuk halaman rekapitulasi: tampilkan semua untuk Admin/Superadmin
+    if (auth.session.role !== "ADMIN" && auth.session.role !== "SUPERADMIN") {
+      filter.$or = [
+        { "createdBy.userId": auth.session.userId },
+        { "assignedTo.userId": auth.session.userId },
+      ];
+    }
   } else {
     filter.takenByAdminId = null;
   }
