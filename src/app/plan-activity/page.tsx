@@ -24,7 +24,7 @@ type PlanRow = {
   institusi_kerja: string;
   satuan_kerja: string;
   status: string;
-  _sortTs: number; // sorting helper
+  _sortTs: number; // untuk sorting (baru -> besar)
 };
 
 function monthIndex(mon: string) {
@@ -50,7 +50,7 @@ function monthIndex(mon: string) {
   return map[m] ?? -1;
 }
 
-// "3-Dec-2025" -> timestamp
+// parse "3-Dec-2025" -> timestamp
 function parseVisitDateToTs(v?: string) {
   if (!v) return 0;
   const parts = v.split("-");
@@ -61,13 +61,14 @@ function parseVisitDateToTs(v?: string) {
   const year = Number(parts[2]);
   if (!day || mon < 0 || !year) return 0;
 
-  const d = new Date(year, mon, day, 12, 0, 0); // noon avoid timezone shift
+  const d = new Date(year, mon, day, 12, 0, 0); // jam 12 biar aman timezone
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-// "2025-12-03 16:15:30" -> timestamp
+// parse "2025-12-03 16:15:30" -> timestamp
 function parseCreatedAtToTs(v?: string) {
   if (!v) return 0;
+  // ubah "YYYY-MM-DD HH:mm:ss" jadi ISO "YYYY-MM-DDTHH:mm:ss"
   const iso = v.includes("T") ? v : v.replace(" ", "T");
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
@@ -108,7 +109,6 @@ export default function PlanActivityPage() {
         user.role === "LEADER" ||
         user.role === "ADMIN" ||
         user.role === "SUPERADMIN";
-
       if (!ok) router.replace("/");
     }
   }, [sessionLoading, user, router]);
@@ -133,7 +133,6 @@ export default function PlanActivityPage() {
 
       if (q.trim()) qs.set("q", q.trim());
 
-      // ✅ server yang memfilter berdasarkan session role/team
       const res = await fetch(`/api/visits?${qs.toString()}`, {
         cache: "no-store",
       });
@@ -149,6 +148,7 @@ export default function PlanActivityPage() {
 
       const items: VisitRow[] = Array.isArray(json?.items) ? json.items : [];
 
+      // map + hitung sortTs (visit_date utama, fallback created_at)
       const mapped: PlanRow[] = items.map((v) => {
         const visitTs = parseVisitDateToTs(v.visit_date);
         const createdTs = parseCreatedAtToTs(v.created_at);
@@ -166,17 +166,18 @@ export default function PlanActivityPage() {
         };
       });
 
-      // sort newest first (within page)
+      // pastikan urutan terbaru di page ini
       mapped.sort((a, b) => b._sortTs - a._sortTs);
+
       setPlans(mapped);
 
       const tp = Number(json?.pagination?.totalPages || 1);
       setTotalPages(tp > 0 ? tp : 1);
 
       const total = Number(json?.pagination?.total || 0);
-      setTotalRows(total >= 0 ? total : 0);
+      setTotalRows(total > 0 ? total : 0);
 
-      // open newest group date
+      // buka group tanggal paling baru
       const grouped = groupByTanggal(mapped);
       const firstKey = Object.keys(grouped).sort((a, b) => {
         if (a === "UNKNOWN") return 1;
@@ -191,7 +192,7 @@ export default function PlanActivityPage() {
     }
   }
 
-  // fetch when page changes
+  // fetch awal & saat page berubah
   useEffect(() => {
     if (sessionLoading) return;
     if (!user) return;
@@ -199,7 +200,7 @@ export default function PlanActivityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, sessionLoading, user]);
 
-  // debounce search (reset page)
+  // debounce search + reset page
   useEffect(() => {
     if (sessionLoading) return;
     if (!user) return;
@@ -214,6 +215,7 @@ export default function PlanActivityPage() {
   }, [search]);
 
   const grouped = useMemo(() => {
+    // plans sudah di-sort terbaru, groupnya ikutin
     const g = groupByTanggal(plans);
     const keys = Object.keys(g).sort((a, b) => {
       if (a === "UNKNOWN") return 1;
@@ -235,7 +237,7 @@ export default function PlanActivityPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold tracking-wide text-black">
+              <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
                 PLAN ACTIVITY
               </h2>
 
@@ -269,7 +271,7 @@ export default function PlanActivityPage() {
               <div className="text-sm text-gray-600">
                 {loading
                   ? "Loading..."
-                  : `Total ${totalRows} • Page ${page} / ${totalPages}`}
+                  : `Total ${totalRows || "-"} • Page ${page} / ${totalPages}`}
               </div>
 
               <button
@@ -370,7 +372,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Prev
               </button>
@@ -379,7 +381,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Next
               </button>

@@ -28,7 +28,7 @@ function displayName(u: UserLite) {
 }
 
 function pickArrayData(json: any) {
-  // kompatibel untuk { data: [...] } atau legacy { users: [...] } / { teams: [...] }
+  // kompatibel untuk { data: [...] } atau legacy { teams/users: [...] }
   if (Array.isArray(json?.data)) return json.data;
   if (Array.isArray(json?.teams)) return json.teams;
   if (Array.isArray(json?.users)) return json.users;
@@ -36,7 +36,7 @@ function pickArrayData(json: any) {
   return [];
 }
 
-export default function SuperadminTeamsPage() {
+export default function TeamsPage() {
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
 
@@ -49,21 +49,13 @@ export default function SuperadminTeamsPage() {
   const [leaderId, setLeaderId] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
-  const [err, setErr] = useState<string>("");
+  const [err, setErr] = useState("");
 
-  // Guard UI by session (bukan hardcode)
+  // Guard SUPERADMIN
   useEffect(() => {
     if (sessionLoading) return;
-
-    if (!user) {
-      router.replace("/");
-      return;
-    }
-
-    if (user.role !== "SUPERADMIN") {
-      router.replace("/dashboard");
-      return;
-    }
+    if (!user) return void router.replace("/");
+    if (user.role !== "SUPERADMIN") return void router.replace("/dashboard");
   }, [sessionLoading, user, router]);
 
   const leaders = useMemo(
@@ -73,7 +65,6 @@ export default function SuperadminTeamsPage() {
   const sales = useMemo(() => users.filter((u) => u.role === "SALES"), [users]);
 
   async function loadAll() {
-    // hanya boleh jalan untuk SUPERADMIN
     if (!user || user.role !== "SUPERADMIN") return;
 
     setLoading(true);
@@ -166,7 +157,6 @@ export default function SuperadminTeamsPage() {
       setName("");
       setLeaderId("");
       setMemberIds([]);
-
       await loadAll();
     } catch (e: any) {
       setErr(e?.message || "Gagal membuat team");
@@ -179,166 +169,199 @@ export default function SuperadminTeamsPage() {
   if (!user || user.role !== "SUPERADMIN") return null;
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Sidebar proyek kamu sudah membaca session sendiri */}
-      <Sidebar />
+    <div className="min-h-screen bg-blue-50">
+      <div className="flex">
+        <Sidebar />
 
-      <div className="mx-auto max-w-6xl px-4 py-6 lg:pl-72">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Teams</h1>
-            <p className="text-sm text-gray-500">Kelola team (SUPERADMIN).</p>
-          </div>
+        <div className="flex-1 h-screen overflow-y-auto p-6">
+          <main className="w-full max-w-none">
+            {/* Header gaya Plan Activity */}
+            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <h2 className="text-2xl font-extrabold tracking-wide text-black">
+                TEAM MANAGEMENT
+              </h2>
 
-          <button
-            onClick={loadAll}
-            className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Loading..." : "Refresh"}
-          </button>
-        </div>
-
-        {err ? (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {err}
-          </div>
-        ) : null}
-
-        <div className="mt-6 rounded-2xl border border-gray-200 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Buat Team Baru</h2>
-
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-xs font-semibold text-gray-600">
-                Nama Team
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder="contoh: Team Jakarta"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-gray-600">
-                Leader
-              </label>
-              <select
-                value={leaderId}
-                onChange={(e) => setLeaderId(e.target.value)}
-                className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              <button
+                onClick={loadAll}
+                className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
+                disabled={loading}
               >
-                <option value="">-- pilih leader --</option>
-                {leaders.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {displayName(u)} ({u.username})
-                    {u.teamId ? " • sudah punya team" : ""}
-                  </option>
-                ))}
-              </select>
+                {loading ? "LOADING..." : "REFRESH"}
+              </button>
             </div>
-          </div>
 
-          <div className="mt-4">
-            <label className="text-xs font-semibold text-gray-600">
-              Members (Sales)
-            </label>
-            <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-              {sales.map((u) => {
-                const checked = memberIds.includes(u._id);
-                return (
-                  <label
-                    key={u._id}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleMember(u._id)}
-                      className="h-4 w-4"
-                    />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">
-                        {displayName(u)}
-                      </div>
-                      <div className="truncate text-xs text-gray-500">
-                        {u.username} {u.teamId ? "• sudah ada team" : ""}
-                      </div>
+            {err ? (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {err}
+              </div>
+            ) : null}
+
+            {/* Create Card */}
+            <div className="mb-6 w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
+              <div className="bg-blue-200 px-5 py-4">
+                <div className="text-lg font-extrabold text-black">
+                  CREATE TEAM
+                </div>
+                <div className="text-sm text-black/70">
+                  Buat team baru: pilih leader dan sales (members).
+                </div>
+              </div>
+
+              <div className="px-5 py-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-700">
+                      Nama Team
                     </div>
-                  </label>
-                );
-              })}
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="mt-2 h-11 w-full rounded-full bg-white px-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
+                      placeholder="contoh: Team Jakarta"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold text-gray-700">
+                      Leader
+                    </div>
+                    <select
+                      value={leaderId}
+                      onChange={(e) => setLeaderId(e.target.value)}
+                      className="mt-2 h-11 w-full rounded-full bg-white px-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
+                    >
+                      <option value="">-- pilih leader --</option>
+                      {leaders.map((u) => (
+                        <option key={u._id} value={u._id}>
+                          {displayName(u)} ({u.username})
+                          {u.teamId ? " • sudah punya team" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-gray-700">
+                      Members (Sales)
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Selected: <b>{memberIds.length}</b>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                    {sales.map((u) => {
+                      const checked = memberIds.includes(u._id);
+                      return (
+                        <label
+                          key={u._id}
+                          className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-black/10 hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleMember(u._id)}
+                            className="h-4 w-4"
+                          />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">
+                              {displayName(u)}
+                            </div>
+                            <div className="truncate text-xs text-gray-600">
+                              {u.username} {u.teamId ? "• sudah ada team" : ""}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setName("");
+                      setLeaderId("");
+                      setMemberIds([]);
+                      setErr("");
+                    }}
+                    className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
+                    disabled={creating}
+                  >
+                    RESET
+                  </button>
+
+                  <button
+                    onClick={createTeam}
+                    className="h-10 rounded-full bg-black px-6 text-sm font-extrabold text-white shadow hover:opacity-90 disabled:opacity-60"
+                    disabled={creating}
+                  >
+                    {creating ? "CREATING..." : "CREATE"}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-5 flex items-center justify-end gap-3">
-            <button
-              onClick={() => {
-                setName("");
-                setLeaderId("");
-                setMemberIds([]);
-                setErr("");
-              }}
-              className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50"
-              disabled={creating}
-            >
-              Reset
-            </button>
+            {/* List Card */}
+            <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
+              <div className="bg-blue-200 px-5 py-4">
+                <div className="text-lg font-extrabold text-black">
+                  DAFTAR TEAM
+                </div>
+                <div className="text-sm text-black/70">
+                  Klik detail untuk kelola members.
+                </div>
+              </div>
 
-            <button
-              onClick={createTeam}
-              className="h-10 rounded-xl bg-black px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-              disabled={creating}
-            >
-              {creating ? "Membuat..." : "Create Team"}
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border border-gray-200 shadow-sm">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-lg font-semibold">Daftar Team</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs font-semibold text-gray-600">
-                <tr>
-                  <th className="px-5 py-3">Nama</th>
-                  <th className="px-5 py-3">Leader</th>
-                  <th className="px-5 py-3">Jumlah Sales</th>
-                  <th className="px-5 py-3">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teams.map((t) => (
-                  <tr key={t._id} className="border-t border-gray-100">
-                    <td className="px-5 py-3 font-medium">{t.name}</td>
-                    <td className="px-5 py-3">{t.leaderName || t.leaderId}</td>
-                    <td className="px-5 py-3">{(t.memberIds || []).length}</td>
-                    <td className="px-5 py-3">
-                      <Link
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50"
-                        href={`/teams/${encodeURIComponent(t._id)}`}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white text-xs font-semibold text-gray-700">
+                    <tr className="border-b border-black/10">
+                      <th className="px-5 py-3">Nama</th>
+                      <th className="px-5 py-3">Leader</th>
+                      <th className="px-5 py-3">Jumlah Sales</th>
+                      <th className="px-5 py-3">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.map((t) => (
+                      <tr
+                        key={t._id}
+                        className="border-t border-black/10 hover:bg-gray-50"
                       >
-                        Detail
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                        <td className="px-5 py-3 font-semibold">{t.name}</td>
+                        <td className="px-5 py-3">
+                          {t.leaderName || t.leaderId}
+                        </td>
+                        <td className="px-5 py-3">{t.memberIds.length}</td>
+                        <td className="px-5 py-3">
+                          <Link
+                            className="inline-flex h-9 items-center rounded-full bg-white px-5 text-xs font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                            href={`/teams/${encodeURIComponent(t._id)}`}
+                          >
+                            DETAIL
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
 
-                {!loading && teams.length === 0 ? (
-                  <tr>
-                    <td className="px-5 py-6 text-sm text-gray-500" colSpan={4}>
-                      Belum ada team.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+                    {!loading && teams.length === 0 ? (
+                      <tr>
+                        <td
+                          className="px-5 py-6 text-sm text-gray-600"
+                          colSpan={4}
+                        >
+                          Belum ada team.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     </div>
