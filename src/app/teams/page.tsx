@@ -1,0 +1,346 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import Sidebar from "@/components/sidebar/sidebar";
+import { useSession } from "@/components/session/SessionProvider";
+
+type TeamDoc = {
+  _id: string;
+  name: string;
+  leaderId: string;
+  leaderName?: string;
+  memberIds: string[];
+};
+
+type UserLite = {
+  _id: string;
+  fullName?: string;
+  username?: string;
+  role: "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
+  teamId?: string | null;
+};
+
+function displayName(u: UserLite) {
+  return (u.fullName || "").trim() || (u.username || "").trim() || u._id;
+}
+
+function pickArrayData(json: any) {
+  // kompatibel untuk { data: [...] } atau legacy { users: [...] } / { teams: [...] }
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.teams)) return json.teams;
+  if (Array.isArray(json?.users)) return json.users;
+  if (Array.isArray(json)) return json;
+  return [];
+}
+
+export default function SuperadminTeamsPage() {
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
+  const [teams, setTeams] = useState<TeamDoc[]>([]);
+  const [users, setUsers] = useState<UserLite[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // create form
+  const [name, setName] = useState("");
+  const [leaderId, setLeaderId] = useState("");
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [err, setErr] = useState<string>("");
+
+  // Guard UI by session (bukan hardcode)
+  useEffect(() => {
+    if (sessionLoading) return;
+
+    if (!user) {
+      router.replace("/");
+      return;
+    }
+
+    if (user.role !== "SUPERADMIN") {
+      router.replace("/dashboard");
+      return;
+    }
+  }, [sessionLoading, user, router]);
+
+  const leaders = useMemo(
+    () => users.filter((u) => u.role === "LEADER"),
+    [users],
+  );
+  const sales = useMemo(() => users.filter((u) => u.role === "SALES"), [users]);
+
+  async function loadAll() {
+    // hanya boleh jalan untuk SUPERADMIN
+    if (!user || user.role !== "SUPERADMIN") return;
+
+    setLoading(true);
+    setErr("");
+
+    try {
+      const [tRes, uRes] = await Promise.all([
+        fetch("/api/teams", { cache: "no-store" }),
+        fetch("/api/users", { cache: "no-store" }),
+      ]);
+
+      const tJson = await tRes.json().catch(() => ({}));
+      const uJson = await uRes.json().catch(() => ({}));
+
+      if (!tRes.ok) {
+        setErr(tJson?.error || "Gagal load teams");
+        setTeams([]);
+        return;
+      }
+      if (!uRes.ok) {
+        setErr(uJson?.error || "Gagal load users");
+        setUsers([]);
+        return;
+      }
+
+      const tArr = pickArrayData(tJson);
+      const uArr = pickArrayData(uJson);
+
+      setTeams(
+        tArr.map((t: any) => ({
+          _id: String(t._id),
+          name: String(t.name || ""),
+          leaderId: String(t.leaderId || ""),
+          leaderName: t.leaderName ? String(t.leaderName) : undefined,
+          memberIds: Array.isArray(t.memberIds) ? t.memberIds.map(String) : [],
+        })),
+      );
+
+      setUsers(
+        uArr.map((u: any) => ({
+          _id: String(u._id),
+          fullName: u.fullName ? String(u.fullName) : "",
+          username: u.username ? String(u.username) : "",
+          role: String(u.role || "") as any,
+          teamId: u.teamId ? String(u.teamId) : null,
+        })),
+      );
+    } catch (e: any) {
+      setErr(e?.message || "Gagal load data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (!user || user.role !== "SUPERADMIN") return;
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionLoading, user?.role]);
+
+  function toggleMember(id: string) {
+    setMemberIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  async function createTeam() {
+    if (!user || user.role !== "SUPERADMIN") return;
+
+    setErr("");
+    const nm = name.trim();
+    if (!nm) return setErr("Nama team wajib diisi");
+    if (!leaderId) return setErr("Leader wajib dipilih");
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nm, leaderId, memberIds }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(json?.error || "Gagal membuat team");
+        return;
+      }
+
+      setName("");
+      setLeaderId("");
+      setMemberIds([]);
+
+      await loadAll();
+    } catch (e: any) {
+      setErr(e?.message || "Gagal membuat team");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  if (sessionLoading) return null;
+  if (!user || user.role !== "SUPERADMIN") return null;
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Sidebar proyek kamu sudah membaca session sendiri */}
+      <Sidebar />
+
+      <div className="mx-auto max-w-6xl px-4 py-6 lg:pl-72">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Teams</h1>
+            <p className="text-sm text-gray-500">Kelola team (SUPERADMIN).</p>
+          </div>
+
+          <button
+            onClick={loadAll}
+            className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50 disabled:opacity-60"
+            disabled={loading}
+          >
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
+
+        {err ? (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {err}
+          </div>
+        ) : null}
+
+        <div className="mt-6 rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Buat Team Baru</h2>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-600">
+                Nama Team
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="contoh: Team Jakarta"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-600">
+                Leader
+              </label>
+              <select
+                value={leaderId}
+                onChange={(e) => setLeaderId(e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="">-- pilih leader --</option>
+                {leaders.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {displayName(u)} ({u.username})
+                    {u.teamId ? " • sudah punya team" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="text-xs font-semibold text-gray-600">
+              Members (Sales)
+            </label>
+            <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+              {sales.map((u) => {
+                const checked = memberIds.includes(u._id);
+                return (
+                  <label
+                    key={u._id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleMember(u._id)}
+                      className="h-4 w-4"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {displayName(u)}
+                      </div>
+                      <div className="truncate text-xs text-gray-500">
+                        {u.username} {u.teamId ? "• sudah ada team" : ""}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-end gap-3">
+            <button
+              onClick={() => {
+                setName("");
+                setLeaderId("");
+                setMemberIds([]);
+                setErr("");
+              }}
+              className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50"
+              disabled={creating}
+            >
+              Reset
+            </button>
+
+            <button
+              onClick={createTeam}
+              className="h-10 rounded-xl bg-black px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+              disabled={creating}
+            >
+              {creating ? "Membuat..." : "Create Team"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="border-b border-gray-200 px-5 py-4">
+            <h2 className="text-lg font-semibold">Daftar Team</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-xs font-semibold text-gray-600">
+                <tr>
+                  <th className="px-5 py-3">Nama</th>
+                  <th className="px-5 py-3">Leader</th>
+                  <th className="px-5 py-3">Jumlah Sales</th>
+                  <th className="px-5 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((t) => (
+                  <tr key={t._id} className="border-t border-gray-100">
+                    <td className="px-5 py-3 font-medium">{t.name}</td>
+                    <td className="px-5 py-3">{t.leaderName || t.leaderId}</td>
+                    <td className="px-5 py-3">{(t.memberIds || []).length}</td>
+                    <td className="px-5 py-3">
+                      <Link
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50"
+                        href={`/teams/${encodeURIComponent(t._id)}`}
+                      >
+                        Detail
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+
+                {!loading && teams.length === 0 ? (
+                  <tr>
+                    <td className="px-5 py-6 text-sm text-gray-500" colSpan={4}>
+                      Belum ada team.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
