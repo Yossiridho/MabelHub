@@ -5,6 +5,19 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { Bell } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 type DashboardStats = {
   totalVisits: number;
@@ -47,7 +60,6 @@ export default function DashboardRequestPage() {
   useEffect(() => {
     if (!sessionLoading && user) {
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
-
       }
     }
   }, [sessionLoading, user, router]);
@@ -225,30 +237,153 @@ export default function DashboardRequestPage() {
             </div>
           </div>
 
-          {/* FILTER */}
-          <div className="mb-6 rounded-xl bg-white/70 p-5 shadow backdrop-blur-md">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-              {[
-                "Semua Sales",
-                "Tanggal Mulai",
-                "Tanggal Akhir",
-                "Semua Status",
-                "Semua Ring",
-                "Semua City",
-              ].map((label) => (
-                <select
-                  key={label}
-                  className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm"
-                >
-                  <option>{label}</option>
-                </select>
-              ))}
+          {/* CHARTS SECTION */}
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Total Visits Chart */}
+            <div className="rounded-xl bg-white p-5 shadow">
+              <h3 className="mb-4 text-sm font-semibold text-gray-600">
+                VISITS OVERVIEW
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Visits", value: stats?.totalVisits || 0 },
+                          {
+                            name: "Stay Office",
+                            value: stats?.stayOffice || 0,
+                          },
+                          {
+                            name: "Not Visited",
+                            value: stats?.notVisited || 0,
+                          },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        <Cell fill="#3b82f6" /> {/* blue-500 */}
+                        <Cell fill="#10b981" /> {/* emerald-500 */}
+                        <Cell fill="#ef4444" /> {/* red-500 */}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
 
-            <div className="mt-4">
-              <select className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm">
-                <option>Semua Satker</option>
-              </select>
+            {/* Market Coverage Chart */}
+            <div className="rounded-xl bg-white p-5 shadow">
+              <h3 className="mb-4 text-sm font-semibold text-gray-600">
+                MARKET COVERAGE
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: "Sales", count: stats?.salesCount || 0 },
+                        { name: "Satker", count: stats?.satkerCount || 0 },
+                        { name: "City", count: stats?.cityCount || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6B7280" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6B7280" }}
+                      />
+                      <Tooltip cursor={{ fill: "transparent" }} />
+                      <Bar
+                        dataKey="count"
+                        fill="#8b5cf6"
+                        radius={[4, 4, 0, 0]}
+                        barSize={40}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Ring Distribution Chart */}
+            <div className="rounded-xl bg-white p-5 shadow">
+              <h3 className="mb-4 text-sm font-semibold text-gray-600">
+                RING DISTRIBUTION
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
+                        { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
+                        { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
+                        { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6B7280" }}
+                      />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6B7280" }}
+                        width={60}
+                      />
+                      <Tooltip cursor={{ fill: "transparent" }} />
+                      <Bar
+                        dataKey="count"
+                        fill="#f59e0b"
+                        radius={[0, 4, 4, 0]}
+                        barSize={20}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
           </div>
         </div>

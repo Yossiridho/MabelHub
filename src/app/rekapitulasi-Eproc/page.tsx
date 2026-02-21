@@ -178,7 +178,6 @@ export default function RekapitulasiEProcurementPage() {
 
   useEffect(() => {
     if (page !== safePage) setPage(safePage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalPages]);
 
   const pageItems = useMemo(() => {

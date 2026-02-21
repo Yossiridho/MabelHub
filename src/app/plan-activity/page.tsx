@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import EditVisitModal from "@/components/modals/EditVisitModal";
 
 type VisitRow = {
   _id: string;
@@ -99,6 +100,42 @@ export default function PlanActivityPage() {
   const limit = 25;
   const [totalPages, setTotalPages] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
+
+  // parameter options
+  const [posisiOptions, setPosisiOptions] = useState<string[]>([
+    "Kepala",
+    "Staff",
+  ]);
+  const [statusKunjunganOptions, setStatusKunjunganOptions] = useState<
+    string[]
+  >(["Visited", "Negosiasi", "Fup Lead", "Reschedule", "Stay Office"]);
+  const [kegiatanOptions, setKegiatanOptions] = useState<string[]>([]);
+
+  // edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editId, setEditId] = useState("");
+
+  // fetch parameters
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((r) => r.json())
+      .then((res) => {
+        const data = res?.data || {};
+        // posisi and statusKunjungan are now static
+        setKegiatanOptions(data.kegiatan || []);
+      })
+      .catch(console.error);
+  }, []);
+
+  function handleOpenEdit(id: string) {
+    setEditId(id);
+    setEditModalOpen(true);
+  }
+
+  function handleEditSuccess() {
+    setEditModalOpen(false);
+    fetchPlans(page, search);
+  }
 
   // Guard role
   useEffect(() => {
@@ -344,11 +381,7 @@ export default function PlanActivityPage() {
                               <div className="text-center">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    router.push(
-                                      `/plan-activity/add?edit=${r.id}`,
-                                    )
-                                  }
+                                  onClick={() => handleOpenEdit(r.id)}
                                   className="font-semibold hover:underline"
                                 >
                                   EDIT
@@ -386,6 +419,16 @@ export default function PlanActivityPage() {
             </div>
           </main>
         </div>
+
+        <EditVisitModal
+          isOpen={editModalOpen}
+          editId={editId}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+          posisiOptions={posisiOptions}
+          statusKunjunganOptions={statusKunjunganOptions}
+          kegiatanOptions={kegiatanOptions}
+        />
       </div>
     </div>
   );
