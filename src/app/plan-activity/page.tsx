@@ -100,6 +100,124 @@ export default function PlanActivityPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
 
+  // parameter options
+  const [posisiOptions, setPosisiOptions] = useState<string[]>([
+    "Kepala",
+    "Staff",
+  ]);
+  const [statusKunjunganOptions, setStatusKunjunganOptions] = useState<
+    string[]
+  >(["Visited", "Negosiasi", "Fup Lead", "Reschedule", "Stay Office"]);
+  const [kegiatanOptions, setKegiatanOptions] = useState<string[]>([]);
+
+  // edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editForm, setEditForm] = useState({
+    pic_name: "",
+    pic_phone: "",
+    pic_role: "", // Jabatan
+    pic_position: "", // Posisi
+    status_visit: "",
+    kegiatan_status: "",
+    descriptions: "",
+    tindak_lanjut: "",
+    visit_image: "",
+  });
+  const [fileObj, setFileObj] = useState<File | null>(null);
+
+  // fetch parameters
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((r) => r.json())
+      .then((res) => {
+        const data = res?.data || {};
+        // posisi and statusKunjungan are now static
+        setKegiatanOptions(data.kegiatan || []);
+      })
+      .catch(console.error);
+  }, []);
+
+  async function handleOpenEdit(id: string) {
+    setEditModalOpen(true);
+    setEditLoading(true);
+    setEditId(id);
+    setFileObj(null);
+    setEditForm({
+      pic_name: "",
+      pic_phone: "",
+      pic_role: "",
+      pic_position: "",
+      status_visit: "",
+      kegiatan_status: "",
+      descriptions: "",
+      tindak_lanjut: "",
+      visit_image: "",
+    });
+
+    try {
+      const res = await fetch(`/api/visits/${id}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      const data = json.data;
+
+      setEditForm({
+        pic_name: data.pic_name || "",
+        pic_phone: data.pic_phone || "",
+        pic_role: data.pic_role || "", // Jabatan mapping to pic_role based on API allows
+        pic_position: data.pic_position || "", // Posisi
+        status_visit: data.status_visit || "",
+        kegiatan_status: data.kegiatan_status || "",
+        descriptions: data.descriptions || "",
+        tindak_lanjut: data.tindak_lanjut || "",
+        visit_image: data.visit_image || "",
+      });
+    } catch (e: any) {
+      alert("Gagal load data edit: " + e.message);
+      setEditModalOpen(false);
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!editId) return;
+    setEditSaving(true);
+    try {
+      const payload = { ...editForm };
+
+      // Convert file to base64 if selected
+      if (fileObj) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(fileObj);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+        });
+        payload.visit_image = base64;
+      }
+
+      const res = await fetch(`/api/visits/${editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+
+      // success
+      setEditModalOpen(false);
+      fetchPlans(page, search);
+    } catch (e: any) {
+      alert("Gagal simpan data: " + e.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   // Guard role
   useEffect(() => {
     if (!sessionLoading && user) {
@@ -344,11 +462,7 @@ export default function PlanActivityPage() {
                               <div className="text-center">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    router.push(
-                                      `/plan-activity/add?edit=${r.id}`,
-                                    )
-                                  }
+                                  onClick={() => handleOpenEdit(r.id)}
                                   className="font-semibold hover:underline"
                                 >
                                   EDIT
@@ -386,6 +500,247 @@ export default function PlanActivityPage() {
             </div>
           </main>
         </div>
+
+        {/* EDIT MODAL */}
+        {editModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setEditModalOpen(false)}
+            />
+            <div className="relative w-full max-w-2xl rounded-2xl bg-gray-100 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-5">
+                <h3 className="text-lg font-bold text-black uppercase tracking-wide">
+                  PIC DETAIL
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="font-bold text-xl text-black select-none"
+                >
+                  X
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 pb-6 overflow-y-auto w-full">
+                {editLoading ? (
+                  <div className="py-20 text-center font-bold text-gray-600">
+                    Loading...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {/* Row 1 */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Nama PIC
+                      </label>
+                      <input
+                        value={editForm.pic_name}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            pic_name: e.target.value,
+                          }))
+                        }
+                        className="h-10 w-full bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Nomor PIC
+                      </label>
+                      <input
+                        value={editForm.pic_phone}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            pic_phone: e.target.value,
+                          }))
+                        }
+                        placeholder="08XXX"
+                        className="h-10 w-full bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3"
+                      />
+                    </div>
+
+                    {/* Row 2 */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Jabatan
+                      </label>
+                      <input
+                        value={editForm.pic_role}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            pic_role: e.target.value,
+                          }))
+                        }
+                        className="h-10 w-full bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Posisi
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={editForm.pic_position}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              pic_position: e.target.value,
+                            }))
+                          }
+                          className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-2 pr-8"
+                        >
+                          <option value=""></option>
+                          {posisiOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-black">
+                          ▾
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 3 */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Status Kunjungan
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={editForm.status_visit}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              status_visit: e.target.value,
+                            }))
+                          }
+                          className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-2 pr-8"
+                        >
+                          <option value=""></option>
+                          {statusKunjunganOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-black">
+                          ▾
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Kegiatan
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={editForm.kegiatan_status}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              kegiatan_status: e.target.value,
+                            }))
+                          }
+                          className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-2 pr-8"
+                        >
+                          <option value=""></option>
+                          {kegiatanOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-black">
+                          ▾
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 4 */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Keterangan
+                      </label>
+                      <textarea
+                        value={editForm.descriptions}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            descriptions: e.target.value,
+                          }))
+                        }
+                        className="h-28 w-full bg-gray-300 resize-none border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 p-2"
+                      />
+                    </div>
+
+                    {/* Row Tindak Lanjut */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Tindak Lanjut
+                      </label>
+                      <textarea
+                        value={editForm.tindak_lanjut}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            tindak_lanjut: e.target.value,
+                          }))
+                        }
+                        className="h-28 w-full bg-gray-300 resize-none border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 p-2"
+                      />
+                    </div>
+
+                    {/* Row 5 */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-gray-800">
+                        Upload Foto <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center h-10 w-full bg-gray-300 px-2">
+                        <label className="cursor-pointer bg-gray-200 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-gray-400 hover:bg-gray-300 text-black">
+                          CHOOSE FILE
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setFileObj(e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </label>
+                        <span className="ml-3 text-sm text-gray-700 truncate">
+                          {fileObj ? fileObj.name : "No file chosen"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              {!editLoading && (
+                <div className="px-6 pb-6 flex justify-end">
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={editSaving}
+                    className="h-10 w-32 rounded-full bg-gray-300 text-black font-bold tracking-wide flex items-center justify-center hover:bg-gray-400 disabled:opacity-50"
+                  >
+                    {editSaving ? "Saving..." : "Update"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

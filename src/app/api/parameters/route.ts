@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { assertSuperadmin } from "@/lib/auth-server";
+import { assertSuperadmin, assertLoggedIn } from "@/lib/auth-server";
 
 const DB_NAME = "MabelHub";
 const COL_NAME = "Parameters";
@@ -25,7 +25,7 @@ function bad(msg: string, status = 400) {
 async function ensureDoc() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  const col = db.collection(COL_NAME);
+  const col = db.collection<any>(COL_NAME);
 
   const existing = await col.findOne({ _id: DOC_ID });
   if (existing) return { col };
@@ -45,12 +45,12 @@ async function ensureDoc() {
 }
 
 export async function GET(req: Request) {
-  const gate = assertSuperadmin(req);
+  const gate = assertLoggedIn(req);
   if (!gate.ok) return bad(gate.error, gate.status);
 
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  const col = db.collection(COL_NAME);
+  const col = db.collection<any>(COL_NAME);
 
   const doc = (await col.findOne({ _id: DOC_ID })) as any;
 
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
   await col.updateOne(
     { _id: DOC_ID },
     {
-      $addToSet: { [key]: value },
+      $addToSet: { [key]: value } as any,
       $set: { updatedAt: new Date() },
     },
     { upsert: true },
@@ -126,7 +126,7 @@ export async function DELETE(req: Request) {
   await col.updateOne(
     { _id: DOC_ID },
     {
-      $pull: { [key]: value },
+      $pull: { [key]: value } as any,
       $set: { updatedAt: new Date() },
     },
     { upsert: true },
