@@ -204,7 +204,7 @@ export default function EditVisitModal({
                     }
                     className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3 pr-8"
                   >
-                    <option value=""></option>
+                    <option value="">-</option>
                     {posisiOptions.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -233,7 +233,7 @@ export default function EditVisitModal({
                     }
                     className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3 pr-8"
                   >
-                    <option value=""></option>
+                    <option value="">-</option>
                     {statusKunjunganOptions.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -260,7 +260,7 @@ export default function EditVisitModal({
                     }
                     className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3 pr-8"
                   >
-                    <option value=""></option>
+                    <option value="">-</option>
                     {kegiatanOptions.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
