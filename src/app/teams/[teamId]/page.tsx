@@ -154,10 +154,6 @@ export default function TeamDetailPage() {
       )
     : [];
 
-  // kandidat SALES untuk ditambahkan:
-  // - role SALES
-  // - belum termasuk memberIds
-  // - (opsional) belum punya teamId atau teamId kosong (biar sesuai rule backend kamu)
   const addCandidates = useMemo(() => {
     if (!team) return [];
     const memberSet = new Set(team.memberIds);
@@ -221,31 +217,24 @@ export default function TeamDetailPage() {
   if (!user || user.role !== "SUPERADMIN") return null;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-blue-50">
+    <div className="flex">
       <Sidebar />
 
-      <div className="mx-auto max-w-5xl px-4 py-6 lg:pl-72">
-        <div className="flex items-start justify-between gap-4">
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
           <div>
             <div className="flex items-center gap-3">
               <Link
                 href="/teams"
-                className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50"
+                className="rounded-full bg-white border border-gray-200 px-3 py-1.5 hover:bg-gray-50"
               >
-                ← Back
+                ←
               </Link>
-              <h1 className="text-2xl font-semibold">Team Detail</h1>
+              <h1 className="text-2xl font-extrabold">Team Detail</h1>
             </div>
             <p className="mt-1 text-sm text-gray-500">{teamId}</p>
           </div>
-
-          <button
-            onClick={load}
-            className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Loading..." : "Refresh"}
-          </button>
         </div>
 
         {err ? (
@@ -266,7 +255,7 @@ export default function TeamDetailPage() {
           </div>
         ) : (
           <>
-            <div className="mt-6 rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="mt-6 rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
               <div className="text-xs font-semibold text-gray-500">
                 Nama Team
               </div>
@@ -296,7 +285,7 @@ export default function TeamDetailPage() {
             </div>
 
             {/* Members (current) */}
-            <div className="mt-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="mt-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
               <div className="border-b border-gray-200 px-5 py-4">
                 <h2 className="text-lg font-semibold">Members Saat Ini</h2>
                 <p className="text-xs text-gray-500">
@@ -325,7 +314,7 @@ export default function TeamDetailPage() {
             {/* Edit panel */}
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Add */}
-              <div className="rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
                 <h3 className="text-base font-semibold">
                   Tambah Sales ke Team
                 </h3>
@@ -373,7 +362,7 @@ export default function TeamDetailPage() {
               </div>
 
               {/* Remove */}
-              <div className="rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
                 <h3 className="text-base font-semibold">
                   Hapus Sales dari Team
                 </h3>
@@ -422,28 +411,16 @@ export default function TeamDetailPage() {
 
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
-                onClick={() => {
-                  setToAdd([]);
-                  setToRemove([]);
-                  setErr("");
-                  setInfo("");
-                }}
-                className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50 disabled:opacity-60"
-                disabled={saving}
-              >
-                Reset Pilihan
-              </button>
-
-              <button
                 onClick={saveMembers}
-                className="h-10 rounded-xl bg-black px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+                className="h-10 rounded-xl bg-black px-8 text-md font-extrabold text-gray-50 hover:opacity-90 disabled:opacity-60"
                 disabled={saving}
               >
-                {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                {saving ? "Menyimpan..." : "SIMPAN"}
               </button>
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   );
