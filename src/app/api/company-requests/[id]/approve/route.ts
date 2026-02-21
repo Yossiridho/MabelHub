@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
+import { assertLoggedIn } from "@/lib/auth-server";
 
 export async function POST(
-  _req: Request,
-  ctx: { params: Promise<{ id: string }> }
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
+    const gate = assertLoggedIn(req);
+    if (!gate.ok) {
+      return NextResponse.json({ error: gate.error }, { status: gate.status });
+    }
+
     const { id } = await ctx.params; // ✅ params harus di-await
 
     if (!ObjectId.isValid(id)) {
-      return NextResponse.json({ ok: false, message: "Invalid id" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, message: "Invalid id" },
+        { status: 400 },
+      );
     }
 
     const client = await clientPromise;
@@ -28,7 +37,7 @@ export async function POST(
     if (!reqDoc) {
       return NextResponse.json(
         { ok: false, message: "Request not found / not pending" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -85,15 +94,27 @@ export async function POST(
           approved_at: new Date(),
           approved_company_id: companyId,
         },
-      }
+      },
     );
+
+    const userFullName =
+      gate.session.fullName || gate.session.username || "Unknown";
+    await db.collection("company_history").insertOne({
+      companyId,
+      at: new Date(),
+      action: existing?._id ? "APPROVE_MERGE" : "APPROVE_NEW",
+      by: userFullName,
+      note: existing?._id
+        ? "Disetujui dan digabung ke instansi lama"
+        : "Disetujui menjadi instansi baru",
+    });
 
     return NextResponse.json({ ok: true, companyId });
   } catch (e: any) {
     console.error("approve error:", e);
     return NextResponse.json(
       { ok: false, message: e?.message || "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

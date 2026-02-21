@@ -191,7 +191,8 @@ export default function EProcurementRequestPage() {
               role: String(u.role || ""),
             }))
             .filter(
-              (m) => m.userId && (m.role === "SALES" || m.role === "LEADER"),
+              (m: TeamMember) =>
+                m.userId && (m.role === "SALES" || m.role === "LEADER"),
             );
 
           setAssigneeOptions(list);
@@ -336,14 +337,13 @@ export default function EProcurementRequestPage() {
       <div className="flex">
         <Sidebar />
 
-       <div className="flex-1 p-6 h-screen overflow-y-auto">
-      <div className="px-3 pt-2 pb-2">
-        <h1 className="text-2xl font-extrabold pl-4 text-black">
-        E-PROCUREMENT
-        </h1>
-        <div className="px-6 pb-6">
-        </div>
-     </div>
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
+            <h1 className="text-2xl font-extrabold pl-4 text-black">
+              E-PROCUREMENT
+            </h1>
+            <div className="px-6 pb-6"></div>
+          </div>
 
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -521,7 +521,7 @@ export default function EProcurementRequestPage() {
                   aria-label="Remove item"
                   title="Remove item"
                 >
-                X
+                  X
                 </button>
 
                 <div className="mb-6 p-8 pl-20">
