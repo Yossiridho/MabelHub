@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { assertSuperadmin } from "@/lib/auth-server";
+import { assertSuperadmin, assertLoggedIn } from "@/lib/auth-server";
 
 const DB_NAME = "MabelHub";
 const COL_NAME = "Parameters";
@@ -12,7 +12,8 @@ type ParamKey =
   | "status_kunjungan"
   | "posisi"
   | "kegiatan"
-  | "klpd";
+  | "klpd"
+  | "perusahaan";
 
 function norm(v: string) {
   return String(v ?? "").trim();
@@ -27,17 +28,18 @@ async function ensureDoc() {
   const db = client.db(DB_NAME);
   const col = db.collection(COL_NAME);
 
-  const existing = await col.findOne({ _id: DOC_ID });
+  const existing = await col.findOne({ _id: DOC_ID as any });
   if (existing) return { col };
 
   await col.insertOne({
-    _id: DOC_ID,
+    _id: DOC_ID as any,
     sales: [],
     segmen: [],
     status_kunjungan: [],
     posisi: [],
     kegiatan: [],
     klpd: [],
+    perusahaan: [],
     updatedAt: new Date(),
   });
 
@@ -45,19 +47,19 @@ async function ensureDoc() {
 }
 
 export async function GET(req: Request) {
-  const gate = assertSuperadmin(req);
+  const gate = assertLoggedIn(req);
   if (!gate.ok) return bad(gate.error, gate.status);
 
   const client = await clientPromise;
   const db = client.db(DB_NAME);
   const col = db.collection(COL_NAME);
 
-  const doc = (await col.findOne({ _id: DOC_ID })) as any;
+  const doc = await col.findOne({ _id: DOC_ID as any });
 
   // kalau belum ada, buat default
   if (!doc) {
     await ensureDoc();
-    const created = (await col.findOne({ _id: DOC_ID })) as any;
+    const created = await col.findOne({ _id: DOC_ID as any });
     return NextResponse.json({ data: created });
   }
 
@@ -82,21 +84,22 @@ export async function POST(req: Request) {
     "posisi",
     "kegiatan",
     "klpd",
+    "perusahaan",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
 
   const { col } = await ensureDoc();
 
   await col.updateOne(
-    { _id: DOC_ID },
+    { _id: DOC_ID as any },
     {
-      $addToSet: { [key]: value },
+      $addToSet: { [key]: value } as any,
       $set: { updatedAt: new Date() },
-    },
+    } as any,
     { upsert: true },
   );
 
-  const doc = (await col.findOne({ _id: DOC_ID })) as any;
+  const doc = await col.findOne({ _id: DOC_ID as any });
   return NextResponse.json({ ok: true, data: doc });
 }
 
@@ -118,20 +121,21 @@ export async function DELETE(req: Request) {
     "posisi",
     "kegiatan",
     "klpd",
+    "perusahaan",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
 
   const { col } = await ensureDoc();
 
   await col.updateOne(
-    { _id: DOC_ID },
+    { _id: DOC_ID as any },
     {
-      $pull: { [key]: value },
+      $pull: { [key]: value } as any,
       $set: { updatedAt: new Date() },
-    },
+    } as any,
     { upsert: true },
   );
 
-  const doc = (await col.findOne({ _id: DOC_ID })) as any;
+  const doc = await col.findOne({ _id: DOC_ID as any });
   return NextResponse.json({ ok: true, data: doc });
 }

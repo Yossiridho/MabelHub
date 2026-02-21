@@ -21,6 +21,8 @@ export async function GET(req: Request) {
     ];
   }
 
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
+
   const rows = await db
     .collection("companies")
     .find(filter)
@@ -33,7 +35,7 @@ export async function GET(req: Request) {
       pic_default: 1,
     })
     .sort({ institusi_kerja: 1 })
-    .limit(10)
+    .limit(limit)
     .toArray();
 
   return NextResponse.json(rows);

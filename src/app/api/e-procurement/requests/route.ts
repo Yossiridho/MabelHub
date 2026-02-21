@@ -15,6 +15,10 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
+  // Admin Response Fields per item
+  statusBarangAdmin?: string;
+  tayangInaprocAdmin?: string;
 };
 
 type AssignedTo = {
@@ -52,13 +56,17 @@ type EProcDoc = {
   takenByAdminId: string | null;
   takenByAdminName: string | null;
   takenAt: Date | null;
+
+  perusahaan?: string;
+  catatanAdmin?: string;
+  statusAkhir?: string;
 };
 
 type TeamDoc = { leaderId: string; memberIds: string[] };
 
 async function getLeaderAllowedUserIds(db: any, leaderId: string) {
   const team = (await db
-    .collection<TeamDoc>("teams")
+    .collection("teams")
     .findOne({ leaderId })) as TeamDoc | null;
   const ids = [leaderId, ...(team?.memberIds ?? [])];
   return Array.from(new Set(ids));

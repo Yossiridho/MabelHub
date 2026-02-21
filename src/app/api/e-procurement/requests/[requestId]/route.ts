@@ -12,6 +12,10 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
+  // Admin Response Fields per item
+  statusBarangAdmin?: string; // e.g Todo, Progress, Hold, Cancel, Done
+  tayangInaprocAdmin?: string; // e.g Ya, Tidak
 };
 
 type EProcDoc = {
@@ -46,6 +50,11 @@ type EProcDoc = {
   takenByAdminId: string | null;
   takenByAdminName: string | null;
   takenAt: Date | null;
+
+  // Admin Response Fields
+  perusahaan?: string;
+  catatanAdmin?: string;
+  statusAkhir?: string; // Computed automatically
 };
 
 async function getParams<T>(ctx: { params: T | Promise<T> }) {

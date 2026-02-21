@@ -41,7 +41,7 @@ type TeamDoc = {
 
 async function getLeaderAllowedUserIds(db: any, leaderId: string) {
   const team = (await db
-    .collection<TeamDoc>("teams")
+    .collection("teams")
     .findOne({ leaderId })) as TeamDoc | null;
 
   const ids = [leaderId, ...(team?.memberIds ?? [])];

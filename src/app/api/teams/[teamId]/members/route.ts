@@ -35,7 +35,7 @@ export async function PUT(
     return NextResponse.json({ error: "teamId tidak valid" }, { status: 400 });
 
   const body = await req.json().catch(() => ({}));
-  const memberIds = Array.isArray(body?.memberIds)
+  const memberIds: string[] = Array.isArray(body?.memberIds)
     ? body.memberIds.map(String)
     : [];
 
