@@ -199,33 +199,27 @@ export default function RekapitulasiEProcurementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#d9d9d9]">
-      <div className="flex">
+    <div className="min-h-screen bg-blue-50">
+      <div className="flex min-h-screen">
         <Sidebar />
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
-          <main className="mx-auto max-w-[1220px]">
+          <main className="mx-auto ">
             {/* Header */}
             <div className="mb-4 flex items-center gap-3">
-              <button
-                onClick={() => router.back()}
-                className="grid h-9 w-9 place-items-center rounded-full bg-[#efefef] ring-1 ring-black/10 hover:bg-white"
-                aria-label="Back"
-              >
-                ←
-              </button>
-              <h1 className="text-lg font-extrabold tracking-wide text-black">
+              <div className="px-6 pt-2 pb-6">
+              <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black">
                 REKAPITULASI E-PROCUREMENT
               </h1>
             </div>
+            </div>
 
-            {/* Filters box (persis pola screenshot) */}
-            <div className="rounded-2xl bg-[#efefef] p-4 ring-1 ring-black/10">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-6 md:items-end">
+            <div className="rounded-2xl bg-white p-6 ring-1 ring-black/10">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
                 {/* Requestor */}
                 <div className="md:col-span-1">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Requestor
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    REQUESTOR
                   </div>
                   <select
                     value={requestor}
@@ -233,7 +227,7 @@ export default function RekapitulasiEProcurementPage() {
                       setRequestor(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   >
                     <option value="ALL">Semua Sales</option>
                     {requestorOptions.map((x) => (
@@ -246,8 +240,8 @@ export default function RekapitulasiEProcurementPage() {
 
                 {/* Tanggal Mulai */}
                 <div className="md:col-span-1">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Tanggal Mulai
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    TANGGAL MULAI
                   </div>
                   <input
                     type="date"
@@ -256,14 +250,14 @@ export default function RekapitulasiEProcurementPage() {
                       setStartDate(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   />
                 </div>
 
                 {/* Tanggal Selesai */}
                 <div className="md:col-span-1">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Tanggal Selesai
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    TANGGAL SELESAI
                   </div>
                   <input
                     type="date"
@@ -272,14 +266,14 @@ export default function RekapitulasiEProcurementPage() {
                       setEndDate(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   />
                 </div>
 
                 {/* Status */}
                 <div className="md:col-span-1">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Status
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    STATUS
                   </div>
                   <select
                     value={status}
@@ -287,7 +281,7 @@ export default function RekapitulasiEProcurementPage() {
                       setStatus(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   >
                     <option value="ALL">Semua Status</option>
                     <option value="MASUK">Masuk</option>
@@ -297,8 +291,8 @@ export default function RekapitulasiEProcurementPage() {
 
                 {/* Tindak Lanjut */}
                 <div className="md:col-span-1">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Tindak Lanjut
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    TINDAK LANJUT
                   </div>
                   <select
                     value={tindakLanjut}
@@ -306,7 +300,7 @@ export default function RekapitulasiEProcurementPage() {
                       setTindakLanjut(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   >
                     <option value="ALL">Semua Tindakan</option>
                     <option value="-">-</option>
@@ -317,9 +311,9 @@ export default function RekapitulasiEProcurementPage() {
                 <div className="hidden md:block md:col-span-1" />
 
                 {/* Pemohon */}
-                <div className="md:col-span-1">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Pemohon
+                <div className="md:col-span-2">
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    PEMOHON
                   </div>
                   <select
                     value={pemohon}
@@ -327,7 +321,7 @@ export default function RekapitulasiEProcurementPage() {
                       setPemohon(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   >
                     <option value="ALL">Semua Pemohon</option>
                     {pemohonOptions.map((x) => (
@@ -339,9 +333,9 @@ export default function RekapitulasiEProcurementPage() {
                 </div>
 
                 {/* Search ID */}
-                <div className="md:col-span-5">
-                  <div className="mb-1 text-[11px] font-extrabold text-black/70">
-                    Search ID
+                <div className="md:col-span-4">
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    SEARCH ID
                   </div>
                   <div className="relative">
                     <input
@@ -350,18 +344,14 @@ export default function RekapitulasiEProcurementPage() {
                         setSearchId(e.target.value);
                         setPage(1);
                       }}
-                      className="h-10 w-full rounded-xl bg-[#d9d9d9] px-4 pr-10 text-sm ring-1 ring-black/10 outline-none"
+                      className="h-10 w-full rounded-xl bg-white px-4 pr-10 text-sm ring-1 ring-blue-200 outline-blue-300"
                       placeholder=""
                     />
-                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black/60">
-                      🔍
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Table big */}
             <div className="mt-4 overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
@@ -379,7 +369,7 @@ export default function RekapitulasiEProcurementPage() {
                       ].map((h) => (
                         <th
                           key={h}
-                          className="whitespace-nowrap px-3 py-2 text-left text-xs font-extrabold text-black"
+                          className="whitespace-nowrap px-3 py-2 text-left text-sm font-bold text-blue-600"
                         >
                           {h}
                         </th>
@@ -407,7 +397,7 @@ export default function RekapitulasiEProcurementPage() {
                           onClick={() => onRowClick(r)}
                           className={clsx(
                             "cursor-pointer border-b border-black/5",
-                            selected?.requestId === r.requestId && "bg-black/[0.03]",
+                            selected?.requestId === r.requestId && "bg-black/10",
                           )}
                         >
                           <td className="px-3 py-2">{getTindakLanjutValue(r)}</td>
@@ -426,8 +416,8 @@ export default function RekapitulasiEProcurementPage() {
               </div>
 
               {/* Pagination bar (mirip screenshot) */}
-              <div className="flex flex-col gap-3 border-t border-black/10 bg-[#efefef] px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-sm text-black/70">
+              <div className="flex flex-col gap-3 border-t border-black/10 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
+                <div className="text-md text-black">
                   Menampilkan{" "}
                   <b className="text-black">
                     {shownFrom} - {shownTo}
@@ -442,7 +432,7 @@ export default function RekapitulasiEProcurementPage() {
                       setLimit(Number(e.target.value));
                       setPage(1);
                     }}
-                    className="h-10 rounded-xl bg-[#d9d9d9] px-4 text-sm ring-1 ring-black/10 outline-none"
+                    className="h-10 rounded-xl bg-white px-4 text-sm ring-1 ring-gray-200 outline-none hover:bg-gray-50"
                   >
                     {[10, 25, 50, 100].map((n) => (
                       <option key={n} value={n}>
@@ -455,21 +445,20 @@ export default function RekapitulasiEProcurementPage() {
                     <button
                       onClick={() => setPage(1)}
                       disabled={safePage <= 1}
-                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
-                      title="First"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-gray-200 hover:bg-gray-200 "
+                      title="Previous"
                     >
                       ⏮
                     </button>
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={safePage <= 1}
-                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
-                      title="Prev"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-gray-200 hover:bg-gray-200 disabled:opacity-80"
+                      title="Back"
                     >
                       ◀
                     </button>
 
-                    {/* angka halaman (tampilan ringkas seperti gambar) */}
                     <div className="flex items-center gap-2">
                       {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                         const num = i + 1;
@@ -479,7 +468,7 @@ export default function RekapitulasiEProcurementPage() {
                             onClick={() => setPage(num)}
                             className={clsx(
                               "h-9 w-9 rounded-lg text-sm font-extrabold ring-1 ring-black/10",
-                              safePage === num ? "bg-white" : "bg-[#d9d9d9]",
+                              safePage === num ? "bg-white" : "bg-white hover:bg-gray-200",
                             )}
                           >
                             {num}
@@ -494,7 +483,7 @@ export default function RekapitulasiEProcurementPage() {
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={safePage >= totalPages}
-                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-gray-200 hover:bg-gray-200"
                       title="Next"
                     >
                       ▶
@@ -502,7 +491,7 @@ export default function RekapitulasiEProcurementPage() {
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={safePage >= totalPages}
-                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#d9d9d9] ring-1 ring-black/10 disabled:opacity-40"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-gray-200 hover:bg-gray-200"
                       title="Last"
                     >
                       ⏭
@@ -513,11 +502,11 @@ export default function RekapitulasiEProcurementPage() {
             </div>
 
             {/* Detail panels bawah (sesuai screenshot) */}
-            <div className="mt-6 rounded-2xl bg-[#efefef] p-5 ring-1 ring-black/10">
+            <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/10">
               {/* Rincian Informasi Request */}
               <div className="mb-4">
                 <div className="flex items-center justify-between border-b border-black/20 pb-2">
-                  <div className="flex items-center gap-2 font-extrabold text-black/70">
+                  <div className="flex items-center gap-2 font-bold text-black">
                     <span>📖</span>
                     <span>Rincian Informasi Request</span>
                   </div>
@@ -525,65 +514,65 @@ export default function RekapitulasiEProcurementPage() {
                   {selected && (
                     <button
                       onClick={() => setSelected(null)}
-                      className="grid h-8 w-8 place-items-center rounded-full bg-[#d9d9d9] text-lg font-black ring-1 ring-black/10 transition-colors hover:bg-black/10"
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-white text-lg font-bold ring-1 ring-white hover:bg-red-600"
                       title="Tutup"
                     >
-                      ×
+                      X
                     </button>
                   )}
                 </div>
 
                 {selected ? (
-                  <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-black/70 md:grid-cols-6">
+                  <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-black md:grid-cols-6">
                     <div>
-                      <div className="text-xs text-black/50">Request ID</div>
+                      <div className="text-sm text-black/50">Request ID</div>
                       <div className="font-semibold text-black">{selected.requestId}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Nama Requestor</div>
+                      <div className="text-sm text-black/50">Nama Requestor</div>
                       <div className="font-semibold text-black">{selected.requestor}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Pemohon</div>
+                      <div className="text-sm text-black/50">Pemohon</div>
                       <div className="font-semibold text-black">{selected.pemohon}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Lokasi</div>
+                      <div className="text-sm text-black/50">Lokasi</div>
                       <div className="font-semibold text-black">{selected.lokasi}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Status Usulan</div>
+                      <div className="text-sm text-black/50">Status Usulan</div>
                       <div className="font-semibold text-black">{getStatusUsulan(selected)}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Status Akhir</div>
+                      <div className="text-sm text-black/50">Status Akhir</div>
                       <div className="font-semibold text-black">{getCurrentStatus(selected)}</div>
                     </div>
 
                     <div>
-                      <div className="text-xs text-black/50">Deadline Usulan</div>
+                      <div className="text-sm text-black/50">Deadline Usulan</div>
                       <div className="font-semibold text-black">
                         {selected.deadlineUsulan || "-"}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Tanggal Submit</div>
+                      <div className="text-sm text-black/50">Tanggal Submit</div>
                       <div className="font-semibold text-black">
                         {formatDateTime(selected.tanggalSubmit)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">Segmen</div>
+                      <div className="text-sm text-black/50">Segmen</div>
                       <div className="font-semibold text-black">{selected.segmen || "-"}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-black/50">PIC Admin</div>
+                      <div className="text-sm text-black/50">PIC Admin</div>
                       <div className="font-semibold text-black">
                         {selected.takenByAdminName || "-"}
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <div className="text-xs text-black/50">Catatan</div>
+                      <div className="text-sm text-black/50">Catatan</div>
                       <div className="font-semibold text-black">{selected.catatan || "-"}</div>
                     </div>
                   </div>
@@ -603,9 +592,9 @@ export default function RekapitulasiEProcurementPage() {
 
                 <div className="mt-3 overflow-hidden rounded-xl bg-white ring-1 ring-black/10">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
+                    <table className="min-w-full text-md">
                       <thead className="bg-white">
-                        <tr className="border-b border-black/10 text-black/60">
+                        <tr className="border-b border-black/10 text-black">
                           {[
                             "Merek Product",
                             "Sub-Kategori",
@@ -618,7 +607,7 @@ export default function RekapitulasiEProcurementPage() {
                           ].map((h) => (
                             <th
                               key={h}
-                              className="whitespace-nowrap px-3 py-3 text-left text-xs font-extrabold"
+                              className="whitespace-nowrap px-3 py-3 text-left text-sm font-bold"
                             >
                               {h}
                             </th>
@@ -640,7 +629,7 @@ export default function RekapitulasiEProcurementPage() {
                               <Fragment key={it.id}>
                                 <tr
                                   onClick={() => toggleItem(it.id)}
-                                  className="cursor-pointer border-t border-black/5 hover:bg-black/[0.02]"
+                                  className="cursor-pointer border-t border-black/5 hover:bg-gray-50"
                                 >
                                   <td className="px-3 py-3">{it.merek || "-"}</td>
                                   <td className="px-3 py-3">{it.subKategori || "-"}</td>
@@ -654,25 +643,25 @@ export default function RekapitulasiEProcurementPage() {
 
                                 {isOpen ? (
                                   <tr className="border-t border-black/5">
-                                    <td colSpan={8} className="bg-[#efefef] px-4 py-4">
+                                    <td colSpan={8} className="bg-gray-100 px-4 py-4">
                                       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                                         <div>
-                                          <div className="text-xs font-extrabold text-blue-600">
+                                          <div className="text-md font-bold text-blue-500">
                                             Spesifikasi Barang
                                           </div>
-                                          <div className="mt-1 text-sm text-black/70 whitespace-pre-line">
+                                          <div className="mt-1 pl-2 text-md">
                                             {it.spesifikasi || "-"}
                                           </div>
                                         </div>
 
                                         <div>
-                                          <div className="text-xs font-extrabold text-blue-600">
+                                          <div className="text-md font-bold text-blue-500">
                                             Link Inaproc
                                           </div>
-                                          <div className="mt-1 text-sm">
+                                          <div className="mt-1 pl-2 text-md">
                                             {it.linkInaproc ? (
                                               <a
-                                                className="text-blue-600 underline"
+                                                className="text-blue-500 underline"
                                                 href={it.linkInaproc}
                                                 target="_blank"
                                                 rel="noreferrer"
@@ -680,19 +669,19 @@ export default function RekapitulasiEProcurementPage() {
                                                 {it.linkInaproc}
                                               </a>
                                             ) : (
-                                              <span className="text-black/50">-</span>
+                                              <span className="text-black">-</span>
                                             )}
                                           </div>
                                         </div>
 
                                         <div>
-                                          <div className="text-xs font-extrabold text-blue-600">
+                                          <div className="text-md font-bold text-blue-500">
                                             Link E-Commerce
                                           </div>
-                                          <div className="mt-1 text-sm">
+                                          <div className="mt-1 pl-2 text-md">
                                             {it.linkEcom ? (
                                               <a
-                                                className="text-blue-600 underline"
+                                                className="text-blue-500 underline"
                                                 href={it.linkEcom}
                                                 target="_blank"
                                                 rel="noreferrer"
@@ -700,7 +689,7 @@ export default function RekapitulasiEProcurementPage() {
                                                 {it.linkEcom}
                                               </a>
                                             ) : (
-                                              <span className="text-black/50">-</span>
+                                              <span className="text-black">-</span>
                                             )}
                                           </div>
                                         </div>
@@ -717,13 +706,12 @@ export default function RekapitulasiEProcurementPage() {
                   </div>
                 </div>
 
-                <div className="mt-2 text-xs text-black/50">
+                <div className="mt-2 text-sm text-black/50">
                   Klik baris barang untuk membuka detail (slide down).
                 </div>
               </div>
             </div>
 
-            <div className="h-10" />
           </main>
         </div>
       </div>
