@@ -219,226 +219,224 @@ export default function TeamDetailPage() {
 
   return (
     <div className="min-h-screen bg-blue-50">
-    <div className="flex">
-      <Sidebar />
+      <div className="flex">
+        <Sidebar />
 
-       <div className="flex-1 p-6 h-screen overflow-y-auto">
-      <div className="px-3 pt-2 pb-2">
-          <div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/teams"
-                className="rounded-full bg-white border border-gray-200 px-3 py-1.5 hover:bg-gray-50"
-              >
-                ←
-              </Link>
-              <h1 className="text-2xl font-extrabold">Team Detail</h1>
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
+            <div>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/teams"
+                  className="rounded-full bg-white border border-gray-200 px-3 py-1.5 hover:bg-gray-50"
+                >
+                  ←
+                </Link>
+                <h1 className="text-2xl font-extrabold">Team Detail</h1>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">{teamId}</p>
             </div>
-            <p className="mt-1 text-sm text-gray-500">{teamId}</p>
           </div>
-        </div>
 
-            {err ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {err}
-              </div>
-            ) : null}
-            {info ? (
-              <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {info}
-              </div>
-            ) : null}
+          {err ? (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {err}
+            </div>
+          ) : null}
+          {info ? (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {info}
+            </div>
+          ) : null}
 
-        {!team ? (
-          <div className="mt-6 rounded-2xl border border-gray-200 p-6 text-sm text-gray-600">
-            {loading ? "Memuat..." : "Team tidak ditemukan."}
-          </div>
-        ) : (
-          <>
-            <div className="mt-6 rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500">
-                Nama Team
-              </div>
-              <div className="mt-1 text-xl font-semibold">{team.name}</div>
+          {!team ? (
+            <div className="mt-6 rounded-2xl border border-gray-200 p-6 text-sm text-gray-600">
+              {loading ? "Memuat..." : "Team tidak ditemukan."}
+            </div>
+          ) : (
+            <>
+              <div className="mt-6 rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
+                <div className="text-xs font-semibold text-gray-500">
+                  Nama Team
+                </div>
+                <div className="mt-1 text-xl font-semibold">{team.name}</div>
 
-                      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
-                        <div className="text-xs font-semibold text-gray-700">
-                          Leader
-                        </div>
-                        <div className="mt-2 text-sm font-semibold">
-                          {leader
-                            ? `${displayName(leader)} (${leader.role})`
-                            : team.leaderName || team.leaderId}
-                        </div>
-                        <div className="mt-1 text-xs text-gray-600">
-                          {team.leaderId}
-                        </div>
-                      </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
+                    <div className="text-xs font-semibold text-gray-700">
+                      Leader
+                    </div>
+                    <div className="mt-2 text-sm font-semibold">
+                      {leader
+                        ? `${displayName(leader)} (${leader.role})`
+                        : team.leaderName || team.leaderId}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      {team.leaderId}
+                    </div>
+                  </div>
 
-                      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
-                        <div className="text-xs font-semibold text-gray-700">
-                          Jumlah Sales
-                        </div>
-                        <div className="mt-2 text-2xl font-extrabold">
-                          {team.memberIds.length}
-                        </div>
-                        <div className="mt-1 text-xs text-gray-600">
-                          Add: {toAdd.length} • Remove: {toRemove.length}
-                        </div>
-                      </div>
+                  <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
+                    <div className="text-xs font-semibold text-gray-700">
+                      Jumlah Sales
+                    </div>
+                    <div className="mt-2 text-2xl font-extrabold">
+                      {team.memberIds.length}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      Add: {toAdd.length} • Remove: {toRemove.length}
                     </div>
                   </div>
                 </div>
-
-            {/* Members (current) */}
-            <div className="mt-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
-              <div className="border-b border-gray-200 px-5 py-4">
-                <h2 className="text-lg font-semibold">Members Saat Ini</h2>
-                <p className="text-xs text-gray-500">
-                  Daftar member sales yang sudah masuk team.
-                </p>
               </div>
 
-              <div className="divide-y divide-gray-100">
-                {membersResolved.map((m) => (
-                  <div key={m._id} className="px-5 py-3">
-                    <div className="text-sm font-medium">{displayName(m)}</div>
-                    <div className="text-xs text-gray-500">
-                      {m._id} • {m.role}
-                    </div>
-                  </div>
-                ))}
+              {/* Members (current) */}
+              <div className="mt-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                <div className="border-b border-gray-200 px-5 py-4">
+                  <h2 className="text-lg font-semibold">Members Saat Ini</h2>
+                  <p className="text-xs text-gray-500">
+                    Daftar member sales yang sudah masuk team.
+                  </p>
+                </div>
 
-                {membersResolved.length === 0 ? (
-                  <div className="px-5 py-6 text-sm text-gray-500">
-                    Belum ada member.
-                  </div>
-                ) : null}
+                <div className="divide-y divide-gray-100">
+                  {membersResolved.map((m) => (
+                    <div key={m._id} className="px-5 py-3">
+                      <div className="text-sm font-medium">
+                        {displayName(m)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {m._id} • {m.role}
+                      </div>
+                    </div>
+                  ))}
+
+                  {membersResolved.length === 0 ? (
+                    <div className="px-5 py-6 text-sm text-gray-500">
+                      Belum ada member.
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
 
-            {/* Edit panel */}
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* Add */}
-              <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
-                <h3 className="text-base font-semibold">
-                  Tambah Sales ke Team
-                </h3>
-                <p className="mt-1 text-xs text-gray-500">
-                  Menampilkan sales yang belum punya team (teamId kosong) dan
-                  belum jadi member.
-                </p>
+              {/* Edit panel */}
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                {/* Add */}
+                <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
+                  <h3 className="text-base font-semibold">
+                    Tambah Sales ke Team
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Menampilkan sales yang belum punya team (teamId kosong) dan
+                    belum jadi member.
+                  </p>
 
-                <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
-                  {addCandidates.map((u) => {
-                    const checked = toAdd.includes(u._id);
-                    return (
-                      <label
-                        key={u._id}
-                        className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggle(toAdd, setToAdd, u._id)}
-                          className="h-4 w-4"
-                        />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">
-                            {displayName(u)}
-                          </div>
-                          <div className="truncate text-xs text-gray-500">
-                            {u.username}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-
-                          {addCandidates.length === 0 ? (
-                            <div className="px-4 py-6 text-sm text-gray-600">
-                              Tidak ada kandidat untuk ditambahkan.
+                  <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
+                    {addCandidates.map((u) => {
+                      const checked = toAdd.includes(u._id);
+                      return (
+                        <label
+                          key={u._id}
+                          className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggle(toAdd, setToAdd, u._id)}
+                            className="h-4 w-4"
+                          />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">
+                              {displayName(u)}
                             </div>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {/* Remove */}
-                      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-extrabold">
-                            REMOVE SALES
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            Dipilih: {toRemove.length}
-                          </div>
-                        </div>
-
-              {/* Remove */}
-              <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
-                <h3 className="text-base font-semibold">
-                  Hapus Sales dari Team
-                </h3>
-                <p className="mt-1 text-xs text-gray-500">
-                  Pilih member yang mau dikeluarkan dari team.
-                </p>
-
-                <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
-                  {removeCandidates.map((u) => {
-                    const checked = toRemove.includes(u._id);
-                    return (
-                      <label
-                        key={u._id}
-                        className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggle(toRemove, setToRemove, u._id)}
-                          className="h-4 w-4"
-                        />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">
-                            {displayName(u)}
-                          </div>
-                          <div className="truncate text-xs text-gray-500">
-                            {u.username}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-
-                          {membersResolved.length === 0 ? (
-                            <div className="px-4 py-6 text-sm text-gray-600">
-                              Tidak ada member untuk dihapus.
+                            <div className="truncate text-xs text-gray-500">
+                              {u.username}
                             </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
+                          </div>
+                        </label>
+                      );
+                    })}
 
-                    <div className="mt-4 flex justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setToAdd([]);
-                          setToRemove([]);
-                          setErr("");
-                          setInfo("");
-                        }}
-                        className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                        disabled={saving}
-                      >
-                        RESET
-                      </button>
-                    </div>
+                    {addCandidates.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-gray-600">
+                        Tidak ada kandidat untuk ditambahkan.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              </>
-            )}
-          </main>
+
+                {/* Remove */}
+                <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
+                  <h3 className="text-base font-semibold">
+                    Hapus Sales dari Team
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Pilih member yang mau dikeluarkan dari team.
+                  </p>
+
+                  <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
+                    {membersResolved.map((u) => {
+                      const checked = toRemove.includes(u._id);
+                      return (
+                        <label
+                          key={u._id}
+                          className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              toggle(toRemove, setToRemove, u._id)
+                            }
+                            className="h-4 w-4"
+                          />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">
+                              {displayName(u)}
+                            </div>
+                            <div className="truncate text-xs text-gray-500">
+                              {u.username}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+
+                    {membersResolved.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-gray-600">
+                        Tidak ada member untuk dihapus.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setToAdd([]);
+                    setToRemove([]);
+                    setErr("");
+                    setInfo("");
+                  }}
+                  className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
+                  disabled={saving}
+                >
+                  RESET
+                </button>
+                <button
+                  onClick={saveMembers}
+                  disabled={
+                    saving || (toAdd.length === 0 && toRemove.length === 0)
+                  }
+                  className="h-10 rounded-full bg-blue-600 px-6 text-sm font-extrabold text-white shadow hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {saving ? "MENYIMPAN..." : "SIMPAN PERUBAHAN"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      </div>
       </div>
     </div>
   );
