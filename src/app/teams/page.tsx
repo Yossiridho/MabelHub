@@ -171,24 +171,17 @@ export default function TeamsPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+      <Sidebar />
 
-        <div className="flex-1 h-screen overflow-y-auto p-6">
-          <main className="w-full max-w-none">
-            {/* Header gaya Plan Activity */}
-            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold tracking-wide text-black">
-                TEAM MANAGEMENT
-              </h2>
-
-              <button
-                onClick={loadAll}
-                className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                disabled={loading}
-              >
-                {loading ? "LOADING..." : "REFRESH"}
-              </button>
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
+        <h1 className="text-2xl font-extrabold pl-4 text-black">
+              TEAMS
+              </h1>
+            <div className="mt-2 text-sm text-neutral-600">
+              Kelola Teams by (SUPERADMIN)
             </div>
+        </div>
 
             {err ? (
               <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -196,16 +189,8 @@ export default function TeamsPage() {
               </div>
             ) : null}
 
-            {/* Create Card */}
-            <div className="mb-6 w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              <div className="bg-blue-200 px-5 py-4">
-                <div className="text-lg font-extrabold text-black">
-                  CREATE TEAM
-                </div>
-                <div className="text-sm text-black/70">
-                  Buat team baru: pilih leader dan sales (members).
-                </div>
-              </div>
+        <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Buat Team Baru</h2>
 
               <div className="px-5 py-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -279,91 +264,76 @@ export default function TeamsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setName("");
-                      setLeaderId("");
-                      setMemberIds([]);
-                      setErr("");
-                    }}
-                    className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                    disabled={creating}
-                  >
-                    RESET
-                  </button>
+          <div className="mt-5 flex items-center justify-end gap-3">
+            <button
+              onClick={() => {
+                setName("");
+                setLeaderId("");
+                setMemberIds([]);
+                setErr("");
+              }}
+              className="h-10 rounded-xl border border-gray-400 px-4 text-sm font-semibold hover:bg-gray-100"
+              disabled={creating}
+            >
+              Reset
+            </button>
 
-                  <button
-                    onClick={createTeam}
-                    className="h-10 rounded-full bg-black px-6 text-sm font-extrabold text-white shadow hover:opacity-90 disabled:opacity-60"
-                    disabled={creating}
-                  >
-                    {creating ? "CREATING..." : "CREATE"}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <button
+              onClick={createTeam}
+              className="h-10 rounded-xl bg-black px-4 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              disabled={creating}
+            >
+              {creating ? "Membuat..." : "Create Team"}
+            </button>
+          </div>
+        </div>
 
-            {/* List Card */}
-            <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              <div className="bg-blue-200 px-5 py-4">
-                <div className="text-lg font-extrabold text-black">
-                  DAFTAR TEAM
-                </div>
-                <div className="text-sm text-black/70">
-                  Klik detail untuk kelola members.
-                </div>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-white text-xs font-semibold text-gray-700">
-                    <tr className="border-b border-black/10">
-                      <th className="px-5 py-3">Nama</th>
-                      <th className="px-5 py-3">Leader</th>
-                      <th className="px-5 py-3">Jumlah Sales</th>
-                      <th className="px-5 py-3">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teams.map((t) => (
-                      <tr
-                        key={t._id}
-                        className="border-t border-black/10 hover:bg-gray-50"
+          <div className="px-5 pt-8">
+            <h2 className="text-2xl font-semibold">DAFTAR TEAM</h2>
+          </div>
+
+        <div className="mt-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <div className="overflow-x-auto px-5 py-4">
+            <table className="w-full text-left text-md">
+              <thead className="bg-white font-semibold text-black">
+                <tr>
+                  <th className="px-5 py-3">Nama</th>
+                  <th className="px-5 py-3">Leader</th>
+                  <th className="px-5 py-3">Jumlah Sales</th>
+                  <th className="px-5 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((t) => (
+                  <tr key={t._id} className="border-t border-gray-200">
+                    <td className="px-5 py-3">{t.name}</td>
+                    <td className="px-5 py-3">{t.leaderName || t.leaderId}</td>
+                    <td className="px-5 py-3">{(t.memberIds || []).length}</td>
+                    <td className="px-5 py-3">
+                      <Link
+                        className="rounded-lg border border-gray-400 px-3 py-1 text-sm font-semibold hover:bg-gray-100"
+                        href={`/teams/${encodeURIComponent(t._id)}`}
                       >
-                        <td className="px-5 py-3 font-semibold">{t.name}</td>
-                        <td className="px-5 py-3">
-                          {t.leaderName || t.leaderId}
-                        </td>
-                        <td className="px-5 py-3">{t.memberIds.length}</td>
-                        <td className="px-5 py-3">
-                          <Link
-                            className="inline-flex h-9 items-center rounded-full bg-white px-5 text-xs font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
-                            href={`/teams/${encodeURIComponent(t._id)}`}
-                          >
-                            DETAIL
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
+                        EDIT
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
 
-                    {!loading && teams.length === 0 ? (
-                      <tr>
-                        <td
-                          className="px-5 py-6 text-sm text-gray-600"
-                          colSpan={4}
-                        >
-                          Belum ada team.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </main>
+                {!loading && teams.length === 0 ? (
+                  <tr>
+                    <td className="px-5 py-6 text-sm text-gray-500" colSpan={4}>
+                      Belum ada team.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   );
 }

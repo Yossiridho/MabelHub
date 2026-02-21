@@ -183,7 +183,7 @@ export async function PUT(
     { returnDocument: "after" },
   );
 
-  const doc = updated?.value;
+  const doc = updated?.value || updated;
   if (!doc) {
     return NextResponse.json(
       { error: "Data tidak ditemukan" },

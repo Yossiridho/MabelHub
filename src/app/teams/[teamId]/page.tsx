@@ -219,43 +219,24 @@ export default function TeamDetailPage() {
 
   return (
     <div className="min-h-screen bg-blue-50">
-      <div className="flex">
-        <Sidebar />
+    <div className="flex">
+      <Sidebar />
 
-        <div className="flex-1 h-screen overflow-y-auto p-6">
-          <main className="w-full max-w-none">
-            {/* Header gaya Plan Activity */}
-            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/teams"
-                  className="inline-flex h-10 items-center rounded-full bg-white px-6 text-xs font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
-                >
-                  ← BACK
-                </Link>
-                <h2 className="text-2xl font-extrabold tracking-wide text-black">
-                  TEAM DETAIL
-                </h2>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={load}
-                  className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-60"
-                  disabled={loading}
-                >
-                  {loading ? "LOADING..." : "REFRESH"}
-                </button>
-
-                <button
-                  onClick={saveMembers}
-                  className="h-10 rounded-full bg-black px-6 text-sm font-extrabold text-white shadow hover:opacity-90 disabled:opacity-60"
-                  disabled={saving || (!toAdd.length && !toRemove.length)}
-                >
-                  {saving ? "SAVING..." : "SAVE"}
-                </button>
-              </div>
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
+          <div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/teams"
+                className="rounded-full bg-white border border-gray-200 px-3 py-1.5 hover:bg-gray-50"
+              >
+                ←
+              </Link>
+              <h1 className="text-2xl font-extrabold">Team Detail</h1>
             </div>
+            <p className="mt-1 text-sm text-gray-500">{teamId}</p>
+          </div>
+        </div>
 
             {err ? (
               <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -268,31 +249,17 @@ export default function TeamDetailPage() {
               </div>
             ) : null}
 
-            {!team ? (
-              <div className="w-full overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
-                {loading ? "Memuat..." : "Team tidak ditemukan."}
+        {!team ? (
+          <div className="mt-6 rounded-2xl border border-gray-200 p-6 text-sm text-gray-600">
+            {loading ? "Memuat..." : "Team tidak ditemukan."}
+          </div>
+        ) : (
+          <>
+            <div className="mt-6 rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
+              <div className="text-xs font-semibold text-gray-500">
+                Nama Team
               </div>
-            ) : (
-              <>
-                {/* Summary card */}
-                <div className="mb-6 w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-                  <div className="bg-blue-200 px-5 py-4">
-                    <div className="text-lg font-extrabold text-black">
-                      INFO TEAM
-                    </div>
-                    <div className="text-sm text-black/70">{team._id}</div>
-                  </div>
-
-                  <div className="px-5 py-5">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
-                        <div className="text-xs font-semibold text-gray-700">
-                          Nama Team
-                        </div>
-                        <div className="mt-2 text-lg font-extrabold">
-                          {team.name}
-                        </div>
-                      </div>
+              <div className="mt-1 text-xl font-semibold">{team.name}</div>
 
                       <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
                         <div className="text-xs font-semibold text-gray-700">
@@ -323,82 +290,70 @@ export default function TeamDetailPage() {
                   </div>
                 </div>
 
-                {/* Members list */}
-                <div className="mb-6 w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-                  <div className="bg-blue-200 px-5 py-4">
-                    <div className="text-lg font-extrabold text-black">
-                      MEMBERS
-                    </div>
-                    <div className="text-sm text-black/70">
-                      Daftar sales yang ada di team.
+            {/* Members (current) */}
+            <div className="mt-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div className="border-b border-gray-200 px-5 py-4">
+                <h2 className="text-lg font-semibold">Members Saat Ini</h2>
+                <p className="text-xs text-gray-500">
+                  Daftar member sales yang sudah masuk team.
+                </p>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {membersResolved.map((m) => (
+                  <div key={m._id} className="px-5 py-3">
+                    <div className="text-sm font-medium">{displayName(m)}</div>
+                    <div className="text-xs text-gray-500">
+                      {m._id} • {m.role}
                     </div>
                   </div>
+                ))}
 
-                  <div className="divide-y divide-black/10">
-                    {membersResolved.map((m) => (
-                      <div key={m._id} className="px-5 py-3 hover:bg-gray-50">
-                        <div className="text-sm font-semibold text-black">
-                          {displayName(m)}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {m.username || "-"} • {m._id} • {m.role}
-                        </div>
-                      </div>
-                    ))}
-                    {membersResolved.length === 0 ? (
-                      <div className="px-5 py-6 text-sm text-gray-600">
-                        Belum ada member.
-                      </div>
-                    ) : null}
+                {membersResolved.length === 0 ? (
+                  <div className="px-5 py-6 text-sm text-gray-500">
+                    Belum ada member.
                   </div>
-                </div>
+                ) : null}
+              </div>
+            </div>
 
-                {/* Edit members */}
-                <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-                  <div className="bg-blue-200 px-5 py-4">
-                    <div className="text-lg font-extrabold text-black">
-                      EDIT MEMBERS
-                    </div>
-                    <div className="text-sm text-black/70">
-                      Kandidat Add hanya sales yang belum punya team.
-                    </div>
-                  </div>
+            {/* Edit panel */}
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Add */}
+              <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
+                <h3 className="text-base font-semibold">
+                  Tambah Sales ke Team
+                </h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Menampilkan sales yang belum punya team (teamId kosong) dan
+                  belum jadi member.
+                </p>
 
-                  <div className="px-5 py-5">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {/* Add */}
-                      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-extrabold">
-                            ADD SALES
+                <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
+                  {addCandidates.map((u) => {
+                    const checked = toAdd.includes(u._id);
+                    return (
+                      <label
+                        key={u._id}
+                        className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggle(toAdd, setToAdd, u._id)}
+                          className="h-4 w-4"
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">
+                            {displayName(u)}
                           </div>
-                          <div className="text-xs text-gray-600">
-                            Dipilih: {toAdd.length}
+                          <div className="truncate text-xs text-gray-500">
+                            {u.username}
                           </div>
                         </div>
-
-                        <div className="mt-3 max-h-80 overflow-auto rounded-2xl ring-1 ring-black/10">
-                          {addCandidates.map((u) => (
-                            <label
-                              key={u._id}
-                              className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={toAdd.includes(u._id)}
-                                onChange={() => toggle(toAdd, setToAdd, u._id)}
-                                className="h-4 w-4"
-                              />
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold">
-                                  {displayName(u)}
-                                </div>
-                                <div className="truncate text-xs text-gray-600">
-                                  {u.username}
-                                </div>
-                              </div>
-                            </label>
-                          ))}
+                      </label>
+                    );
+                  })}
 
                           {addCandidates.length === 0 ? (
                             <div className="px-4 py-6 text-sm text-gray-600">
@@ -419,30 +374,40 @@ export default function TeamDetailPage() {
                           </div>
                         </div>
 
-                        <div className="mt-3 max-h-80 overflow-auto rounded-2xl ring-1 ring-black/10">
-                          {membersResolved.map((u) => (
-                            <label
-                              key={u._id}
-                              className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={toRemove.includes(u._id)}
-                                onChange={() =>
-                                  toggle(toRemove, setToRemove, u._id)
-                                }
-                                className="h-4 w-4"
-                              />
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold">
-                                  {displayName(u)}
-                                </div>
-                                <div className="truncate text-xs text-gray-600">
-                                  {u.username}
-                                </div>
-                              </div>
-                            </label>
-                          ))}
+              {/* Remove */}
+              <div className="rounded-2xl border bg-white border-gray-200 p-5 shadow-sm">
+                <h3 className="text-base font-semibold">
+                  Hapus Sales dari Team
+                </h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Pilih member yang mau dikeluarkan dari team.
+                </p>
+
+                <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
+                  {removeCandidates.map((u) => {
+                    const checked = toRemove.includes(u._id);
+                    return (
+                      <label
+                        key={u._id}
+                        className="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggle(toRemove, setToRemove, u._id)}
+                          className="h-4 w-4"
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">
+                            {displayName(u)}
+                          </div>
+                          <div className="truncate text-xs text-gray-500">
+                            {u.username}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
 
                           {membersResolved.length === 0 ? (
                             <div className="px-4 py-6 text-sm text-gray-600">
@@ -473,6 +438,7 @@ export default function TeamDetailPage() {
             )}
           </main>
         </div>
+      </div>
       </div>
     </div>
   );

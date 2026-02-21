@@ -26,7 +26,7 @@ function bad(msg: string, status = 400) {
 async function ensureDoc() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  const col = db.collection(COL_NAME);
+  const col = db.collection<any>(COL_NAME);
 
   const existing = await col.findOne({ _id: DOC_ID as any });
   if (existing) return { col };
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
 
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  const col = db.collection(COL_NAME);
+  const col = db.collection<any>(COL_NAME);
 
   const doc = await col.findOne({ _id: DOC_ID as any });
 
