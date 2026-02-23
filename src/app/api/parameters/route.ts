@@ -7,12 +7,13 @@ const COL_NAME = "Parameters";
 const DOC_ID = "global";
 
 type ParamKey =
-  | "sales"
-  | "segmen"
-  | "status_kunjungan"
-  | "posisi"
-  | "kegiatan"
+  | "kota_kabupaten"
   | "klpd"
+  | "ring"
+  | "segmen"
+  | "posisi"
+  | "status_kunjungan"
+  | "kegiatan"
   | "perusahaan";
 
 function norm(v: string) {
@@ -33,12 +34,13 @@ async function ensureDoc() {
 
   await col.insertOne({
     _id: DOC_ID as any,
-    sales: [],
-    segmen: [],
-    status_kunjungan: [],
-    posisi: [],
-    kegiatan: [],
+    kota_kabupaten: [],
     klpd: [],
+    ring: [],
+    segmen: [],
+    posisi: [],
+    status_kunjungan: [],
+    kegiatan: [],
     perusahaan: [],
     updatedAt: new Date(),
   });
@@ -78,12 +80,13 @@ export async function POST(req: Request) {
   if (!value) return bad("value wajib");
 
   const allowed: ParamKey[] = [
-    "sales",
-    "segmen",
-    "status_kunjungan",
-    "posisi",
-    "kegiatan",
+    "kota_kabupaten",
     "klpd",
+    "ring",
+    "segmen",
+    "posisi",
+    "status_kunjungan",
+    "kegiatan",
     "perusahaan",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
@@ -115,12 +118,13 @@ export async function DELETE(req: Request) {
   if (!value) return bad("value wajib");
 
   const allowed: ParamKey[] = [
-    "sales",
-    "segmen",
-    "status_kunjungan",
-    "posisi",
-    "kegiatan",
+    "kota_kabupaten",
     "klpd",
+    "ring",
+    "segmen",
+    "posisi",
+    "status_kunjungan",
+    "kegiatan",
     "perusahaan",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");

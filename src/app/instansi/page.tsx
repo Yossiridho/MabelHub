@@ -111,7 +111,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[11px] font-bold tracking-wide text-black/70">
+      <label className="text-[11px] font-bold tracking-wide text-gray-500 uppercase">
         {label}
       </label>
       {children}
@@ -124,8 +124,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-white px-4 text-md text-black outline-none",
-        "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
+        "block w-full rounded-lg border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all",
         props.className || "",
       )}
     />
@@ -137,8 +136,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-white px-4 text-sm text-gray-500 outline-none",
-        "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
+        "block w-full rounded-lg border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 bg-white transition-all",
         props.className || "",
       )}
     />
@@ -161,9 +159,8 @@ function PrimaryButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
-        "ring-1 ring-black/15 shadow-sm hover:bg-black/5",
-        "disabled:opacity-50 disabled:hover:bg-white",
+        "flex h-11 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors",
+        "disabled:opacity-50 disabled:hover:bg-white disabled:cursor-not-allowed",
         className || "",
       )}
     >
@@ -188,9 +185,8 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide",
-        "bg-black hover:bg-black/90",
-        "disabled:opacity-50",
+        "flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 hover:shadow transition-all",
+        "disabled:opacity-60 disabled:cursor-not-allowed",
         className || "",
       )}
     >
@@ -221,7 +217,7 @@ function StatusPill({ value }: { value?: string }) {
 
 export default function InstansiPage() {
   const router = useRouter();
-  const role: Role = "SUPERADMIN"; 
+  const role: Role = "SUPERADMIN";
   const [pendingCount, setPendingCount] = useState(0);
 
   // filters
@@ -422,50 +418,107 @@ export default function InstansiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <main className="mx-auto pt-4 max-w-9xl">
+          <main className="mx-auto pt-4 max-w-none">
+            {/* BREADCRUMB */}
+            <nav className="mb-4 flex" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                <li aria-current="page">
+                  <span className="text-black font-extrabold cursor-default">
+                    Instansi
+                  </span>
+                </li>
+              </ol>
+            </nav>
+
             {/* Top */}
-            <div className="mb-6 flex items-center gap-4">
-              <div className="flex-1">
-                <h1 className="text-2xl font-extrabold text-black">INSTANSI</h1>
-                <p className="text-xs text-black">
-                  Rekap instansi yang sudah <b>APPROVED</b>
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-extrabold tracking-wide text-black uppercase">
+                  Daftar Instansi
+                </h1>
+                <p className="text-xs text-black/60 font-medium mt-0.5">
+                  Rekap data instansi yang sudah <b>APPROVED</b>
                 </p>
               </div>
 
               {role === "SUPERADMIN" ? (
-                <div className="flex gap-3">
-                  <PrimaryButton onClick={() => router.push("/tambah-instansi")}>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => router.push("/tambah-instansi")}
+                    className="flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 hover:shadow transition-all"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
                     TAMBAH INSTANSI
-                  </PrimaryButton>
-                  <PrimaryButton onClick={openPendingModal}>
-                    <span className="relative inline-flex items-center">
-                      REQUEST PENDING
-                      {pendingCount > 0 && (
-                        <span className="absolute -right-4 -top-3 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-extrabold text-white ring-2 ring-white">
-                          {pendingCount > 99 ? "99+" : pendingCount}
-                        </span>
-                      )}
-                    </span>
-                  </PrimaryButton>
+                  </button>
+                  <button
+                    onClick={openPendingModal}
+                    className="relative flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4 text-orange-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    REQUEST PENDING
+                    {pendingCount > 0 && (
+                      <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-white shadow-sm">
+                        {pendingCount > 99 ? "99+" : pendingCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
               ) : null}
             </div>
 
             {/* Filters */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-blue-200">
-              <div className="grid gap-4 md:grid-cols-4 md:items-end">
-                <Field label="SEARCH">
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 mb-6">
+              <div className="grid gap-6 md:grid-cols-4 md:items-end">
+                <Field label="PENCARIAN">
                   <div className="relative">
-                    <Input
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <svg
+                        className="h-4 w-4 text-gray-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full rounded-lg border-0 py-2.5 pl-10 pr-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Cari institusi / satuan kerja / PIC..."
-                      className="pr-10"
                     />
                   </div>
                 </Field>
@@ -504,7 +557,7 @@ export default function InstansiPage() {
                   </Select>
                 </Field>
 
-                <Field label="SEGMEN">
+                <Field label="RING">
                   <Select
                     value={segmen}
                     onChange={(e) => {
@@ -512,7 +565,7 @@ export default function InstansiPage() {
                       setPage(1);
                     }}
                   >
-                    <option value="ALL">Semua Segmen</option>
+                    <option value="ALL">Semua Ring</option>
                     {segmenOptions.map((x) => (
                       <option key={x} value={x}>
                         {x}
@@ -524,10 +577,10 @@ export default function InstansiPage() {
             </div>
 
             {/* Table */}
-            <div className="mt-6 overflow-hidden rounded-2xl bg-white ring-1 ring-blue-200 ">
+            <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
               <div className="overflow-x-auto">
-                <table className="min-w-full text-md">
-                  <thead className="bg-blue-200 text-black ring-2 ring-blue-300">
+                <table className="min-w-full text-sm text-left">
+                  <thead className="bg-gray-50/50 border-b border-gray-200">
                     <tr>
                       {[
                         "Kota/Kab",
@@ -539,13 +592,13 @@ export default function InstansiPage() {
                         "No. HP PIC",
                         "Jabatan PIC",
                         "Role PIC",
-                        "Status Segmen",
+                        "Status Ring",
                         "History",
                         "Aksi",
                       ].map((h) => (
                         <th
                           key={h}
-                          className="whitespace-nowrap border-b border-gray-300 px-4 py-3 text-left text-xs font-extrabold tracking-wide text-black"
+                          className="whitespace-nowrap px-6 py-4 text-xs font-bold tracking-wider text-gray-500 uppercase"
                         >
                           {h}
                         </th>
@@ -553,74 +606,124 @@ export default function InstansiPage() {
                     </tr>
                   </thead>
 
-                  <tbody className="bg-white ring-1 ring-blue-200">
+                  <tbody className="divide-y divide-gray-100 bg-white">
                     {loading ? (
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-md"
+                          className="px-6 py-12 text-center text-sm text-gray-500"
                         >
-                          Loading...
+                          <div className="flex justify-center items-center gap-2">
+                            <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                            Loading data instansi...
+                          </div>
                         </td>
                       </tr>
                     ) : resp?.items?.length ? (
                       resp.items.map((c) => (
-                        <tr key={c._id} className="border-t border-gray-300">
-                          <td className="px-4 py-4">{c.kota_kab ?? "-"}</td>
-                          <td className="px-4 py-4">{c.klpd ?? "-"}</td>
-                          <td className="px-4 py-4 ">
+                        <tr
+                          key={c._id}
+                          className="hover:bg-gray-50/50 transition-colors group"
+                        >
+                          <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
+                            {c.kota_kab ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                            {c.klpd ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-900 font-bold">
                             {c.institusi_kerja ?? "-"}
                           </td>
-                          <td className="px-4 py-4">{c.satuan_kerja ?? "-"}</td>
-                          <td className="px-4 py-4">{c.kode_dinas ?? "-"}</td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                            {c.satuan_kerja ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                            {c.kode_dinas ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-900">
                             {c.pic_default?.nama ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                             {c.pic_default?.no_telp ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                             {c.pic_default?.jabatan ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                             {c.pic_default?.role ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4 text-center">
                             <StatusPill value={c.status_ring} />
                           </td>
-                          <td className="px-4 py-4 text-center">
+                          <td className="whitespace-nowrap px-6 py-4 text-center">
                             <button
-                              className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all mx-auto"
                               title="History"
                               onClick={() => {
                                 setActiveCompany(c);
                                 setOpenHistory(true);
                               }}
                             >
-                              ⟲
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
                             </button>
                           </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
+                          <td className="whitespace-nowrap px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                               <button
-                                className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-all ring-1 ring-inset ring-transparent hover:ring-blue-100"
                                 title="Edit"
                                 onClick={() => {
                                   setActiveCompany(c);
                                   setOpenEdit(true);
                                 }}
                               >
-                                ✎
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                  />
+                                </svg>
                               </button>
                               <button
-                                className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-all ring-1 ring-inset ring-transparent hover:ring-red-100"
                                 title="Delete"
                                 onClick={() => {
                                   setActiveCompany(c);
                                   setOpenDelete(true);
                                 }}
                               >
-                                🗑
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
                               </button>
                             </div>
                           </td>
@@ -630,9 +733,9 @@ export default function InstansiPage() {
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-md text-black/60"
+                          className="px-6 py-12 text-center text-sm text-gray-500"
                         >
-                          Tidak ada data.
+                          Tidak ada data instansi yang sesuai.
                         </td>
                       </tr>
                     )}
@@ -641,52 +744,84 @@ export default function InstansiPage() {
               </div>
 
               {/* Pagination Bar */}
-              <div className="flex flex-col gap-3 border-t border-black/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-md text-gray-500">
+              <div className="flex flex-col gap-4 border-t border-gray-100 bg-gray-50/50 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                <div className="text-sm text-gray-500">
                   Menampilkan{" "}
-                  <b className="text-black">
-                    {(page - 1) * limit + 1} -{" "}
+                  <b className="text-gray-900">{(page - 1) * limit + 1}</b> -{" "}
+                  <b className="text-gray-900">
                     {Math.min(page * limit, resp?.total ?? 0)}
                   </b>{" "}
-                  dari <b className="text-black">{resp?.total ?? 0}</b> data
+                  dari <b className="text-gray-900">{resp?.total ?? 0}</b> data
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Select
-                    value={String(limit)}
-                    onChange={(e) => {
-                      setLimit(Number(e.target.value));
-                      setPage(1);
-                    }}
-                    className="h-10 rounded-xl"
-                  >
-                    {[10, 25, 50, 100].map((n) => (
-                      <option key={n} value={n}>
-                        {n} / Halaman
-                      </option>
-                    ))}
-                  </Select>
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Tampilkan
+                    </span>
+                    <Select
+                      value={String(limit)}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="py-1.5! h-auto text-sm"
+                    >
+                      {[10, 25, 50, 100].map((n) => (
+                        <option key={n} value={n}>
+                          {n} / halaman
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setPage(1)}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="First"
                     >
-                      ⏮
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                        />
+                      </svg>
                     </button>
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Prev"
                     >
-                      ◀
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
                     </button>
 
-                    <div className="px-8 py-8 text-md font-extrabold text-gray-500 whitespace-nowrap">
-                      {page} / {totalPages}
+                    <div className="px-3 text-sm font-bold text-gray-700 whitespace-nowrap">
+                      Hal {page}{" "}
+                      <span className="text-gray-400 font-normal">
+                        dari {totalPages}
+                      </span>
                     </div>
 
                     <button
@@ -694,18 +829,42 @@ export default function InstansiPage() {
                         setPage((p) => Math.min(totalPages, p + 1))
                       }
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Next"
                     >
-                      ▶
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
                     </button>
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Last"
                     >
-                      ⏭
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                        />
+                      </svg>
                     </button>
                   </div>
                 </div>

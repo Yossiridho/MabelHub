@@ -6,22 +6,24 @@ import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 
 type ParamKey =
-  | "sales"
-  | "segmen"
-  | "status_kunjungan"
-  | "posisi"
-  | "kegiatan"
+  | "kota_kabupaten"
   | "klpd"
+  | "ring"
+  | "segmen"
+  | "posisi"
+  | "status_kunjungan"
+  | "kegiatan"
   | "perusahaan";
 
 type ParamDoc = {
   _id: string;
-  sales: string[];
-  segmen: string[];
-  status_kunjungan: string[];
-  posisi: string[];
-  kegiatan: string[];
+  kota_kabupaten: string[];
   klpd: string[];
+  ring: string[];
+  segmen: string[];
+  posisi: string[];
+  status_kunjungan: string[];
+  kegiatan: string[];
   perusahaan: string[];
   updatedAt?: string;
 };
@@ -31,23 +33,25 @@ function cn(...s: Array<string | false | null | undefined>) {
 }
 
 const KEY_LABEL: Record<ParamKey, string> = {
-  sales: "Sales",
-  segmen: "Segmen",
-  status_kunjungan: "Status Kunjungan",
-  posisi: "Posisi",
-  kegiatan: "Kegiatan",
+  kota_kabupaten: "Kota/Kabupaten",
   klpd: "KLPD",
+  ring: "Ring",
+  segmen: "Segmen",
+  posisi: "Posisi",
+  status_kunjungan: "Status Kunjungan",
+  kegiatan: "Kegiatan",
   perusahaan: "Perusahaan",
 };
 
 const ALL_KEYS: ParamKey[] = [
-  "perusahaan",
-  "sales",
-  "segmen",
-  "status_kunjungan",
-  "posisi",
-  "kegiatan",
+  "kota_kabupaten",
   "klpd",
+  "ring",
+  "segmen",
+  "posisi",
+  "status_kunjungan",
+  "kegiatan",
+  "perusahaan",
 ];
 
 export default function ParameterPage() {
@@ -64,8 +68,9 @@ export default function ParameterPage() {
   const [doc, setDoc] = useState<ParamDoc | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [key, setKey] = useState<ParamKey>("sales");
+  const [key, setKey] = useState<ParamKey>("kota_kabupaten");
   const [value, setValue] = useState("");
+  const [parentRing, setParentRing] = useState(""); // Untuk Segmen
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -92,12 +97,13 @@ export default function ParameterPage() {
   const listByKey = useMemo(() => {
     const d = doc;
     return {
-      sales: d?.sales ?? [],
-      segmen: d?.segmen ?? [],
-      status_kunjungan: d?.status_kunjungan ?? [],
-      posisi: d?.posisi ?? [],
-      kegiatan: d?.kegiatan ?? [],
+      kota_kabupaten: d?.kota_kabupaten ?? [],
       klpd: d?.klpd ?? [],
+      ring: d?.ring ?? [],
+      segmen: d?.segmen ?? [],
+      posisi: d?.posisi ?? [],
+      status_kunjungan: d?.status_kunjungan ?? [],
+      kegiatan: d?.kegiatan ?? [],
       perusahaan: d?.perusahaan ?? [],
     } as Record<ParamKey, string[]>;
   }, [doc]);
@@ -106,13 +112,22 @@ export default function ParameterPage() {
     const v = value.trim();
     if (!v) return;
 
+    let finalValue = v;
+    if (key === "segmen") {
+      if (!parentRing) {
+        setErr("Silakan pilih Parent Ring untuk segmen ini!");
+        return;
+      }
+      finalValue = `${parentRing}::${v}`;
+    }
+
     setSaving(true);
     setErr("");
     try {
       const res = await fetch("/api/parameters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value: v }),
+        body: JSON.stringify({ key, value: finalValue }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error ?? "Gagal tambah");
@@ -195,9 +210,38 @@ export default function ParameterPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-5">
+              {key === "segmen" && (
+                <div className="md:col-span-3">
+                  <div className="text-md font-extrabold tracking-wider text-black">
+                    Parent Ring
+                  </div>
+                  <div className="relative mt-2">
+                    <select
+                      value={parentRing}
+                      onChange={(e) => setParentRing(e.target.value)}
+                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                      <option value="">Pilih Ring...</option>
+                      {listByKey.ring.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-600">
+                      ▾
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={cn(
+                  key === "segmen" ? "md:col-span-2" : "md:col-span-5",
+                )}
+              >
                 <div className="text-md font-extrabold tracking-wider text-black">
-                  Value
+                  Value Baru
                 </div>
                 <input
                   value={value}
@@ -206,7 +250,7 @@ export default function ParameterPage() {
                     if (e.key === "Enter") onAdd();
                   }}
                   className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Isi value baru..."
+                  placeholder="Isi value..."
                 />
               </div>
 
@@ -231,9 +275,9 @@ export default function ParameterPage() {
           <section className="mt-6 grid gap-6 md:grid-cols-3">
             {(
               [
-                ["perusahaan", "sales", "segmen"],
-                ["status_kunjungan", "posisi", "kegiatan"],
-                ["klpd"],
+                ["kota_kabupaten", "klpd", "ring"],
+                ["segmen", "posisi", "status_kunjungan"],
+                ["kegiatan", "perusahaan"],
               ] as ParamKey[][]
             )
               .flat()
@@ -243,10 +287,8 @@ export default function ParameterPage() {
                   title={KEY_LABEL[k]}
                   items={listByKey[k]}
                   loading={loading}
-                  selected={selectedKey === k ? selectedValue : null}
-                  onPick={(v) => pick(k, v)}
                   onDelete={(v) => onDeleteItem(k, v)}
-                  disabled={saving}
+                  isSegmen={k === "segmen"}
                 />
               ))}
           </section>
@@ -256,22 +298,24 @@ export default function ParameterPage() {
   );
 }
 
+function formatSegmen(raw: string) {
+  if (!raw.includes("::")) return raw;
+  const [r, s] = raw.split("::");
+  return `${s} (${r})`;
+}
+
 function CardList({
   title,
   items,
   loading,
-  selected,
-  onPick,
   onDelete,
-  disabled,
+  isSegmen,
 }: {
   title: string;
   items: string[];
   loading: boolean;
-  selected: string | null;
-  onPick: (v: string) => void;
   onDelete: (v: string) => void;
-  disabled: boolean;
+  isSegmen?: boolean;
 }) {
   const sorted = useMemo(
     () => [...items].sort((a, b) => a.localeCompare(b)),
@@ -279,55 +323,87 @@ function CardList({
   );
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
+    <div className="flex flex-col h-full rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden transition-all hover:shadow-md">
       {/* TITLE */}
-      <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
-        {title}
+      <div className="bg-linear-to-r from-blue-600 to-blue-700 px-5 py-3.5 text-xs font-extrabold tracking-wider text-white uppercase flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg
+            className="w-4 h-4 opacity-80"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 10h16M4 14h16M4 18h16"
+            />
+          </svg>
+          {title}
+        </div>
+        <span className="bg-blue-500/50 px-2 py-0.5 rounded-full text-[10px] font-bold">
+          {sorted.length} item
+        </span>
       </div>
 
-      {/* CONTENT */}
-      <div className="bg-white"></div>
-
-      <div className="p-2">
-        {sorted.length === 0 ? (
-          <div className="text-sm text-gray-500">Belum ada data.</div>
+      <div className="p-3 bg-gray-50/50 flex-1 overflow-y-auto max-h-[320px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+        {loading ? (
+          <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
+            <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+            <span className="text-xs font-semibold text-gray-500">
+              Memuat data...
+            </span>
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="py-8 flex flex-col flex-1 items-center justify-center text-sm text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
+            <svg
+              className="w-8 h-8 mb-2 text-gray-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+              />
+            </svg>
+            Belum ada data
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {sorted.map((v) => {
-              const isActive = selected === v;
               return (
                 <div
                   key={v}
-                  className={cn(
-                    "flex items-center justify-between rounded-xl px-4 py-3 ring-1",
-                    isActive
-                      ? "bg-gray-100 ring-gray-300"
-                      : "bg-gray-50 ring-gray-200 hover:bg-gray-200/70",
-                  )}
+                  className="group flex items-center justify-between rounded-xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-gray-200 hover:ring-blue-400 hover:shadow-md transition-all"
                 >
-                  <button
-                    type="button"
-                    onClick={() => onPick(v)}
-                    className="flex-1 text-left text-sm font-semibold text-black"
-                    title="Klik untuk pilih"
-                  >
-                    {v}
-                  </button>
+                  <span className="flex-1 text-left text-sm font-bold text-gray-700 group-hover:text-blue-700 transition-colors">
+                    {isSegmen ? formatSegmen(v) : v}
+                  </span>
 
                   <button
                     type="button"
-                    disabled={disabled}
                     onClick={() => onDelete(v)}
-                    className={cn(
-                      "ml-3 grid h-9 w-9 place-items-center rounded-lg",
-                      disabled
-                        ? "bg-white"
-                        : "bg-gray-100 ring-1 ring-black/10 hover:bg-gray-50",
-                    )}
+                    className="ml-3 flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 ring-1 ring-red-200 hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all opacity-70 group-hover:opacity-100"
                     aria-label="Delete"
                     title="Hapus"
                   >
-                    🗑️
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
                   </button>
                 </div>
               );
