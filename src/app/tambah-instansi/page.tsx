@@ -336,62 +336,219 @@ export default function AddInstansiPage() {
 
         <div className="flex-1 p-6 min-h-screen overflow-y-auto">
           <main className="mx-auto pt-4 max-w-10xl">
+            {/* BREADCRUMB */}
+            <nav className="mb-4 flex" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                {user?.role === "SUPERADMIN" || user?.role === "ADMIN" ? (
+                  <>
+                    <li>
+                      <button
+                        onClick={() => router.push("/instansi")}
+                        className="hover:text-blue-600 transition-colors"
+                      >
+                        Instansi
+                      </button>
+                    </li>
+                    <li>
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>
+                      <button
+                        onClick={() => router.push("/plan-activity")}
+                        className="hover:text-blue-600 transition-colors"
+                      >
+                        Plan Activity
+                      </button>
+                    </li>
+                    <li>
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => router.push("/plan-activity/add")}
+                        className="hover:text-blue-600 transition-colors"
+                      >
+                        Add Plans
+                      </button>
+                    </li>
+                    <li>
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </li>
+                  </>
+                )}
+                <li aria-current="page">
+                  <span className="text-black font-extrabold">
+                    Register Company
+                  </span>
+                </li>
+              </ol>
+            </nav>
+
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => router.back()}
-                    className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700 transition"
                     aria-label="Back"
                   >
-                    ←
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
+                    </svg>
                   </button>
                   <div className="flex flex-col">
-                    <h1 className="text-2xl font-extrabold text-black">
+                    <h1 className="text-2xl font-extrabold tracking-wide text-black">
                       {title}
                     </h1>
-                    <p className="text-xs text-black/60">{subtitle}</p>
+                    <p className="text-xs text-black/60 font-medium mt-0.5">
+                      {subtitle}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* card container */}
-            <div className="pt-6 rounded-2xl bg-white p-6 ring-1 ring-gray-200">
-              <div className="mt-4 mb-4 text-md text-black">
-                Download template?{" "}
+            <div className="pt-2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <div className="mb-6 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">
+                      Upload Data Instansi Massal
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Gunakan template Excel yang tersedia untuk menambahkan
+                      instansi sekaligus.
+                    </p>
+                  </div>
+                </div>
                 <a
                   href="/templates/template_instansi.xlsx"
-                  className="font-extrabold text-black underline"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-white text-sm font-bold text-blue-600 border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 transition-colors"
                   download
                 >
-                  download
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Unduh Template
                 </a>
               </div>
 
               {/* layout: middle scroll */}
               <div className="flex flex-col">
                 <div className="flex-1 overflow-y-auto pr-2">
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 gap-8">
                     {forms.map((form, idx) => (
-                      <div key={idx}>
-                        <div className="mb-3 flex items-center justify-between">
-                          <div className="text-md font-extrabold tracking-wide text-black">
-                            INSTANSI {idx + 1}
+                      <div key={idx} className="relative group">
+                        <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs ring-4 ring-white">
+                              {idx + 1}
+                            </div>
+                            <h3 className="font-extrabold text-sm text-gray-900 tracking-wide uppercase">
+                              DATA INSTANSI
+                            </h3>
                           </div>
 
                           {forms.length > 1 ? (
                             <button
                               type="button"
                               onClick={() => removeAt(idx)}
-                              className="rounded-full bg-white px-3 py-2 text-xs font-extrabold ring-1 ring-gray-300 hover:bg-gray-300"
+                              className="flex items-center gap-1.5 rounded-lg text-red-500 px-3 py-1.5 text-xs font-bold ring-1 ring-red-200 hover:bg-red-50 hover:ring-red-300 transition-colors"
                             >
-                              X
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                              HAPUS
                             </button>
                           ) : null}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-x-6 gap-y-5">
                           <Field label="NAMA INSTITUSI">
                             <Input
                               value={form.institusi_kerja}
@@ -401,18 +558,22 @@ export default function AddInstansiPage() {
                                 })
                               }
                               placeholder="Contoh: PLN / RSUD / Dinkes..."
+                              className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11"
                             />
                           </Field>
 
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-y-5 gap-x-6 md:grid-cols-2">
                             <Field label="KOTA/KABUPATEN">
                               <Select
                                 value={form.kota_kab}
                                 onChange={(e) =>
                                   updateForm(idx, { kota_kab: e.target.value })
                                 }
+                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
                               >
-                                <option value="">Pilih...</option>
+                                <option value="">
+                                  Pilih Kota/Kabupaten...
+                                </option>
                                 {paramKotaKab.map((opt) => (
                                   <option key={opt} value={opt}>
                                     {opt}
@@ -427,8 +588,9 @@ export default function AddInstansiPage() {
                                 onChange={(e) =>
                                   updateForm(idx, { klpd: e.target.value })
                                 }
+                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
                               >
-                                <option value="">Pilih...</option>
+                                <option value="">Pilih KLPD...</option>
                                 {paramKlpd.map((opt) => (
                                   <option key={opt} value={opt}>
                                     {opt}
@@ -438,7 +600,7 @@ export default function AddInstansiPage() {
                             </Field>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-y-5 gap-x-6 md:grid-cols-2">
                             <Field label="SATUAN KERJA">
                               <Input
                                 value={form.satuan_kerja}
@@ -448,6 +610,7 @@ export default function AddInstansiPage() {
                                   })
                                 }
                                 placeholder="Contoh: Dinas / Office / Unit kerja..."
+                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11"
                               />
                             </Field>
 
@@ -459,82 +622,115 @@ export default function AddInstansiPage() {
                                     status_ring: e.target.value,
                                   })
                                 }
+                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
                               >
-                                <option value="">Pilih...</option>
+                                <option value="">Pilih Status Ring...</option>
                                 {paramRing.map((opt) => (
                                   <option key={opt} value={opt}>
-                                    {opt}
+                                    RING {opt}
                                   </option>
                                 ))}
                               </Select>
                             </Field>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <Field label="KODE DINAS (OPSIONAL)">
-                              <Input
-                                value={form.kode_dinas}
-                                onChange={(e) =>
-                                  updateForm(idx, {
-                                    kode_dinas: e.target.value,
-                                  })
-                                }
-                                placeholder="Contoh: B2-CSMS"
-                              />
-                            </Field>
-
-                            <Field label="ROLE PIC (OPSIONAL)">
-                              <Select
-                                value={form.pic_role}
-                                onChange={(e) =>
-                                  updateForm(idx, { pic_role: e.target.value })
-                                }
+                          <div className="mt-2 bg-gray-50 rounded-xl p-5 border border-gray-100">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                              <svg
+                                className="w-4 h-4 text-gray-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
                               >
-                                <option value="">Pilih...</option>
-                                {paramPosisi.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
-                              </Select>
-                            </Field>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                              </svg>
+                              Informasi Opsional / Tambahan
+                            </h4>
+
+                            <div className="grid grid-cols-1 gap-y-5 gap-x-6 md:grid-cols-2">
+                              <Field label="KODE DINAS (OPSIONAL)">
+                                <Input
+                                  value={form.kode_dinas}
+                                  onChange={(e) =>
+                                    updateForm(idx, {
+                                      kode_dinas: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Contoh: B2-CSMS"
+                                  className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
+                                />
+                              </Field>
+
+                              <Field label="ROLE PIC (OPSIONAL)">
+                                <Select
+                                  value={form.pic_role}
+                                  onChange={(e) =>
+                                    updateForm(idx, {
+                                      pic_role: e.target.value,
+                                    })
+                                  }
+                                  className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
+                                >
+                                  <option value="">Pilih Jabatan PIC...</option>
+                                  {paramPosisi.map((opt) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </Select>
+                              </Field>
+
+                              <Field label="NAMA PIC (OPSIONAL)">
+                                <Input
+                                  value={form.pic_nama}
+                                  onChange={(e) =>
+                                    updateForm(idx, {
+                                      pic_nama: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Contoh: Pak Rama"
+                                  className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
+                                />
+                              </Field>
+
+                              <Field label="NO. TELEPON PIC (OPSIONAL)">
+                                <Input
+                                  value={form.pic_telp}
+                                  onChange={(e) =>
+                                    updateForm(idx, {
+                                      pic_telp: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Contoh: 62812xxxx"
+                                  className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
+                                />
+                              </Field>
+                            </div>
+
+                            <div className="mt-5">
+                              <Field label="JABATAN PIC (OPSIONAL)">
+                                <Input
+                                  value={form.pic_jabatan}
+                                  onChange={(e) =>
+                                    updateForm(idx, {
+                                      pic_jabatan: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Contoh: Pengadaan / IT / Kepala Bagian..."
+                                  className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
+                                />
+                              </Field>
+                            </div>
                           </div>
-
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <Field label="NAMA PIC (OPSIONAL)">
-                              <Input
-                                value={form.pic_nama}
-                                onChange={(e) =>
-                                  updateForm(idx, { pic_nama: e.target.value })
-                                }
-                                placeholder="Contoh: Pak Rama"
-                              />
-                            </Field>
-
-                            <Field label="NO. TELEPON PIC (OPSIONAL)">
-                              <Input
-                                value={form.pic_telp}
-                                onChange={(e) =>
-                                  updateForm(idx, { pic_telp: e.target.value })
-                                }
-                                placeholder="Contoh: 62812xxxx"
-                              />
-                            </Field>
-                          </div>
-
-                          <Field label="JABATAN PIC (OPSIONAL)">
-                            <Input
-                              value={form.pic_jabatan}
-                              onChange={(e) =>
-                                updateForm(idx, { pic_jabatan: e.target.value })
-                              }
-                              placeholder="Contoh: Pengadaan / IT / Kepala Bagian..."
-                            />
-                          </Field>
                         </div>
 
                         {idx < forms.length - 1 ? (
-                          <div className="mt-6 border-t border-black/10" />
+                          <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-200" />
                         ) : null}
                       </div>
                     ))}
@@ -542,30 +738,86 @@ export default function AddInstansiPage() {
                 </div>
 
                 {/* footer fixed */}
-                <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-                  <PrimaryButton
+                <div className="mt-8 flex flex-col-reverse md:flex-row items-center justify-between border-t border-gray-200/60 pt-6">
+                  <button
+                    type="button"
                     onClick={addMore}
-                    className="bg-blue-600 text-gray-100 hover:bg-blue-700"
+                    className="w-full md:w-auto flex items-center justify-center gap-2 h-11 rounded-lg bg-white px-6 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors mt-4 md:mt-0"
                   >
-                    TAMBAH INSTANSI
-                  </PrimaryButton>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    TAMBAH FORM LAIN
+                  </button>
 
-                  <div className="flex gap-3">
-                    <PrimaryButton
+                  <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <button
+                      type="button"
                       onClick={() => fileRef.current?.click()}
                       disabled={saving}
-                      className="bg-green-600 text-gray-100 hover:bg-green-700"
+                      className="w-full md:w-auto flex items-center justify-center gap-2 h-11 rounded-lg px-6 text-sm font-bold text-green-700 bg-green-50 shadow-sm ring-1 ring-inset ring-green-200 hover:bg-green-100 transition-colors"
                     >
-                      UPLOAD
-                    </PrimaryButton>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                        />
+                      </svg>
+                      UPLOAD EXCEL
+                    </button>
 
-                    <SolidButton
+                    <button
+                      type="button"
                       onClick={submit}
                       disabled={saving || !canSubmit}
-                      className="bg-blue-600 text-gray-100 hover:bg-blue-700"
+                      className={`w-full md:w-48 flex items-center justify-center gap-2 h-11 rounded-lg px-6 text-sm font-bold text-white shadow-sm transition-all
+                        ${
+                          !canSubmit || saving
+                            ? "bg-blue-400 cursor-not-allowed opacity-80"
+                            : "bg-blue-600 hover:bg-blue-700 hover:shadow ring-1 ring-blue-700"
+                        }`}
                     >
-                      {saving ? "MENYIMPAN..." : "SUBMIT"}
-                    </SolidButton>
+                      {saving ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Menyimpan...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          SIMPAN DATA
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   <input ref={fileRef} type="file" className="hidden" />
