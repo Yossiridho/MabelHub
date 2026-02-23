@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import NotificationMenu from "@/components/modals/NotificationMenu";
 import {
-  Bell,
   Search,
   ClipboardList,
   Building2,
@@ -76,7 +76,6 @@ export default function DashboardResponsePage() {
   const [takingId, setTakingId] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
-  const [notifCount, setNotifCount] = useState(3);
 
   // Guard: dashboard response untuk ADMIN/SUPERADMIN saja (opsional tapi masuk akal)
   useEffect(() => {
@@ -188,18 +187,7 @@ export default function DashboardResponsePage() {
                 </div>
 
                 {/* Bell */}
-                <button
-                  className="relative h-11 w-11 rounded-full border border-neutral-200 bg-white shadow-sm hover:shadow-md"
-                  aria-label="Notifications"
-                  onClick={() => setNotifCount(0)}
-                >
-                  <Bell className="mx-auto h-5 w-5 text-neutral-700" />
-                  {notifCount > 0 && (
-                    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                      {notifCount}
-                    </span>
-                  )}
-                </button>
+                <NotificationMenu />
               </div>
             </div>
 

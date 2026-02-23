@@ -246,6 +246,27 @@ export async function POST(req: Request) {
 
     const result = await visits.insertMany(docs);
 
+    // 5) Create Notifications if assigned to another user
+    const notificationsToInsert = [];
+    for (const doc of docs) {
+      if (doc.assignedTo.userId && doc.assignedTo.userId !== session.userId) {
+        notificationsToInsert.push({
+          userId: doc.assignedTo.userId,
+          title: "Tugas Visit Baru",
+          message: `${session.fullName || session.username} (Leader/Admin) memberikan tugas visit ke instansi ${doc.institusi_kerja} pada tanggal ${visit_date}.`,
+          type: "TASK",
+          isRead: false,
+          link: "/dashboard-request", // Or "/plan-activity" or wherever is best
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
+
+    if (notificationsToInsert.length > 0) {
+      await db.collection("notifications").insertMany(notificationsToInsert);
+    }
+
     return NextResponse.json(
       {
         ok: true,

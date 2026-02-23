@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 
 type TeamMember = {
   userId: string;
@@ -316,8 +317,55 @@ export default function EProcurementRequestPage() {
   };
 
   const handleSubmitUpload = () => {
-    alert(`UPLOAD FILE: ${uploadFile?.name ?? "-"}`);
-    setOpenUpload(false);
+    if (!uploadFile) {
+      alert("Pilih file Excel terlebih dahulu");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const jsonData = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+        const rows = jsonData.slice(1); // Lewati header di baris pertama
+
+        const newItems: ProductItem[] = rows
+          .map((row, index) => ({
+            id: String(Date.now() + index),
+            merek: row[0] ? String(row[0]).trim() : "",
+            subKategori: row[1] ? String(row[1]).trim() : "",
+            qty:
+              row[2] && !isNaN(Number(row[2]))
+                ? Math.max(1, Number(row[2]))
+                : 1,
+            spesifikasi: row[3] ? String(row[3]).trim() : "",
+            paguPerItem: row[4] && !isNaN(Number(row[4])) ? Number(row[4]) : 0,
+            hargaTayang: row[5] && !isNaN(Number(row[5])) ? Number(row[5]) : 0,
+            linkInaproc: row[6] ? String(row[6]).trim() : "",
+            linkEcom: row[7] ? String(row[7]).trim() : "",
+          }))
+          .filter((item) => item.merek || item.subKategori || item.spesifikasi); // Abaikan baris kosong
+
+        if (newItems.length > 0) {
+          setItems(newItems);
+          alert(`Berhasil memuat ${newItems.length} produk dari Excel`);
+          setOpenUpload(false);
+          setUploadFile(null); // Reset file yang dipilih setelah berhasil upload
+        } else {
+          alert("Data Excel kosong atau tidak sesuai dengan format template.");
+        }
+      } catch (err) {
+        console.error("Excel parse error:", err);
+        alert(
+          "Terjadi kesalahan saat membaca file Excel. Pastikan file tidak rusak dan sesuai template.",
+        );
+      }
+    };
+    reader.readAsBinaryString(uploadFile);
   };
 
   const handleKirim = async () => {
