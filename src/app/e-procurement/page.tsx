@@ -12,8 +12,6 @@ type TeamMember = {
   role: string;
 };
 
-type Segment = "RING 1" | "RING 2" | "RING 3" | "RING 4";
-
 type ProductItem = {
   id: string;
   merek: string;
@@ -25,8 +23,6 @@ type ProductItem = {
   linkInaproc: string;
   linkEcom: string;
 };
-
-const SEGMENTS: Segment[] = ["RING 1", "RING 2", "RING 3", "RING 4"];
 
 function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
@@ -94,13 +90,24 @@ export default function EProcurementRequestPage() {
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([]);
   const [assignedToUserId, setAssignedToUserId] = useState(""); // "" = self
 
-  // ===== Header form state =====
   const [requestor, setRequestor] = useState("");
   const [pemohon, setPemohon] = useState("");
-  const [segmen, setSegmen] = useState<Segment | "">("");
+  const [segmen, setSegmen] = useState<string>("");
   const [deadline, setDeadline] = useState<string>("");
   const [lokasi, setLokasi] = useState("");
   const [catatanHeader, setCatatanHeader] = useState("");
+
+  // Parameter API
+  const [paramSegmen, setParamSegmen] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) setParamSegmen(d.segmen || []);
+      })
+      .catch(() => {});
+  }, []);
 
   // ===== ID info (footer) =====
   const [infoId, setInfoId] = useState("REQ-");
@@ -191,7 +198,8 @@ export default function EProcurementRequestPage() {
               role: String(u.role || ""),
             }))
             .filter(
-              (m) => m.userId && (m.role === "SALES" || m.role === "LEADER"),
+              (m: TeamMember) =>
+                m.userId && (m.role === "SALES" || m.role === "LEADER"),
             );
 
           setAssigneeOptions(list);
@@ -273,7 +281,7 @@ export default function EProcurementRequestPage() {
 
       setRequestor(data.requestor ?? "");
       setPemohon(data.pemohon ?? "");
-      setSegmen((data.segmen ?? "") as any);
+      setSegmen((data.segmen ?? "") as string);
       setDeadline(data.deadlineUsulan ?? "");
       setLokasi(data.lokasi ?? "");
       setCatatanHeader(data.catatan ?? "");
@@ -336,14 +344,13 @@ export default function EProcurementRequestPage() {
       <div className="flex">
         <Sidebar />
 
-       <div className="flex-1 p-6 h-screen overflow-y-auto">
-      <div className="px-3 pt-2 pb-2">
-        <h1 className="text-2xl font-extrabold pl-4 text-black">
-        E-PROCUREMENT
-        </h1>
-        <div className="px-6 pb-6">
-        </div>
-     </div>
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
+            <h1 className="text-2xl font-extrabold pl-4 text-black">
+              E-PROCUREMENT
+            </h1>
+            <div className="px-6 pb-6"></div>
+          </div>
 
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -414,11 +421,11 @@ export default function EProcurementRequestPage() {
                 <div className="relative mt-2">
                   <select
                     value={segmen}
-                    onChange={(e) => setSegmen(e.target.value as Segment)}
+                    onChange={(e) => setSegmen(e.target.value)}
                     className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
                   >
                     <option value="">-- Pilih --</option>
-                    {SEGMENTS.map((s) => (
+                    {paramSegmen.map((s) => (
                       <option key={s} value={s}>
                         {s}
                       </option>
@@ -521,7 +528,7 @@ export default function EProcurementRequestPage() {
                   aria-label="Remove item"
                   title="Remove item"
                 >
-                X
+                  X
                 </button>
 
                 <div className="mb-6 p-8 pl-20">

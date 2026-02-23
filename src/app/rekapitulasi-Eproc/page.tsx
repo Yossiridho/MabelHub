@@ -71,6 +71,7 @@ export default function RekapitulasiEProcurementPage() {
   const [pemohon, setPemohon] = useState("ALL");
   const [status, setStatus] = useState("ALL");
   const [tindakLanjut, setTindakLanjut] = useState("ALL");
+  const [segmen, setSegmen] = useState("ALL");
 
   const [startDate, setStartDate] = useState(""); // yyyy-mm-dd (input date)
   const [endDate, setEndDate] = useState(""); // yyyy-mm-dd
@@ -84,8 +85,17 @@ export default function RekapitulasiEProcurementPage() {
   const [selected, setSelected] = useState<EProcDoc | null>(null);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
+  const [paramSegmen, setParamSegmen] = useState<string[]>([]);
+
   useEffect(() => {
     fetchData();
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) setParamSegmen(d.segmen || []);
+      })
+      .catch(() => {});
   }, []);
 
   async function fetchData() {
@@ -145,6 +155,7 @@ export default function RekapitulasiEProcurementPage() {
       .filter((r) => {
         if (requestor !== "ALL" && r.requestor !== requestor) return false;
         if (pemohon !== "ALL" && r.pemohon !== pemohon) return false;
+        if (segmen !== "ALL" && r.segmen !== segmen) return false;
 
         if (status !== "ALL") {
           const s = getCurrentStatus(r);
@@ -181,6 +192,7 @@ export default function RekapitulasiEProcurementPage() {
     pemohon,
     status,
     tindakLanjut,
+    segmen,
     startDate,
     endDate,
     searchId,
@@ -321,9 +333,27 @@ export default function RekapitulasiEProcurementPage() {
                   </select>
                 </div>
 
-                {/* Spacer */}
-                <div className="hidden md:block md:col-span-1" />
-
+                {/* Segmen */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    SEGMEN
+                  </div>
+                  <select
+                    value={segmen}
+                    onChange={(e) => {
+                      setSegmen(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
+                  >
+                    <option value="ALL">Semua Segmen</option>
+                    {paramSegmen.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {/* Pemohon */}
                 <div className="md:col-span-2">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">

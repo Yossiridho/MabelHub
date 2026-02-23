@@ -147,6 +147,21 @@ export default function RekapitulasiVisitPage() {
     };
   }, []);
 
+  const [paramStatus, setParamStatus] = useState<string[]>([]);
+  const [paramRing, setParamRing] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) {
+          setParamStatus(d.status_kunjungan || []);
+          setParamRing(d.ring || []);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // fetch rows dari DB setiap filter/pagination berubah
   useEffect(() => {
     let mounted = true;
@@ -221,13 +236,12 @@ export default function RekapitulasiVisitPage() {
       <div className="flex min-h-screen">
         <Sidebar />
 
-       <div className="flex-1 p-6 h-screen overflow-y-auto">
-      <div className="px-3 pt-2 pb-2">
-        <h1 className="text-2xl font-extrabold pl-4 text-black">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
+            <h1 className="text-2xl font-extrabold pl-4 text-black">
               REKAPITULASI VISIT
             </h1>
-      <div className="px-6 pb-6">
-        </div>
+            <div className="px-6 pb-6"></div>
           </div>
 
           {/* FILTER CARD */}
@@ -257,25 +271,18 @@ export default function RekapitulasiVisitPage() {
                 label="STATUS VISIT"
                 value={fStatus}
                 onChange={(v) => onChangeFilter(setFStatus, v)}
-                options={[
-                  { label: "Semua Status", value: "ALL" },
-                  { label: "Visited", value: "Visited" },
-                  { label: "Not Visited", value: "Not Visited" },
-                  { label: "Stay Office", value: "Stay Office" },
-                ]}
+                options={[{ label: "Semua Status", value: "ALL" }].concat(
+                  paramStatus.map((s) => ({ label: s, value: s })),
+                )}
               />
 
               <FilterSelect
                 label="RING"
                 value={fRing}
                 onChange={(v) => onChangeFilter(setFRing, v)}
-                options={[
-                  { label: "Semua Ring", value: "ALL" },
-                  { label: "RING 1", value: "RING 1" },
-                  { label: "RING 2", value: "RING 2" },
-                  { label: "RING 3", value: "RING 3" },
-                  { label: "RING 4", value: "RING 4" },
-                ]}
+                options={[{ label: "Semua Ring", value: "ALL" }].concat(
+                  paramRing.map((r) => ({ label: r, value: r })),
+                )}
               />
 
               <FilterSelect

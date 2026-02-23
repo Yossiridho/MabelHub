@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
@@ -83,7 +83,7 @@ function newItem(): PlanItem {
   };
 }
 
-export default function AddPlansPage() {
+function AddPlansContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const editId = sp.get("edit");
@@ -104,6 +104,18 @@ export default function AddPlansPage() {
   const [tanggal, setTanggal] = useState("");
   const [items, setItems] = useState<PlanItem[]>([newItem()]);
   const [saving, setSaving] = useState(false);
+
+  // parameter master list
+  const [paramRing, setParamRing] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) setParamRing(d.ring || []);
+      })
+      .catch(() => {});
+  }, []);
 
   // ✅ Assignee logic
   const canPickAssignee =
@@ -142,7 +154,7 @@ export default function AddPlansPage() {
               username: m.username ? String(m.username) : "",
               role: m.role ? String(m.role) : "SALES",
             }))
-            .filter((x) => x.userId);
+            .filter((x: AssigneeOption) => x.userId);
 
           setAssigneeOptions(list);
           setAssigneeUserId(""); // default self
@@ -163,7 +175,8 @@ export default function AddPlansPage() {
               role: u.role ? String(u.role) : "",
             }))
             .filter(
-              (x) => x.userId && (x.role === "SALES" || x.role === "LEADER"),
+              (x: AssigneeOption) =>
+                x.userId && (x.role === "SALES" || x.role === "LEADER"),
             );
 
           setAssigneeOptions(list);
@@ -279,9 +292,9 @@ export default function AddPlansPage() {
 
       // ✅ kirim targetUserId per item ("" = self)
       const payload = {
-        tanggal, 
-        createdBy: user?.userId || null, 
-        nama_sales: user?.fullName || null, 
+        tanggal,
+        createdBy: user?.userId || null,
+        nama_sales: user?.fullName || null,
         items: items.map((it) => ({
           status_ring: it.status_ring,
           institusi_kerja: it.institusiQuery,
@@ -430,10 +443,11 @@ export default function AddPlansPage() {
                         className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                       >
                         <option value="">Pilih...</option>
-                        <option value="RING 1">RING 1</option>
-                        <option value="RING 2">RING 2</option>
-                        <option value="RING 3">RING 3</option>
-                        <option value="RING 4">RING 4</option>
+                        {paramRing.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -570,5 +584,13 @@ export default function AddPlansPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AddPlansPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AddPlansContent />
+    </Suspense>
   );
 }
