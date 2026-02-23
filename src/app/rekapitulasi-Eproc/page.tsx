@@ -60,6 +60,12 @@ function formatDateOnly(iso?: string | null) {
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
 }
 
+function formatSegmen(raw: string) {
+  if (!raw.includes("::")) return raw;
+  const [r, s] = raw.split("::");
+  return `${s} (${r})`;
+}
+
 export default function RekapitulasiEProcurementPage() {
   const router = useRouter();
 
@@ -85,6 +91,7 @@ export default function RekapitulasiEProcurementPage() {
   const [selected, setSelected] = useState<EProcDoc | null>(null);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
+  const [paramRing, setParamRing] = useState<string[]>([]);
   const [paramSegmen, setParamSegmen] = useState<string[]>([]);
 
   useEffect(() => {
@@ -93,10 +100,20 @@ export default function RekapitulasiEProcurementPage() {
       .then((res) => res.json())
       .then((json) => {
         const d = json?.data;
-        if (d) setParamSegmen(d.segmen || []);
+        if (d) {
+          setParamRing(d.ring || []);
+          setParamSegmen(d.segmen || []);
+        }
       })
       .catch(() => {});
   }, []);
+
+  const [selectedRing, setSelectedRing] = useState("ALL");
+
+  const availableSegmen = useMemo(() => {
+    if (selectedRing === "ALL") return paramSegmen;
+    return paramSegmen.filter((s) => s.startsWith(selectedRing + "::"));
+  }, [selectedRing, paramSegmen]);
 
   async function fetchData() {
     try {
@@ -155,6 +172,12 @@ export default function RekapitulasiEProcurementPage() {
       .filter((r) => {
         if (requestor !== "ALL" && r.requestor !== requestor) return false;
         if (pemohon !== "ALL" && r.pemohon !== pemohon) return false;
+
+        if (selectedRing !== "ALL") {
+          if (!r.segmen || !r.segmen.startsWith(selectedRing + "::"))
+            return false;
+        }
+
         if (segmen !== "ALL" && r.segmen !== segmen) return false;
 
         if (status !== "ALL") {
@@ -192,6 +215,7 @@ export default function RekapitulasiEProcurementPage() {
     pemohon,
     status,
     tindakLanjut,
+    selectedRing,
     segmen,
     startDate,
     endDate,
@@ -333,6 +357,29 @@ export default function RekapitulasiEProcurementPage() {
                   </select>
                 </div>
 
+                {/* Ring (Parent Segmen) */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    RING
+                  </div>
+                  <select
+                    value={selectedRing}
+                    onChange={(e) => {
+                      setSelectedRing(e.target.value);
+                      setSegmen("ALL");
+                      setPage(1);
+                    }}
+                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
+                  >
+                    <option value="ALL">Semua Ring</option>
+                    {paramRing.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Segmen */}
                 <div className="md:col-span-1">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
@@ -347,9 +394,9 @@ export default function RekapitulasiEProcurementPage() {
                     className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   >
                     <option value="ALL">Semua Segmen</option>
-                    {paramSegmen.map((x) => (
+                    {availableSegmen.map((x) => (
                       <option key={x} value={x}>
-                        {x}
+                        {formatSegmen(x)}
                       </option>
                     ))}
                   </select>
@@ -648,9 +695,9 @@ export default function RekapitulasiEProcurementPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm text-black/50">Segmen</div>
-                      <div className="font-semibold text-black">
-                        {selected.segmen || "-"}
+                      <div className="text-gray-500">Segmen</div>
+                      <div className="font-semibold">
+                        {formatSegmen(selected.segmen || "-")}
                       </div>
                     </div>
                     <div>

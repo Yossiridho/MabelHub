@@ -70,6 +70,7 @@ export default function ParameterPage() {
 
   const [key, setKey] = useState<ParamKey>("kota_kabupaten");
   const [value, setValue] = useState("");
+  const [parentRing, setParentRing] = useState(""); // Untuk Segmen
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -111,13 +112,22 @@ export default function ParameterPage() {
     const v = value.trim();
     if (!v) return;
 
+    let finalValue = v;
+    if (key === "segmen") {
+      if (!parentRing) {
+        setErr("Silakan pilih Parent Ring untuk segmen ini!");
+        return;
+      }
+      finalValue = `${parentRing}::${v}`;
+    }
+
     setSaving(true);
     setErr("");
     try {
       const res = await fetch("/api/parameters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value: v }),
+        body: JSON.stringify({ key, value: finalValue }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error ?? "Gagal tambah");
@@ -200,9 +210,38 @@ export default function ParameterPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-5">
+              {key === "segmen" && (
+                <div className="md:col-span-3">
+                  <div className="text-md font-extrabold tracking-wider text-black">
+                    Parent Ring
+                  </div>
+                  <div className="relative mt-2">
+                    <select
+                      value={parentRing}
+                      onChange={(e) => setParentRing(e.target.value)}
+                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                      <option value="">Pilih Ring...</option>
+                      {listByKey.ring.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-600">
+                      ▾
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={cn(
+                  key === "segmen" ? "md:col-span-2" : "md:col-span-5",
+                )}
+              >
                 <div className="text-md font-extrabold tracking-wider text-black">
-                  Value
+                  Value Baru
                 </div>
                 <input
                   value={value}
@@ -211,7 +250,7 @@ export default function ParameterPage() {
                     if (e.key === "Enter") onAdd();
                   }}
                   className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Isi value baru..."
+                  placeholder="Isi value..."
                 />
               </div>
 
@@ -248,10 +287,8 @@ export default function ParameterPage() {
                   title={KEY_LABEL[k]}
                   items={listByKey[k]}
                   loading={loading}
-                  selected={selectedKey === k ? selectedValue : null}
-                  onPick={(v) => pick(k, v)}
                   onDelete={(v) => onDeleteItem(k, v)}
-                  disabled={saving}
+                  isSegmen={k === "segmen"}
                 />
               ))}
           </section>
@@ -261,22 +298,24 @@ export default function ParameterPage() {
   );
 }
 
+function formatSegmen(raw: string) {
+  if (!raw.includes("::")) return raw;
+  const [r, s] = raw.split("::");
+  return `${s} (${r})`;
+}
+
 function CardList({
   title,
   items,
   loading,
-  selected,
-  onPick,
   onDelete,
-  disabled,
+  isSegmen,
 }: {
   title: string;
   items: string[];
   loading: boolean;
-  selected: string | null;
-  onPick: (v: string) => void;
   onDelete: (v: string) => void;
-  disabled: boolean;
+  isSegmen?: boolean;
 }) {
   const sorted = useMemo(
     () => [...items].sort((a, b) => a.localeCompare(b)),
@@ -299,36 +338,19 @@ function CardList({
         ) : (
           <div className="space-y-2">
             {sorted.map((v) => {
-              const isActive = selected === v;
               return (
                 <div
                   key={v}
-                  className={cn(
-                    "flex items-center justify-between rounded-xl px-4 py-3 ring-1",
-                    isActive
-                      ? "bg-gray-100 ring-gray-300"
-                      : "bg-gray-50 ring-gray-200 hover:bg-gray-200/70",
-                  )}
+                  className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 ring-1 ring-gray-200 hover:bg-gray-200/70"
                 >
-                  <button
-                    type="button"
-                    onClick={() => onPick(v)}
-                    className="flex-1 text-left text-sm font-semibold text-black"
-                    title="Klik untuk pilih"
-                  >
-                    {v}
-                  </button>
+                  <span className="flex-1 text-left text-sm font-semibold text-black">
+                    {isSegmen ? formatSegmen(v) : v}
+                  </span>
 
                   <button
                     type="button"
-                    disabled={disabled}
                     onClick={() => onDelete(v)}
-                    className={cn(
-                      "ml-3 grid h-9 w-9 place-items-center rounded-lg",
-                      disabled
-                        ? "bg-white"
-                        : "bg-gray-100 ring-1 ring-black/10 hover:bg-gray-50",
-                    )}
+                    className="ml-3 grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-black/10 hover:bg-gray-100"
                     aria-label="Delete"
                     title="Hapus"
                   >
