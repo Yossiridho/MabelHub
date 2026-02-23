@@ -252,9 +252,8 @@ export default function RekapitulasiEProcurementPage() {
     <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
         <Sidebar />
-
         <div className="flex-1 h-screen overflow-y-auto p-6">
-          <main className="mx-auto ">
+          <main className="mx-auto">
             {/* Header */}
             <div className="mb-4 flex items-center gap-3">
               <div className="px-6 pt-2 pb-6">

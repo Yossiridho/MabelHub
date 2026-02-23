@@ -15,6 +15,7 @@ type VisitRow = {
   institusi_kerja?: string;
   satuan_kerja?: string;
   status_visit?: string; // "Visited"
+  visit_image?: string;
 };
 
 type PlanRow = {
@@ -25,6 +26,7 @@ type PlanRow = {
   institusi_kerja: string;
   satuan_kerja: string;
   status: string;
+  visit_image: string;
   _sortTs: number; // untuk sorting (baru -> besar)
 };
 
@@ -136,6 +138,15 @@ export default function PlanActivityPage() {
     fetchPlans(page, search);
   }
 
+  function openImageBase64(base64: string) {
+    const w = window.open("");
+    if (w) {
+      w.document.write(
+        `<iframe src="${base64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`,
+      );
+    }
+  }
+
   // Guard role
   useEffect(() => {
     if (!sessionLoading && user) {
@@ -197,6 +208,7 @@ export default function PlanActivityPage() {
           institusi_kerja: v.institusi_kerja || "",
           satuan_kerja: v.satuan_kerja || "",
           status: v.status_visit || "",
+          visit_image: v.visit_image || "",
           _sortTs: sortTs,
         };
       });
@@ -271,6 +283,17 @@ export default function PlanActivityPage() {
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
+            {/* BREADCRUMB */}
+            <nav className="mb-4 pl-4 flex" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2 text-sm font-medium text-gray-500">
+                <li aria-current="page">
+                  <span className="text-black font-extrabold cursor-default">
+                    Plan Activity
+                  </span>
+                </li>
+              </ol>
+            </nav>
+
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
                 PLAN ACTIVITY
@@ -302,36 +325,57 @@ export default function PlanActivityPage() {
             </div>
 
             {/* ACTIONS */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div className="mb-6 flex items-center justify-between bg-white p-4 rounded-xl shadow-sm ring-1 ring-black/5">
+              <div className="text-sm font-medium text-gray-500">
                 {loading
                   ? "Loading..."
-                  : `Total ${totalRows || "-"} • Page ${page} / ${totalPages}`}
+                  : `Total ${totalRows || "-"} Data • Page ${page} of ${totalPages}`}
               </div>
 
               <button
                 onClick={() => router.push("/plan-activity/add")}
-                className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                className="flex items-center gap-2 h-10 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-blue-700 hover:bg-blue-700 hover:shadow transition-all"
               >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
                 ADD PLANS
               </button>
             </div>
 
             {/* TABLE */}
-            <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              <div className="grid grid-cols-7 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
+            <div className="w-full overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-black/5">
+              <div className="grid grid-cols-8 bg-gray-50/80 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
                 <div>Institusi Kerja</div>
                 <div>Satuan Kerja</div>
+                <div className="text-center">Bukti</div>
                 <div className="text-center">Status</div>
                 <div className="text-center">Aksi</div>
               </div>
 
               {grouped.keys.length === 0 ? (
-                <div className="px-4 py-12 text-center text-gray-600">
-                  {loading ? "Loading..." : "Belum ada data."}
+                <div className="px-4 py-16 text-center text-gray-500 bg-gray-50/30">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                      <span>Memuat data...</span>
+                    </div>
+                  ) : (
+                    "Belum ada data plan activity."
+                  )}
                 </div>
               ) : (
                 grouped.keys.map((dateKey) => {
@@ -339,58 +383,145 @@ export default function PlanActivityPage() {
                   const isOpen = !!openDates[dateKey];
 
                   return (
-                    <div key={dateKey} className="border-t border-black/20">
+                    <div
+                      key={dateKey}
+                      className="group border-b border-gray-100 last:border-none"
+                    >
                       <button
                         type="button"
                         onClick={() => toggleDate(dateKey)}
-                        className="flex w-full items-center justify-between bg-white px-2 py-3 pl-6 text-m font-semibold text-black"
+                        className={`flex w-full items-center justify-between px-4 py-3 text-sm font-semibold transition-colors ${
+                          isOpen
+                            ? "bg-blue-50/50 text-blue-800"
+                            : "bg-white text-gray-800 hover:bg-gray-50"
+                        }`}
                       >
-                        <span>
+                        <span className="flex items-center gap-2">
+                          <svg
+                            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-90 text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
                           {dateKey === "UNKNOWN"
                             ? "-"
                             : formatTanggalHeader(dateKey)}
                         </span>
-                        <span className="text-xl font-black">
-                          {isOpen ? "▾" : "▸"}
+                        <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                          {rows.length} {rows.length > 1 ? "Plans" : "Plan"}
                         </span>
                       </button>
 
-                      {isOpen && (
-                        <div>
-                          {rows.map((r) => (
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ${
+                          isOpen
+                            ? "max-h-[5000px] opacity-100"
+                            : "max-h-0 opacity-0"
+                        }`}
+                      >
+                        <div className="bg-gray-50/30">
+                          {rows.map((r, index) => (
                             <div
                               key={r.id}
-                              className="grid grid-cols-7 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
+                              className={`grid grid-cols-8 items-center px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-blue-50/50 ${
+                                index !== rows.length - 1
+                                  ? "border-b border-gray-100"
+                                  : ""
+                              }`}
                             >
                               <div className="opacity-0 select-none">
                                 {r.tanggal}
                               </div>
 
-                              <div className="uppercase">{r.kota || "-"}</div>
-                              <div className="uppercase">{r.klpd || "-"}</div>
-                              <div className="uppercase">
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.kota || "-"}
+                              >
+                                {r.kota || "-"}
+                              </div>
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.klpd || "-"}
+                              >
+                                {r.klpd || "-"}
+                              </div>
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.institusi_kerja || "-"}
+                              >
                                 {r.institusi_kerja || "-"}
                               </div>
-                              <div className="uppercase">
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.satuan_kerja || "-"}
+                              >
                                 {r.satuan_kerja || "-"}
                               </div>
-                              <div className="text-center font-semibold">
-                                {(r.status || "-").toUpperCase()}
+                              <div className="flex justify-center items-center">
+                                {r.visit_image ? (
+                                  <div
+                                    className="w-10 h-10 rounded-lg cursor-pointer ring-1 ring-gray-200 hover:ring-blue-400 hover:shadow-md transition-all flex-shrink-0 bg-cover bg-center"
+                                    style={{
+                                      backgroundImage: `url(${r.visit_image})`,
+                                    }}
+                                    onClick={() =>
+                                      openImageBase64(r.visit_image!)
+                                    }
+                                    title="Lihat foto bukti"
+                                  />
+                                ) : (
+                                  <span className="text-gray-300 text-xs font-medium bg-gray-100 px-2 py-1 rounded">
+                                    N/A
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-center">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                    r.status?.toLowerCase() === "visited"
+                                      ? "bg-green-100 text-green-700"
+                                      : r.status?.toLowerCase() === "planned"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  {r.status || "-"}
+                                </span>
                               </div>
 
                               <div className="text-center">
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEdit(r.id)}
-                                  className="font-semibold hover:underline"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                                  title="Edit Plan"
                                 >
-                                  EDIT
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                    />
+                                  </svg>
                                 </button>
                               </div>
                             </div>
                           ))}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })
@@ -398,24 +529,55 @@ export default function PlanActivityPage() {
             </div>
 
             {/* PAGINATION */}
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
-              >
-                Prev
-              </button>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Menampilkan halaman {page} dari {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || page <= 1}
+                  className="flex items-center gap-1 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  Prev
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
-              >
-                Next
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={loading || page >= totalPages}
+                  className="flex items-center gap-1 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </main>
         </div>
@@ -428,6 +590,8 @@ export default function PlanActivityPage() {
           posisiOptions={posisiOptions}
           statusKunjunganOptions={statusKunjunganOptions}
           kegiatanOptions={kegiatanOptions}
+          currentUserId={user?.userId}
+          currentUserRole={user?.role}
         />
       </div>
     </div>

@@ -117,6 +117,19 @@ export default function DashboardRequestPage() {
     };
   }, [sessionLoading, user]);
 
+  const filteredVisits = visits.filter((v) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (v.nama_sales || "").toLowerCase().includes(q) ||
+      (v.satuan_kerja || "").toLowerCase().includes(q) ||
+      (v.city || "").toLowerCase().includes(q) ||
+      (v.pic_name || "").toLowerCase().includes(q) ||
+      (v.status_visit || "").toLowerCase().includes(q) ||
+      (v.status_ring || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
@@ -220,131 +233,235 @@ export default function DashboardRequestPage() {
           </div>
 
           {/* CHARTS SECTION */}
-            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:auto-rows-fr">
-          <div className="rounded-xl bg-white p-6 shadow lg:row-span-2 lg:col-span-1">
-             <h3 className="mb-4 text-md font-semibold text-black">
-                 VISITS OVERVIEW
-             </h3>
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:auto-rows-fr">
+            <div className="rounded-xl bg-white p-6 shadow lg:row-span-2 lg:col-span-1">
+              <h3 className="mb-4 text-md font-semibold text-black">
+                VISITS OVERVIEW
+              </h3>
 
-           <div className="h-[420px] w-full">
-           {loadingStats ? (
-         <div className="flex h-full items-center justify-center text-gray-400">
-        Loading...
-      </div>
-    ) : (
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={[
-              { name: "Visits", value: stats?.totalVisits || 0 },
-              { name: "Stay Office", value: stats?.stayOffice || 0 },
-              { name: "Not Visited", value: stats?.notVisited || 0 },
-            ]}
-            cx="50%"
-            cy="50%"
-            outerRadius={130}   // dibesarkan
-            paddingAngle={3}
-            dataKey="value"
-            label
-          >
-            <Cell fill="#3b82f6" />
-            <Cell fill="#10b981" />
-            <Cell fill="#ef4444" />
-          </Pie>
+              <div className="h-[420px] w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Visits", value: stats?.totalVisits || 0 },
+                          {
+                            name: "Stay Office",
+                            value: stats?.stayOffice || 0,
+                          },
+                          {
+                            name: "Not Visited",
+                            value: stats?.notVisited || 0,
+                          },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={130} // dibesarkan
+                        paddingAngle={3}
+                        dataKey="value"
+                        label
+                      >
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#10b981" />
+                        <Cell fill="#ef4444" />
+                      </Pie>
 
-          <Tooltip />
-          <Legend verticalAlign="bottom" height={50} />
-        </PieChart>
-      </ResponsiveContainer>
-    )}
-  </div>
-</div>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={50} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
 
-  {/* Market Coverage Chart (KANAN ATAS) */}
-  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
-    <h3 className="mb-4 text-md font-bold text-black">
-      MARKET COVERAGE
-    </h3>
-    <div className="h-64 w-full">
-      {loadingStats ? (
-        <div className="flex h-full items-center justify-center text-gray-400">
-          Loading...
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={[
-              { name: "Sales", count: stats?.salesCount || 0 },
-              { name: "Satker", count: stats?.satkerCount || 0 },
-              { name: "City", count: stats?.cityCount || 0 },
-            ]}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "black" }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "gray" }}
-            />
-            <Tooltip cursor={{ fill: "transparent" }} />
-            <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  </div>
+            {/* Market Coverage Chart (KANAN ATAS) */}
+            <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+              <h3 className="mb-4 text-md font-bold text-black">
+                MARKET COVERAGE
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: "Sales", count: stats?.salesCount || 0 },
+                        { name: "Satker", count: stats?.satkerCount || 0 },
+                        { name: "City", count: stats?.cityCount || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "black" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "gray" }}
+                      />
+                      <Tooltip cursor={{ fill: "transparent" }} />
+                      <Bar
+                        dataKey="count"
+                        fill="#8b5cf6"
+                        radius={[4, 4, 0, 0]}
+                        barSize={40}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
 
-  {/* Ring Distribution Chart (KANAN BAWAH) */}
-  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
-    <h3 className="mb-4 text-md font-bold text-black">
-      RING DISTRIBUTION
-    </h3>
-    <div className="h-64 w-full">
-      {loadingStats ? (
-        <div className="flex h-full items-center justify-center text-gray-400">
-          Loading...
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={[
-              { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
-              { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
-              { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
-              { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
-            ]}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            layout="vertical"
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-            <XAxis
-              type="number"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "#6B7280" }}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "black" }}
-              width={65}
-            />
-            <Tooltip cursor={{ fill: "transparent" }} />
-            <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  </div>
-</div>
+            {/* Ring Distribution Chart (KANAN BAWAH) */}
+            <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+              <h3 className="mb-4 text-md font-bold text-black">
+                RING DISTRIBUTION
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
+                        { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
+                        { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
+                        { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6B7280" }}
+                      />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "black" }}
+                        width={65}
+                      />
+                      <Tooltip cursor={{ fill: "transparent" }} />
+                      <Bar
+                        dataKey="count"
+                        fill="#f59e0b"
+                        radius={[0, 4, 4, 0]}
+                        barSize={20}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RECENT VISITS TABLE */}
+          <div className="mt-6 rounded-xl bg-white p-6 shadow">
+            <h3 className="mb-4 text-md font-bold text-black">RECENT VISITS</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-white">
+                  <tr className="border-b border-black/10">
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Nama Sales
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Satuan Kerja
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      City
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Ring
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Visit Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingTable ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center text-black/60"
+                      >
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : filteredVisits.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center text-black/60"
+                      >
+                        Tidak ada data visit.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredVisits.map((v) => (
+                      <tr
+                        key={v._id}
+                        className="border-b border-black/5 hover:bg-gray-50"
+                      >
+                        <td className="px-3 py-3 text-black">
+                          {v.nama_sales || "-"}
+                        </td>
+                        <td className="px-3 py-3 text-black">
+                          {v.satuan_kerja || "-"}
+                        </td>
+                        <td className="px-3 py-3 text-black">
+                          {v.city || "-"}
+                        </td>
+                        <td className="px-3 py-3 text-black">
+                          {v.status_visit || "-"}
+                        </td>
+                        <td className="px-3 py-3 text-black">
+                          {v.status_ring || "-"}
+                        </td>
+                        <td className="px-3 py-3 text-black">
+                          {v.visit_date
+                            ? new Date(v.visit_date).toLocaleDateString("id-ID")
+                            : "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
