@@ -297,7 +297,7 @@ export default function AddUserPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar />
 

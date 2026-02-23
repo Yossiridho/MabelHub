@@ -13,7 +13,8 @@ type ParamKey =
   | "posisi"
   | "status_kunjungan"
   | "kegiatan"
-  | "perusahaan";
+  | "perusahaan"
+  | "status_akhir";
 
 type ParamDoc = {
   _id: string;
@@ -25,6 +26,7 @@ type ParamDoc = {
   status_kunjungan: string[];
   kegiatan: string[];
   perusahaan: string[];
+  status_akhir: string[];
   updatedAt?: string;
 };
 
@@ -41,6 +43,7 @@ const KEY_LABEL: Record<ParamKey, string> = {
   status_kunjungan: "Status Kunjungan",
   kegiatan: "Kegiatan",
   perusahaan: "Perusahaan",
+  status_akhir: "Status Akhir",
 };
 
 const ALL_KEYS: ParamKey[] = [
@@ -52,6 +55,7 @@ const ALL_KEYS: ParamKey[] = [
   "status_kunjungan",
   "kegiatan",
   "perusahaan",
+  "status_akhir",
 ];
 
 export default function ParameterPage() {
@@ -105,6 +109,7 @@ export default function ParameterPage() {
       status_kunjungan: d?.status_kunjungan ?? [],
       kegiatan: d?.kegiatan ?? [],
       perusahaan: d?.perusahaan ?? [],
+      status_akhir: d?.status_akhir ?? [],
     } as Record<ParamKey, string[]>;
   }, [doc]);
 
@@ -245,7 +250,7 @@ export default function ParameterPage() {
                 </div>
                 <input
                   value={value}
-                  onChange={(e) => setValue(e.target.value)}
+                  onChange={(e) => setValue(e.target.value.toUpperCase())}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") onAdd();
                   }}
@@ -277,7 +282,7 @@ export default function ParameterPage() {
               [
                 ["kota_kabupaten", "klpd", "ring"],
                 ["segmen", "posisi", "status_kunjungan"],
-                ["kegiatan", "perusahaan"],
+                ["kegiatan", "perusahaan", "status_akhir"],
               ] as ParamKey[][]
             )
               .flat()

@@ -39,6 +39,7 @@ type EProcRow = {
   catatanAdmin?: string;
   tayangInaproc?: string;
   statusAkhir?: string;
+  statusUsulan?: string;
 };
 
 function fmtDate(d: string | Date) {
@@ -277,10 +278,12 @@ function FragmentRow({
   const [form, setForm] = useState({
     perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
+    statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
   });
 
   const [companies, setCompanies] = useState<string[]>([]);
+  const [statusAkhirOptions, setStatusAkhirOptions] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -290,10 +293,42 @@ function FragmentRow({
           if (json?.data?.perusahaan) {
             setCompanies(json.data.perusahaan);
           }
+          if (json?.data?.status_akhir) {
+            setStatusAkhirOptions(json.data.status_akhir);
+          }
         })
         .catch(() => {});
     }
   }, [isOpen]);
+
+  const computedStatusUsulan = useMemo(() => {
+    const total = form.items.length;
+    if (total === 0) return "Masuk";
+    let countDone = 0;
+    let countHoldCancel = 0;
+    let countProgress = 0;
+    for (const it of form.items) {
+      const st = (it.statusBarangAdmin || "").toLowerCase();
+      if (st === "done") countDone++;
+      else if (st === "progress") countProgress++;
+      else if (st === "hold" || st === "cancel") countHoldCancel++;
+    }
+
+    if (countProgress > 0) return "Proses";
+    if (countDone === total) return "Done";
+    if (countDone > 0 && countDone + countHoldCancel === total) return "Done";
+    if (countHoldCancel === total) return "Batal";
+    if (countDone > 0 || countHoldCancel > 0) return "Proses";
+    return "Masuk";
+  }, [form.items]);
+
+  const isDone = computedStatusUsulan === "Done";
+
+  useEffect(() => {
+    if (!isDone && form.statusAkhir !== "") {
+      setForm((prev) => ({ ...prev, statusAkhir: "" }));
+    }
+  }, [isDone, form.statusAkhir]);
 
   // check if editable
   // only simple ADMIN who acts as the taker can edit, or SUPERADMIN can edit
@@ -333,17 +368,12 @@ function FragmentRow({
 
   return (
     <>
-      <tr className="border-b border-neutral-100 hover:bg-neutral-50">
-        <td className="px-4 py-3 font-semibold">
-          <button
-            className="text-left hover:underline text-blue-600"
-            onClick={onToggle}
-            type="button"
-            title="Klik untuk lihat detail"
-          >
-            {r.requestId}
-          </button>
-        </td>
+      <tr
+        className="border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer"
+        onClick={onToggle}
+        title="Klik untuk lihat detail"
+      >
+        <td className="px-4 py-3">{r.requestId}</td>
         <td className="px-4 py-3">{r.requestor}</td>
         <td className="px-4 py-3">{r.pemohon}</td>
         <td className="px-4 py-3">{r.lokasi}</td>
@@ -514,14 +544,39 @@ function FragmentRow({
 
                 <div>
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    Status Akhir
+                    Status Usulan (Otomatis)
                   </label>
                   <input
                     className="w-full border rounded-md px-3 py-2 text-sm outline-none bg-neutral-100 text-neutral-600 font-semibold cursor-not-allowed"
-                    value={r.statusAkhir || "Open"}
+                    value={computedStatusUsulan}
                     disabled
                     readOnly
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
+                    Status Akhir (Manual)
+                  </label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                    value={form.statusAkhir}
+                    onChange={(e) =>
+                      setForm({ ...form, statusAkhir: e.target.value })
+                    }
+                    disabled={!canEdit || loading || !isDone}
+                  >
+                    <option value="">
+                      {!isDone
+                        ? "Status Usulan belum Done"
+                        : "Pilih Status Akhir..."}
+                    </option>
+                    {statusAkhirOptions.map((s, i) => (
+                      <option key={i} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="md:col-span-2">
