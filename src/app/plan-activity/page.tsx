@@ -431,21 +431,21 @@ export default function PlanActivityPage() {
             </div>
 
             {/* PAGINATION */}
-            <div className="mt-4 flex items-center justify-end gap-2">
+            <div className="mt-4 flex items-center justify-end gap-4">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
+                className="rounded-lg bg-white px-6 py-2 text-sm text-red-600 font-semibold ring-2 ring-red-200 hover:bg-red-100"
               >
-                Prev
+               Prev
               </button>
 
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
+                className="rounded-lg bg-white px-6 py-2 text-sm text-blue-600 font-semibold ring-2 ring-blue-200 hover:bg-blue-100"
               >
                 Next
               </button>
