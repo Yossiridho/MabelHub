@@ -221,13 +221,12 @@ export default function RekapitulasiVisitPage() {
       <div className="flex min-h-screen">
         <Sidebar />
 
-       <div className="flex-1 p-6 h-screen overflow-y-auto">
-      <div className="px-3 pt-2 pb-2">
-        <h1 className="text-2xl font-extrabold pl-4 text-black">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
+            <h1 className="text-2xl font-extrabold pl-4 text-black">
               REKAPITULASI VISIT
             </h1>
-      <div className="px-6 pb-6">
-        </div>
+            <div className="px-6 pb-6"></div>
           </div>
 
           {/* FILTER CARD */}
@@ -350,37 +349,112 @@ export default function RekapitulasiVisitPage() {
                     rows.map((r) => {
                       const active = selected?._id === r._id;
                       return (
-                        <tr
-                          key={r._id}
-                          onClick={() => setSelected(r)}
-                          className={cn(
-                            "cursor-pointer border-t border-blue-50",
-                            active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
+                        <React.Fragment key={r._id}>
+                          <tr
+                            onClick={() => setSelected(active ? null : r)}
+                            className={cn(
+                              "cursor-pointer border-t border-blue-50 transition-colors",
+                              active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
+                            )}
+                          >
+                            <td
+                              className={cn(
+                                "px-6 py-6 font-extrabold text-[#0B6AA9]",
+                                active
+                                  ? "border-l-[4px] border-blue-600"
+                                  : "border-l-[4px] border-transparent",
+                              )}
+                            >
+                              {r.nama_sales}
+                            </td>
+                            <td className="px-6 py-6 text-gray-800">
+                              {formatDateID(r.visit_date)}
+                            </td>
+                            <td className="px-6 py-6">
+                              <StatusPill value={r.status_visit} />
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.satuan_kerja}
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.city}
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.pic_name}
+                            </td>
+                            <td className="px-6 py-6 text-gray-900">
+                              {r.pic_phone}
+                            </td>
+                            <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
+                              {r.status_ring}
+                            </td>
+                          </tr>
+                          {active && (
+                            <tr className="bg-blue-50/30">
+                              <td
+                                colSpan={8}
+                                className="px-6 py-6 border-l-[4px] border-blue-600 border-b border-blue-100"
+                              >
+                                <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
+                                  <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
+                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
+                                      📖
+                                    </span>
+                                    Detail Kunjungan
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-6 border-t border-gray-100 pt-4">
+                                    <DetailItem
+                                      label="Created At"
+                                      value={formatDateID(r.created_at)}
+                                    />
+                                    <DetailItem
+                                      label="Market Status"
+                                      value={r.status_market}
+                                    />
+                                    <DetailItem label="KLPD" value={r.klpd} />
+                                    <DetailItem
+                                      label="Reschedule"
+                                      value={
+                                        r.reschedule && r.reschedule !== "-"
+                                          ? formatDateID(r.reschedule)
+                                          : "-"
+                                      }
+                                    />
+                                    <DetailItem
+                                      label="Institusi Kerja"
+                                      value={r.institusi_kerja}
+                                    />
+                                    <DetailItem
+                                      label="PIC Position"
+                                      value={r.pic_position}
+                                    />
+                                    <DetailItem
+                                      label="PIC Role"
+                                      value={r.pic_role}
+                                    />
+                                    <DetailItem
+                                      label="Tindak Lanjut"
+                                      value={r.tindak_lanjut}
+                                    />
+                                    <DetailItem
+                                      label="Kegiatan Status"
+                                      value={r.kegiatan_status}
+                                    />
+                                  </div>
+
+                                  <div className="mt-6 border-t border-gray-100 pt-4">
+                                    <div className="text-xs font-extrabold tracking-wider text-gray-500">
+                                      DESKRIPSI
+                                    </div>
+                                    <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
+                                      {r.descriptions || "-"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        >
-                          <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
-                            {r.nama_sales}
-                          </td>
-                          <td className="px-6 py-6 text-gray-800">
-                            {formatDateID(r.visit_date)}
-                          </td>
-                          <td className="px-6 py-6">
-                            <StatusPill value={r.status_visit} />
-                          </td>
-                          <td className="px-6 py-6 text-gray-900">
-                            {r.satuan_kerja}
-                          </td>
-                          <td className="px-6 py-6 text-gray-900">{r.city}</td>
-                          <td className="px-6 py-6 text-gray-900">
-                            {r.pic_name}
-                          </td>
-                          <td className="px-6 py-6 text-gray-900">
-                            {r.pic_phone}
-                          </td>
-                          <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
-                            {r.status_ring}
-                          </td>
-                        </tr>
+                        </React.Fragment>
                       );
                     })
                   )}
@@ -446,87 +520,6 @@ export default function RekapitulasiVisitPage() {
                   ⏭
                 </PageBtn>
               </div>
-            </div>
-          </section>
-
-          {/* DETAIL */}
-          <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div className="flex items-center gap-3 text-lg font-extrabold text-gray-900">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100">
-                  📖
-                </span>
-                Detail Kunjungan
-              </div>
-
-              {selected && (
-                <button
-                  onClick={() => setSelected(null)}
-                  className="rounded-full bg-white px-4 py-2 text-md font-extrabold text-black ring-1 ring-gray-200 hover:bg-gray-100"
-                >
-                  X
-                </button>
-              )}
-            </div>
-
-            <div className="h-px w-full bg-gray-200" />
-
-            <div className="p-6">
-              {!selected ? (
-                <div className="text-sm text-gray-500">
-                  Klik salah satu baris pada tabel untuk melihat detail
-                  kegiatan.
-                </div>
-              ) : (
-                <div className="rounded-xl bg-[#F7F9FB] p-6 ring-1 ring-gray-100">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
-                    <DetailItem
-                      label="Created At"
-                      value={formatDateID(selected.created_at)}
-                    />
-                    <DetailItem
-                      label="Market Status"
-                      value={selected.status_market}
-                    />
-                    <DetailItem label="KLPD" value={selected.klpd} />
-                    <DetailItem
-                      label="Reschedule"
-                      value={
-                        selected.reschedule && selected.reschedule !== "-"
-                          ? formatDateID(selected.reschedule)
-                          : "-"
-                      }
-                    />
-                    <DetailItem
-                      label="Institusi Kerja"
-                      value={selected.institusi_kerja}
-                    />
-                    <DetailItem
-                      label="PIC Position"
-                      value={selected.pic_position}
-                    />
-
-                    <DetailItem label="PIC Role" value={selected.pic_role} />
-                    <DetailItem
-                      label="Tindak Lanjut"
-                      value={selected.tindak_lanjut}
-                    />
-                    <DetailItem
-                      label="Kegiatan Status"
-                      value={selected.kegiatan_status}
-                    />
-                  </div>
-
-                  <div className="mt-6">
-                    <div className="text-xs font-extrabold tracking-wider text-gray-500">
-                      DESKRIPSI
-                    </div>
-                    <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
-                      {selected.descriptions || "-"}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </section>
         </div>

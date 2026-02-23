@@ -85,7 +85,16 @@ export async function GET(req: Request) {
   const skip = (page - 1) * limit;
 
   const q = String(searchParams.get("q") || "").trim();
-  const assignedTo = String(searchParams.get("assignedTo") || "").trim(); // optional
+  const assignedTo = String(searchParams.get("assignedTo") || "").trim();
+
+  // ====== FILTER PARAMS ======
+  const sales = searchParams.get("sales");
+  const status = searchParams.get("status");
+  const ring = searchParams.get("ring");
+  const city = searchParams.get("city");
+  const satker = searchParams.get("satker");
+  const startStr = searchParams.get("start");
+  const endStr = searchParams.get("end");
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
@@ -96,7 +105,6 @@ export async function GET(req: Request) {
   // =========================
   const match: any = {};
 
-  // user_id di dokumen kamu saat ini berisi string userId
   if (session.role === "SALES") {
     match.user_id = session.userId;
   } else if (session.role === "LEADER") {
@@ -124,7 +132,7 @@ export async function GET(req: Request) {
   if (q) {
     const rx = new RegExp(escapeRegex(q), "i");
     match.$or = [
-      { visit_date: rx }, // string "3-Dec-2025"
+      { visit_date: rx },
       { city: rx },
       { klpd: rx },
       { institusi_kerja: rx },
@@ -136,7 +144,30 @@ export async function GET(req: Request) {
   }
 
   // =========================
-  // SORT SAFE: parse date strings
+  // EXACT FILTERS
+  // =========================
+  if (sales) match.nama_sales = sales;
+  if (status) match.status_visit = status;
+  if (ring) match.status_ring = ring;
+  if (city) match.city = city;
+  if (satker) match.satuan_kerja = satker;
+
+  // =========================
+  // DATE RANGE FILTER (Post-Match)
+  // =========================
+  const postMatch: any = {};
+  if (startStr || endStr) {
+    postMatch.__visitDate = {};
+    if (startStr) postMatch.__visitDate.$gte = new Date(startStr);
+    if (endStr) {
+      const endDt = new Date(endStr);
+      endDt.setHours(23, 59, 59, 999);
+      postMatch.__visitDate.$lte = endDt;
+    }
+  }
+
+  // =========================
+  // PIPELINE
   // =========================
   const pipeline: any[] = [
     { $match: match },
@@ -160,18 +191,23 @@ export async function GET(req: Request) {
         },
       },
     },
-    { $sort: { __visitDate: -1, __createdAt: -1, _id: -1 } },
-    {
-      $facet: {
-        items: [
-          { $skip: skip },
-          { $limit: limit },
-          { $project: { __visitDate: 0, __createdAt: 0 } },
-        ],
-        total: [{ $count: "count" }],
-      },
-    },
   ];
+
+  if (Object.keys(postMatch).length > 0) {
+    pipeline.push({ $match: postMatch });
+  }
+
+  pipeline.push({ $sort: { __visitDate: -1, __createdAt: -1, _id: -1 } });
+  pipeline.push({
+    $facet: {
+      items: [
+        { $skip: skip },
+        { $limit: limit },
+        { $project: { __visitDate: 0, __createdAt: 0 } },
+      ],
+      total: [{ $count: "count" }],
+    },
+  });
 
   const agg = await col.aggregate(pipeline).toArray();
   const first = agg?.[0] || { items: [], total: [] };
