@@ -360,7 +360,7 @@ export default function EditVisitModal({
 
               {/* Row 5 / Image Upload/Preview */}
               <div className="col-span-1 md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-gray-800 flex items-center justify-between">
+                <label className="mb-2 text-sm font-medium text-gray-800 flex items-center justify-between">
                   <span>
                     Upload Foto <span className="text-red-500">*</span>
                   </span>

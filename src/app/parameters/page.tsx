@@ -325,7 +325,7 @@ function CardList({
   return (
     <div className="flex flex-col h-full rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden transition-all hover:shadow-md">
       {/* TITLE */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3.5 text-xs font-extrabold tracking-wider text-white uppercase flex items-center justify-between">
+      <div className="bg-linear-to-r from-blue-600 to-blue-700 px-5 py-3.5 text-xs font-extrabold tracking-wider text-white uppercase flex items-center justify-between">
         <div className="flex items-center gap-2">
           <svg
             className="w-4 h-4 opacity-80"

@@ -484,7 +484,7 @@ function AddPlansContent() {
                     <label className="text-xs font-bold tracking-wide text-gray-500 uppercase">
                       Assign To
                     </label>
-                    <div className="mt-2 block w-full rounded-lg bg-gray-50 border-0 py-2.5 px-4 text-gray-500 shadow-sm ring-1 ring-inset ring-gray-200 sm:text-sm sm:leading-6 select-none cursor-not-allowed flex items-center">
+                    <div className="mt-2 w-full rounded-lg bg-gray-50 border-0 py-2.5 px-4 text-gray-500 shadow-sm ring-1 ring-inset ring-gray-200 sm:text-sm sm:leading-6 select-none cursor-not-allowed flex items-center">
                       <svg
                         className="w-4 h-4 mr-2 text-gray-400"
                         fill="none"

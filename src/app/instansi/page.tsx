@@ -765,7 +765,7 @@ export default function InstansiPage() {
                         setLimit(Number(e.target.value));
                         setPage(1);
                       }}
-                      className="!py-1.5 h-auto text-sm"
+                      className="py-1.5! h-auto text-sm"
                     >
                       {[10, 25, 50, 100].map((n) => (
                         <option key={n} value={n}>
