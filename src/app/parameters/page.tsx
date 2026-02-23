@@ -323,38 +323,87 @@ function CardList({
   );
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
+    <div className="flex flex-col h-full rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden transition-all hover:shadow-md">
       {/* TITLE */}
-      <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
-        {title}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3.5 text-xs font-extrabold tracking-wider text-white uppercase flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg
+            className="w-4 h-4 opacity-80"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 10h16M4 14h16M4 18h16"
+            />
+          </svg>
+          {title}
+        </div>
+        <span className="bg-blue-500/50 px-2 py-0.5 rounded-full text-[10px] font-bold">
+          {sorted.length} item
+        </span>
       </div>
 
-      {/* CONTENT */}
-      <div className="bg-white"></div>
-
-      <div className="p-2">
-        {sorted.length === 0 ? (
-          <div className="text-sm text-gray-500">Belum ada data.</div>
+      <div className="p-3 bg-gray-50/50 flex-1 overflow-y-auto max-h-[320px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+        {loading ? (
+          <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
+            <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+            <span className="text-xs font-semibold text-gray-500">
+              Memuat data...
+            </span>
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="py-8 flex flex-col flex-1 items-center justify-center text-sm text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
+            <svg
+              className="w-8 h-8 mb-2 text-gray-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+              />
+            </svg>
+            Belum ada data
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {sorted.map((v) => {
               return (
                 <div
                   key={v}
-                  className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 ring-1 ring-gray-200 hover:bg-gray-200/70"
+                  className="group flex items-center justify-between rounded-xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-gray-200 hover:ring-blue-400 hover:shadow-md transition-all"
                 >
-                  <span className="flex-1 text-left text-sm font-semibold text-black">
+                  <span className="flex-1 text-left text-sm font-bold text-gray-700 group-hover:text-blue-700 transition-colors">
                     {isSegmen ? formatSegmen(v) : v}
                   </span>
 
                   <button
                     type="button"
                     onClick={() => onDelete(v)}
-                    className="ml-3 grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-black/10 hover:bg-gray-100"
+                    className="ml-3 flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 ring-1 ring-red-200 hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all opacity-70 group-hover:opacity-100"
                     aria-label="Delete"
                     title="Hapus"
                   >
-                    🗑️
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
                   </button>
                 </div>
               );
