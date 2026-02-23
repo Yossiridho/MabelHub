@@ -146,6 +146,27 @@ export default function AddInstansiPage() {
   const [forms, setForms] = useState<InstansiForm[]>([emptyForm()]);
   const [saving, setSaving] = useState(false);
 
+  // parameter master list
+  const [paramKotaKab, setParamKotaKab] = useState<string[]>([]);
+  const [paramKlpd, setParamKlpd] = useState<string[]>([]);
+  const [paramRing, setParamRing] = useState<string[]>([]);
+  const [paramPosisi, setParamPosisi] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) {
+          setParamKotaKab(d.kota_kabupaten || []);
+          setParamKlpd(d.klpd || []);
+          setParamRing(d.ring || []);
+          setParamPosisi(d.posisi || []);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // file upload excel (opsional, kalau kamu tetap pakai)
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -317,21 +338,23 @@ export default function AddInstansiPage() {
           <main className="mx-auto pt-4 max-w-10xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
-              <div className="flex items-start gap-3">
-             <button
-                onClick={() => router.back()}
-                className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
-                aria-label="Back"
-              >
-                ←
-              </button>
-                <div className="flex flex-col">
-                <h1 className="text-2xl font-extrabold text-black">{title}</h1>
-                <p className="text-xs text-black/60">{subtitle}</p>
-              </div>
+                <div className="flex items-start gap-3">
+                  <button
+                    onClick={() => router.back()}
+                    className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-gray-700 shadow-sm ring-1 ring-black/10 hover:bg-white"
+                    aria-label="Back"
+                  >
+                    ←
+                  </button>
+                  <div className="flex flex-col">
+                    <h1 className="text-2xl font-extrabold text-black">
+                      {title}
+                    </h1>
+                    <p className="text-xs text-black/60">{subtitle}</p>
+                  </div>
+                </div>
               </div>
             </div>
-           </div>
 
             {/* card container */}
             <div className="pt-6 rounded-2xl bg-white p-6 ring-1 ring-gray-200">
@@ -383,23 +406,35 @@ export default function AddInstansiPage() {
 
                           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <Field label="KOTA/KABUPATEN">
-                              <Input
+                              <Select
                                 value={form.kota_kab}
                                 onChange={(e) =>
                                   updateForm(idx, { kota_kab: e.target.value })
                                 }
-                                placeholder="Contoh: Kota Bandung"
-                              />
+                              >
+                                <option value="">Pilih...</option>
+                                {paramKotaKab.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </Select>
                             </Field>
 
                             <Field label="KLPD">
-                              <Input
+                              <Select
                                 value={form.klpd}
                                 onChange={(e) =>
                                   updateForm(idx, { klpd: e.target.value })
                                 }
-                                placeholder="Contoh: BUMN / B2B / Kementerian..."
-                              />
+                              >
+                                <option value="">Pilih...</option>
+                                {paramKlpd.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </Select>
                             </Field>
                           </div>
 
@@ -426,10 +461,11 @@ export default function AddInstansiPage() {
                                 }
                               >
                                 <option value="">Pilih...</option>
-                                <option value="RING 1">RING 1</option>
-                                <option value="RING 2">RING 2</option>
-                                <option value="RING 3">RING 3</option>
-                                <option value="RING 4">RING 4</option>
+                                {paramRing.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
                               </Select>
                             </Field>
                           </div>
@@ -455,10 +491,11 @@ export default function AddInstansiPage() {
                                 }
                               >
                                 <option value="">Pilih...</option>
-                                <option value="Kepala">Kepala</option>
-                                <option value="Staff">Staff</option>
-                                <option value="Pengadaan">Pengadaan</option>
-                                <option value="IT">IT</option>
+                                {paramPosisi.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
                               </Select>
                             </Field>
                           </div>
@@ -506,8 +543,10 @@ export default function AddInstansiPage() {
 
                 {/* footer fixed */}
                 <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-                  <PrimaryButton onClick={addMore}
-                    className="bg-blue-600 text-gray-100 hover:bg-blue-700">
+                  <PrimaryButton
+                    onClick={addMore}
+                    className="bg-blue-600 text-gray-100 hover:bg-blue-700"
+                  >
                     TAMBAH INSTANSI
                   </PrimaryButton>
 

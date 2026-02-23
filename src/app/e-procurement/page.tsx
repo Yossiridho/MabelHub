@@ -12,8 +12,6 @@ type TeamMember = {
   role: string;
 };
 
-type Segment = "RING 1" | "RING 2" | "RING 3" | "RING 4";
-
 type ProductItem = {
   id: string;
   merek: string;
@@ -25,8 +23,6 @@ type ProductItem = {
   linkInaproc: string;
   linkEcom: string;
 };
-
-const SEGMENTS: Segment[] = ["RING 1", "RING 2", "RING 3", "RING 4"];
 
 function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
@@ -94,13 +90,24 @@ export default function EProcurementRequestPage() {
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([]);
   const [assignedToUserId, setAssignedToUserId] = useState(""); // "" = self
 
-  // ===== Header form state =====
   const [requestor, setRequestor] = useState("");
   const [pemohon, setPemohon] = useState("");
-  const [segmen, setSegmen] = useState<Segment | "">("");
+  const [segmen, setSegmen] = useState<string>("");
   const [deadline, setDeadline] = useState<string>("");
   const [lokasi, setLokasi] = useState("");
   const [catatanHeader, setCatatanHeader] = useState("");
+
+  // Parameter API
+  const [paramSegmen, setParamSegmen] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) setParamSegmen(d.segmen || []);
+      })
+      .catch(() => {});
+  }, []);
 
   // ===== ID info (footer) =====
   const [infoId, setInfoId] = useState("REQ-");
@@ -274,7 +281,7 @@ export default function EProcurementRequestPage() {
 
       setRequestor(data.requestor ?? "");
       setPemohon(data.pemohon ?? "");
-      setSegmen((data.segmen ?? "") as any);
+      setSegmen((data.segmen ?? "") as string);
       setDeadline(data.deadlineUsulan ?? "");
       setLokasi(data.lokasi ?? "");
       setCatatanHeader(data.catatan ?? "");
@@ -414,11 +421,11 @@ export default function EProcurementRequestPage() {
                 <div className="relative mt-2">
                   <select
                     value={segmen}
-                    onChange={(e) => setSegmen(e.target.value as Segment)}
+                    onChange={(e) => setSegmen(e.target.value)}
                     className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
                   >
                     <option value="">-- Pilih --</option>
-                    {SEGMENTS.map((s) => (
+                    {paramSegmen.map((s) => (
                       <option key={s} value={s}>
                         {s}
                       </option>

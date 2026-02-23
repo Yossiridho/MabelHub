@@ -6,22 +6,24 @@ import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 
 type ParamKey =
-  | "sales"
-  | "segmen"
-  | "status_kunjungan"
-  | "posisi"
-  | "kegiatan"
+  | "kota_kabupaten"
   | "klpd"
+  | "ring"
+  | "segmen"
+  | "posisi"
+  | "status_kunjungan"
+  | "kegiatan"
   | "perusahaan";
 
 type ParamDoc = {
   _id: string;
-  sales: string[];
-  segmen: string[];
-  status_kunjungan: string[];
-  posisi: string[];
-  kegiatan: string[];
+  kota_kabupaten: string[];
   klpd: string[];
+  ring: string[];
+  segmen: string[];
+  posisi: string[];
+  status_kunjungan: string[];
+  kegiatan: string[];
   perusahaan: string[];
   updatedAt?: string;
 };
@@ -31,23 +33,25 @@ function cn(...s: Array<string | false | null | undefined>) {
 }
 
 const KEY_LABEL: Record<ParamKey, string> = {
-  sales: "Sales",
-  segmen: "Segmen",
-  status_kunjungan: "Status Kunjungan",
-  posisi: "Posisi",
-  kegiatan: "Kegiatan",
+  kota_kabupaten: "Kota/Kabupaten",
   klpd: "KLPD",
+  ring: "Ring",
+  segmen: "Segmen",
+  posisi: "Posisi",
+  status_kunjungan: "Status Kunjungan",
+  kegiatan: "Kegiatan",
   perusahaan: "Perusahaan",
 };
 
 const ALL_KEYS: ParamKey[] = [
-  "perusahaan",
-  "sales",
-  "segmen",
-  "status_kunjungan",
-  "posisi",
-  "kegiatan",
+  "kota_kabupaten",
   "klpd",
+  "ring",
+  "segmen",
+  "posisi",
+  "status_kunjungan",
+  "kegiatan",
+  "perusahaan",
 ];
 
 export default function ParameterPage() {
@@ -64,7 +68,7 @@ export default function ParameterPage() {
   const [doc, setDoc] = useState<ParamDoc | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [key, setKey] = useState<ParamKey>("sales");
+  const [key, setKey] = useState<ParamKey>("kota_kabupaten");
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
@@ -92,12 +96,13 @@ export default function ParameterPage() {
   const listByKey = useMemo(() => {
     const d = doc;
     return {
-      sales: d?.sales ?? [],
-      segmen: d?.segmen ?? [],
-      status_kunjungan: d?.status_kunjungan ?? [],
-      posisi: d?.posisi ?? [],
-      kegiatan: d?.kegiatan ?? [],
+      kota_kabupaten: d?.kota_kabupaten ?? [],
       klpd: d?.klpd ?? [],
+      ring: d?.ring ?? [],
+      segmen: d?.segmen ?? [],
+      posisi: d?.posisi ?? [],
+      status_kunjungan: d?.status_kunjungan ?? [],
+      kegiatan: d?.kegiatan ?? [],
       perusahaan: d?.perusahaan ?? [],
     } as Record<ParamKey, string[]>;
   }, [doc]);
@@ -231,9 +236,9 @@ export default function ParameterPage() {
           <section className="mt-6 grid gap-6 md:grid-cols-3">
             {(
               [
-                ["perusahaan", "sales", "segmen"],
-                ["status_kunjungan", "posisi", "kegiatan"],
-                ["klpd"],
+                ["kota_kabupaten", "klpd", "ring"],
+                ["segmen", "posisi", "status_kunjungan"],
+                ["kegiatan", "perusahaan"],
               ] as ParamKey[][]
             )
               .flat()

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
@@ -105,6 +105,18 @@ function AddPlansContent() {
   const [tanggal, setTanggal] = useState("");
   const [items, setItems] = useState<PlanItem[]>([newItem()]);
   const [saving, setSaving] = useState(false);
+
+  // parameter master list
+  const [paramRing, setParamRing] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) setParamRing(d.ring || []);
+      })
+      .catch(() => {});
+  }, []);
 
   // ✅ Assignee logic
   const canPickAssignee =
@@ -432,10 +444,11 @@ function AddPlansContent() {
                         className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                       >
                         <option value="">Pilih...</option>
-                        <option value="RING 1">RING 1</option>
-                        <option value="RING 2">RING 2</option>
-                        <option value="RING 3">RING 3</option>
-                        <option value="RING 4">RING 4</option>
+                        {paramRing.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -577,13 +590,7 @@ function AddPlansContent() {
 
 export default function AddPlansPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<div>Loading...</div>}>
       <AddPlansContent />
     </Suspense>
   );

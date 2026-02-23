@@ -105,13 +105,10 @@ export default function PlanActivityPage() {
   const [totalRows, setTotalRows] = useState(0);
 
   // parameter options
-  const [posisiOptions, setPosisiOptions] = useState<string[]>([
-    "Kepala",
-    "Staff",
-  ]);
+  const [posisiOptions, setPosisiOptions] = useState<string[]>([]);
   const [statusKunjunganOptions, setStatusKunjunganOptions] = useState<
     string[]
-  >(["Visited", "Negosiasi", "Fup Lead", "Reschedule", "Stay Office"]);
+  >([]);
   const [kegiatanOptions, setKegiatanOptions] = useState<string[]>([]);
 
   // edit modal state
@@ -124,7 +121,8 @@ export default function PlanActivityPage() {
       .then((r) => r.json())
       .then((res) => {
         const data = res?.data || {};
-        // posisi and statusKunjungan are now static
+        setPosisiOptions(data.posisi || []);
+        setStatusKunjunganOptions(data.status_kunjungan || []);
         setKegiatanOptions(data.kegiatan || []);
       })
       .catch(console.error);
