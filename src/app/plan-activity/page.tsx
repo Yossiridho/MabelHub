@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import EditVisitModal from "@/components/modals/EditVisitModal";
 
 type VisitRow = {
   _id: string;
@@ -99,6 +100,42 @@ export default function PlanActivityPage() {
   const limit = 25;
   const [totalPages, setTotalPages] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
+
+  // parameter options
+  const [posisiOptions, setPosisiOptions] = useState<string[]>([
+    "Kepala",
+    "Staff",
+  ]);
+  const [statusKunjunganOptions, setStatusKunjunganOptions] = useState<
+    string[]
+  >(["Visited", "Negosiasi", "Fup Lead", "Reschedule", "Stay Office"]);
+  const [kegiatanOptions, setKegiatanOptions] = useState<string[]>([]);
+
+  // edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editId, setEditId] = useState("");
+
+  // fetch parameters
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((r) => r.json())
+      .then((res) => {
+        const data = res?.data || {};
+        // posisi and statusKunjungan are now static
+        setKegiatanOptions(data.kegiatan || []);
+      })
+      .catch(console.error);
+  }, []);
+
+  function handleOpenEdit(id: string) {
+    setEditId(id);
+    setEditModalOpen(true);
+  }
+
+  function handleEditSuccess() {
+    setEditModalOpen(false);
+    fetchPlans(page, search);
+  }
 
   // Guard role
   useEffect(() => {
@@ -235,7 +272,7 @@ export default function PlanActivityPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold tracking-wide text-black">
+              <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
                 PLAN ACTIVITY
               </h2>
 
@@ -344,11 +381,7 @@ export default function PlanActivityPage() {
                               <div className="text-center">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    router.push(
-                                      `/plan-activity/add?edit=${r.id}`,
-                                    )
-                                  }
+                                  onClick={() => handleOpenEdit(r.id)}
                                   className="font-semibold hover:underline"
                                 >
                                   EDIT
@@ -370,7 +403,7 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Prev
               </button>
@@ -379,13 +412,23 @@ export default function PlanActivityPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
               >
                 Next
               </button>
             </div>
           </main>
         </div>
+
+        <EditVisitModal
+          isOpen={editModalOpen}
+          editId={editId}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+          posisiOptions={posisiOptions}
+          statusKunjunganOptions={statusKunjunganOptions}
+          kegiatanOptions={kegiatanOptions}
+        />
       </div>
     </div>
   );

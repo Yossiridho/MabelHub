@@ -3,8 +3,22 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { Bell } from "lucide-react";
+import { Search } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 type DashboardStats = {
   totalVisits: number;
@@ -47,7 +61,6 @@ export default function DashboardRequestPage() {
   useEffect(() => {
     if (!sessionLoading && user) {
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
-
       }
     }
   }, [sessionLoading, user, router]);
@@ -105,16 +118,15 @@ export default function DashboardRequestPage() {
   }, [sessionLoading, user]);
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* SIDEBAR */}
         <Sidebar />
 
         {/* CONTENT */}
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-semibold">VISIT DASHBOARD</h2>
+            <h2 className="text-2xl pl-4 font-extrabold">VISIT DASHBOARD</h2>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
@@ -126,26 +138,7 @@ export default function DashboardRequestPage() {
                   className="h-12 w-full rounded-full bg-white px-6 pr-14 text-sm shadow-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
                 />
                 <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-gray-500">
-                  {/* search icon */}
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M16.5 16.5 21 21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <Search className="h-5 w-5" />
                 </span>
               </div>
 
@@ -226,89 +219,132 @@ export default function DashboardRequestPage() {
             </div>
           </div>
 
-          {/* FILTER */}
-          <div className="mb-6 rounded-xl bg-white/70 p-5 shadow backdrop-blur-md">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-              {[
-                "Semua Sales",
-                "Tanggal Mulai",
-                "Tanggal Akhir",
-                "Semua Status",
-                "Semua Ring",
-                "Semua City",
-              ].map((label) => (
-                <select
-                  key={label}
-                  className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm"
-                >
-                  <option>{label}</option>
-                </select>
-              ))}
-            </div>
+          {/* CHARTS SECTION */}
+            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:auto-rows-fr">
+          <div className="rounded-xl bg-white p-6 shadow lg:row-span-2 lg:col-span-1">
+             <h3 className="mb-4 text-md font-semibold text-black">
+                 VISITS OVERVIEW
+             </h3>
 
-            <div className="mt-4">
-              <select className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm">
-                <option>Semua Satker</option>
-              </select>
-            </div>
-          </div>
+           <div className="h-[420px] w-full">
+           {loadingStats ? (
+         <div className="flex h-full items-center justify-center text-gray-400">
+        Loading...
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={[
+              { name: "Visits", value: stats?.totalVisits || 0 },
+              { name: "Stay Office", value: stats?.stayOffice || 0 },
+              { name: "Not Visited", value: stats?.notVisited || 0 },
+            ]}
+            cx="50%"
+            cy="50%"
+            outerRadius={130}   // dibesarkan
+            paddingAngle={3}
+            dataKey="value"
+            label
+          >
+            <Cell fill="#3b82f6" />
+            <Cell fill="#10b981" />
+            <Cell fill="#ef4444" />
+          </Pie>
 
-          {/* TABLE */}
-          <div className="rounded-xl bg-white shadow-lg">
-            <table className="w-full text-sm">
-              <thead className="bg-white text-blue-700">
-                <tr>
-                  {[
-                    "NAMA SALES",
-                    "VISIT DATE",
-                    "STATUS",
-                    "SATUAN KERJA",
-                    "CITY",
-                    "PIC NAME",
-                    "PIC PHONE",
-                    "RING",
-                  ].map((header) => (
-                    <th key={header} className="rounded-xl px-4 py-3 text-left">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+          <Tooltip />
+          <Legend verticalAlign="bottom" height={50} />
+        </PieChart>
+      </ResponsiveContainer>
+    )}
+  </div>
+</div>
 
-              <tbody>
-                {loadingTable ? (
-                  <tr>
-                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
-                      Loading data...
-                    </td>
-                  </tr>
-                ) : visits.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-4 text-gray-500" colSpan={8}>
-                      Belum ada data.
-                    </td>
-                  </tr>
-                ) : (
-                  visits.map((row) => (
-                    <tr key={row._id} className="border-t">
-                      <td className="px-4 py-3">{row.nama_sales ?? "-"}</td>
-                      <td className="px-4 py-3">
-                        {row.visit_date
-                          ? new Date(row.visit_date).toLocaleDateString("id-ID")
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3">{row.status_visit ?? "-"}</td>
-                      <td className="px-4 py-3">{row.satuan_kerja ?? "-"}</td>
-                      <td className="px-4 py-3">{row.city ?? "-"}</td>
-                      <td className="px-4 py-3">{row.pic_name ?? "-"}</td>
-                      <td className="px-4 py-3">{row.pic_phone ?? "-"}</td>
-                      <td className="px-4 py-3">{row.status_ring ?? "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+  {/* Market Coverage Chart (KANAN ATAS) */}
+  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+    <h3 className="mb-4 text-md font-bold text-black">
+      MARKET COVERAGE
+    </h3>
+    <div className="h-64 w-full">
+      {loadingStats ? (
+        <div className="flex h-full items-center justify-center text-gray-400">
+          Loading...
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={[
+              { name: "Sales", count: stats?.salesCount || 0 },
+              { name: "Satker", count: stats?.satkerCount || 0 },
+              { name: "City", count: stats?.cityCount || 0 },
+            ]}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "black" }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "gray" }}
+            />
+            <Tooltip cursor={{ fill: "transparent" }} />
+            <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  </div>
+
+  {/* Ring Distribution Chart (KANAN BAWAH) */}
+  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+    <h3 className="mb-4 text-md font-bold text-black">
+      RING DISTRIBUTION
+    </h3>
+    <div className="h-64 w-full">
+      {loadingStats ? (
+        <div className="flex h-full items-center justify-center text-gray-400">
+          Loading...
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={[
+              { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
+              { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
+              { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
+              { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
+            ]}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            layout="vertical"
+          >
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+            <XAxis
+              type="number"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#6B7280" }}
+            />
+            <YAxis
+              dataKey="name"
+              type="category"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "black" }}
+              width={65}
+            />
+            <Tooltip cursor={{ fill: "transparent" }} />
+            <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>

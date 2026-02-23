@@ -114,8 +114,6 @@ export default function AddPlansPage() {
 
   useEffect(() => {
     if (editId) {
-      // saran: edit single => bikin page /plan-activity/edit/[id]
-      // bulk mode tidak enak kalau dipaksa edit
     }
   }, [editId])
 
@@ -227,7 +225,9 @@ export default function AddPlansPage() {
       setSaving(true)
 
       const payload = {
-        tanggal, // yyyy-mm-dd
+        tanggal, 
+        createdBy: user?.userId || null, 
+        nama_sales: user?.fullName || null, 
         items: items.map((it) => ({
           status_ring: it.status_ring,
           institusi_kerja: it.institusiQuery,
@@ -283,11 +283,11 @@ export default function AddPlansPage() {
 
               {user?.role === 'SALES' && (
                 <button
-                  type='button'
-                  onClick={() => router.push('/tambah-instansi')}
-                  className='rounded-full bg-white px-5 py-2 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50'
+                  type="button"
+                  onClick={() => router.push("/tambah-instansi")}
+                  className="rounded-full bg-white px-6 py-3 text-md font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
                 >
-                  Register Company
+                  REGISTER INSTANSI
                 </button>
               )}
             </div>
@@ -299,7 +299,7 @@ export default function AddPlansPage() {
                 type='date'
                 value={tanggal}
                 onChange={(e) => setTanggal(e.target.value)}
-                className='mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none'
+                className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-md ring-1 ring-black/10 outline-none"
               />
             </div>
 
@@ -308,20 +308,20 @@ export default function AddPlansPage() {
               {items.map((it, idx) => (
                 <div
                   key={it.id}
-                  className='rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10 relative'
+                  className="rounded-2xl bg-white p-6 ring-1 ring-black/10 relative"
                 >
-                  <div className='mb-4 flex items-center justify-between'>
-                    <div className='font-extrabold text-black'>
-                      PLAN #{idx + 1}
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="font-extrabold text-black">
+                      PLAN {idx + 1}
                     </div>
 
                     {items.length > 1 && (
                       <button
                         type='button'
                         onClick={() => removeItem(it.id)}
-                        className='text-sm font-bold text-red-700 hover:underline'
+                        className="rounded-full bg-gray-50 text-black px-3 py-2 text-md font-extrabold ring-1 ring-gray-300 hover:bg-gray-200"
                       >
-                        Hapus Plan
+                        X
                       </button>
                     )}
                   </div>
@@ -363,7 +363,7 @@ export default function AddPlansPage() {
                           patchItem(it.id, { status_ring: ring })
                           resetCompanyFields(it.id)
                         }}
-                        className='mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none'
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                       >
                         <option value=''>Pilih...</option>
                         <option value='RING 1'>RING 1</option>
@@ -407,7 +407,7 @@ export default function AddPlansPage() {
                               ? 'Pilih Ring dulu'
                               : 'Ketik nama institusi...'
                           }
-                          className='h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none disabled:bg-gray-100'
+                          className="h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                         />
 
                         {it.showSug && it.status_ring && (
@@ -417,7 +417,7 @@ export default function AddPlansPage() {
                                 Loading...
                               </div>
                             ) : it.sugs.length === 0 ? (
-                              <div className='px-4 py-3 text-sm text-gray-500'>
+                              <div className="px-4 py-4 text-sm text-gray-500">
                                 Tidak ada instansi approved untuk ring ini.
                               </div>
                             ) : (
@@ -438,22 +438,16 @@ export default function AddPlansPage() {
                               ))
                             )}
 
-                            <div className='flex items-center justify-between border-t px-3 py-2'>
+                            <div className="flex items-center justify-between border-t border-gray-300 px-3 py-2">
                               <button
                                 type='button'
                                 onClick={() =>
                                   patchItem(it.id, { showSug: false })
                                 }
-                                className='rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50'
+                                className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
                               >
                                 Tutup
                               </button>
-
-                              <div className='text-xs text-gray-500'>
-                                {it.selectedCompany
-                                  ? 'Dipilih ✓'
-                                  : 'Belum dipilih'}
-                              </div>
                             </div>
                           </div>
                         )}
@@ -466,7 +460,7 @@ export default function AddPlansPage() {
                       <input
                         value={it.kota_kab}
                         readOnly
-                        className='mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none'
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
 
@@ -475,7 +469,7 @@ export default function AddPlansPage() {
                       <input
                         value={it.klpd}
                         readOnly
-                        className='mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none'
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
 
@@ -484,7 +478,7 @@ export default function AddPlansPage() {
                       <input
                         value={it.satuan_kerja}
                         readOnly
-                        className='mt-2 h-12 w-full rounded-xl bg-gray-200 px-4 text-sm ring-1 ring-black/10 outline-none'
+                        className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
                       />
                     </div>
                   </div>
@@ -497,16 +491,16 @@ export default function AddPlansPage() {
               <button
                 type='button'
                 onClick={addItem}
-                className='h-11 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50'
+                className="h-12 rounded-full bg-green-600 px-8 text-md font-extrabold text-gray-100 ring-1 ring-black/10 hover:bg-green-700"
               >
-                + Tambah Plan
+               TAMBAH PLAN
               </button>
 
               <button
                 type='button'
                 onClick={submitAll}
                 disabled={!canSubmit || saving}
-                className='h-12 w-56 rounded-full bg-gray-300 text-base font-extrabold ring-1 ring-black/10 hover:bg-gray-200 disabled:opacity-50'
+                className="h-12 w-56 rounded-full bg-blue-600 text-md font-extrabold text-gray-100 ring-1 ring-black/10 hover:bg-blue-700"
               >
                 {saving ? 'SAVING...' : 'SUBMIT'}
               </button>

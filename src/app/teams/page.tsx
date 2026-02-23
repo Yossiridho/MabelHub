@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import Sidebar from "@/components/sidebar/sidebar";
-import { useSession } from "@/components/session/SessionProvider"; // <- sesuaikan path kalau berbeda
-import type { Role } from "@/lib/menu";
+import { useSession } from "@/components/session/SessionProvider";
 
 type TeamDoc = {
   _id: string;
@@ -28,11 +27,18 @@ function displayName(u: UserLite) {
   return (u.fullName || "").trim() || (u.username || "").trim() || u._id;
 }
 
+function pickArrayData(json: any) {
+  // kompatibel untuk { data: [...] } atau legacy { users: [...] } / { teams: [...] }
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.teams)) return json.teams;
+  if (Array.isArray(json?.users)) return json.users;
+  if (Array.isArray(json)) return json;
+  return [];
+}
+
 export default function SuperadminTeamsPage() {
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
-
-  const role = (user?.role ?? "SALES") as Role;
 
   const [teams, setTeams] = useState<TeamDoc[]>([]);
   const [users, setUsers] = useState<UserLite[]>([]);
@@ -48,12 +54,15 @@ export default function SuperadminTeamsPage() {
   // Guard UI by session (bukan hardcode)
   useEffect(() => {
     if (sessionLoading) return;
+
     if (!user) {
       router.replace("/");
       return;
     }
+
     if (user.role !== "SUPERADMIN") {
-      router.replace("/dashboard"); // atau route default kamu
+      router.replace("/dashboard");
+      return;
     }
   }, [sessionLoading, user, router]);
 
@@ -64,8 +73,12 @@ export default function SuperadminTeamsPage() {
   const sales = useMemo(() => users.filter((u) => u.role === "SALES"), [users]);
 
   async function loadAll() {
+    // hanya boleh jalan untuk SUPERADMIN
+    if (!user || user.role !== "SUPERADMIN") return;
+
     setLoading(true);
     setErr("");
+
     try {
       const [tRes, uRes] = await Promise.all([
         fetch("/api/teams", { cache: "no-store" }),
@@ -75,16 +88,19 @@ export default function SuperadminTeamsPage() {
       const tJson = await tRes.json().catch(() => ({}));
       const uJson = await uRes.json().catch(() => ({}));
 
-      const tArr = Array.isArray(tJson?.teams)
-        ? tJson.teams
-        : Array.isArray(tJson)
-          ? tJson
-          : [];
-      const uArr = Array.isArray(uJson?.users)
-        ? uJson.users
-        : Array.isArray(uJson)
-          ? uJson
-          : [];
+      if (!tRes.ok) {
+        setErr(tJson?.error || "Gagal load teams");
+        setTeams([]);
+        return;
+      }
+      if (!uRes.ok) {
+        setErr(uJson?.error || "Gagal load users");
+        setUsers([]);
+        return;
+      }
+
+      const tArr = pickArrayData(tJson);
+      const uArr = pickArrayData(uJson);
 
       setTeams(
         tArr.map((t: any) => ({
@@ -113,11 +129,11 @@ export default function SuperadminTeamsPage() {
   }
 
   useEffect(() => {
-    // hanya load data setelah session ready & superadmin
     if (sessionLoading) return;
     if (!user || user.role !== "SUPERADMIN") return;
     loadAll();
-  }, [sessionLoading, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionLoading, user?.role]);
 
   function toggleMember(id: string) {
     setMemberIds((prev) =>
@@ -126,6 +142,8 @@ export default function SuperadminTeamsPage() {
   }
 
   async function createTeam() {
+    if (!user || user.role !== "SUPERADMIN") return;
+
     setErr("");
     const nm = name.trim();
     if (!nm) return setErr("Nama team wajib diisi");
@@ -148,6 +166,7 @@ export default function SuperadminTeamsPage() {
       setName("");
       setLeaderId("");
       setMemberIds([]);
+
       await loadAll();
     } catch (e: any) {
       setErr(e?.message || "Gagal membuat team");
@@ -156,28 +175,22 @@ export default function SuperadminTeamsPage() {
     }
   }
 
-  // kalau session belum siap atau bukan superadmin → render kosong/simple
   if (sessionLoading) return null;
   if (!user || user.role !== "SUPERADMIN") return null;
 
   return (
-    <div className="min-h-screen bg-white">
-      <Sidebar role={role} />
+    <div className="min-h-screen bg-blue-50">
+      <div className="flex">
+      <Sidebar />
 
-      <div className="mx-auto max-w-6xl px-4 py-6 lg:pl-72">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Teams</h1>
-            <p className="text-sm text-gray-500">Kelola team (SUPERADMIN).</p>
-          </div>
-
-          <button
-            onClick={loadAll}
-            className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50"
-            disabled={loading}
-          >
-            {loading ? "Loading..." : "Refresh"}
-          </button>
+       <div className="flex-1 p-6 h-screen overflow-y-auto">
+      <div className="px-3 pt-2 pb-2">
+        <h1 className="text-2xl font-extrabold pl-4 text-black">
+              TEAMS
+              </h1>
+            <div className="mt-2 text-sm text-neutral-600">
+              Kelola Teams by (SUPERADMIN)
+            </div>
         </div>
 
         {err ? (
@@ -186,7 +199,7 @@ export default function SuperadminTeamsPage() {
           </div>
         ) : null}
 
-        <div className="mt-6 rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Buat Team Baru</h2>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -262,7 +275,7 @@ export default function SuperadminTeamsPage() {
                 setMemberIds([]);
                 setErr("");
               }}
-              className="h-10 rounded-xl border border-gray-200 px-4 text-sm hover:bg-gray-50"
+              className="h-10 rounded-xl border border-gray-400 px-4 text-sm font-semibold hover:bg-gray-100"
               disabled={creating}
             >
               Reset
@@ -270,7 +283,7 @@ export default function SuperadminTeamsPage() {
 
             <button
               onClick={createTeam}
-              className="h-10 rounded-xl bg-black px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+              className="h-10 rounded-xl bg-black px-4 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
               disabled={creating}
             >
               {creating ? "Membuat..." : "Create Team"}
@@ -278,14 +291,15 @@ export default function SuperadminTeamsPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-gray-200 shadow-sm">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-lg font-semibold">Daftar Team</h2>
+
+          <div className="px-5 pt-8">
+            <h2 className="text-2xl font-semibold">DAFTAR TEAM</h2>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs font-semibold text-gray-600">
+        <div className="mt-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <div className="overflow-x-auto px-5 py-4">
+            <table className="w-full text-left text-md">
+              <thead className="bg-white font-semibold text-black">
                 <tr>
                   <th className="px-5 py-3">Nama</th>
                   <th className="px-5 py-3">Leader</th>
@@ -295,16 +309,16 @@ export default function SuperadminTeamsPage() {
               </thead>
               <tbody>
                 {teams.map((t) => (
-                  <tr key={t._id} className="border-t border-gray-100">
-                    <td className="px-5 py-3 font-medium">{t.name}</td>
+                  <tr key={t._id} className="border-t border-gray-200">
+                    <td className="px-5 py-3">{t.name}</td>
                     <td className="px-5 py-3">{t.leaderName || t.leaderId}</td>
                     <td className="px-5 py-3">{(t.memberIds || []).length}</td>
                     <td className="px-5 py-3">
                       <Link
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50"
-                        href={`/superadmin/teams/${encodeURIComponent(t._id)}`}
+                        className="rounded-lg border border-gray-400 px-3 py-1 text-sm font-semibold hover:bg-gray-100"
+                        href={`/teams/${encodeURIComponent(t._id)}`}
                       >
-                        Detail
+                        EDIT
                       </Link>
                     </td>
                   </tr>
@@ -323,5 +337,6 @@ export default function SuperadminTeamsPage() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

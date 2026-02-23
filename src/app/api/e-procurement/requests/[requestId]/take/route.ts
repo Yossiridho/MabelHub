@@ -43,12 +43,14 @@ export async function POST(
     { returnDocument: "after", projection: { _id: 0 } },
   );
 
-  if (!result.value) {
+  const doc = result?.value ?? null;
+
+  if (!doc) {
     return NextResponse.json(
       { error: "Request sudah diambil admin lain / tidak ditemukan" },
       { status: 409 },
     );
   }
 
-  return NextResponse.json({ data: result.value });
+  return NextResponse.json({ data: doc });
 }

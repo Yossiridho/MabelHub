@@ -161,7 +161,7 @@ export default function DashboardResponsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         {/* Sidebar */}
         <Sidebar />
@@ -171,7 +171,7 @@ export default function DashboardResponsePage() {
           <div className="w-full px-6 py-6">
             {/* Header row (mirip dashboard-request) */}
             <div className="flex items-center justify-between gap-4">
-              <div className="text-2xl font-bold text-neutral-900">
+              <div className="text-2xl pl-4 font-extrabold text-black">
                 RESPONSE DASHBOARD
               </div>
 
