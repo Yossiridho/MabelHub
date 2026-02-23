@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Briefcase, Megaphone, Info } from "lucide-react";
+import { Bell, Briefcase, Megaphone, Info, Building } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type NotificationItem = {
@@ -9,7 +9,7 @@ type NotificationItem = {
   userId: string;
   title: string;
   message: string;
-  type?: "TASK" | "ANNOUNCEMENT" | "SYSTEM";
+  type?: "TASK" | "ANNOUNCEMENT" | "REQUEST" | "SYSTEM";
   isRead: boolean;
   link?: string;
   createdAt: string;
@@ -21,6 +21,8 @@ function getNotificationIcon(type?: string) {
       return <Briefcase className="h-5 w-5 text-gray-700" />;
     case "ANNOUNCEMENT":
       return <Megaphone className="h-5 w-5 text-gray-700" />;
+    case "REQUEST":
+      return <Building className="h-5 w-5 text-gray-700" />;
     default:
       return <Info className="h-5 w-5 text-gray-700" />;
   }

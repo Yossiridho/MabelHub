@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { assertLoggedIn } from "@/lib/auth-server";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -18,6 +19,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const gate = assertLoggedIn(req);
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+
+  const session = gate.session;
   const body = await req.json();
 
   const client = await clientPromise;
@@ -38,7 +45,12 @@ export async function POST(req: Request) {
     },
 
     status: "PENDING",
-    requested_by: body.requested_by || null,
+    requested_by: {
+      userId: session.userId || "",
+      username: session.username || "",
+      fullName: session.fullName || "",
+      role: session.role || "",
+    },
     requested_at: new Date(),
 
     reviewed_by: null,
@@ -47,5 +59,27 @@ export async function POST(req: Request) {
   };
 
   const res = await db.collection("company_requests").insertOne(doc);
+
+  // Send notifications to SUPERADMIN and ADMIN
+  const admins = await db
+    .collection("users")
+    .find({ role: { $in: ["SUPERADMIN", "ADMIN"] } })
+    .toArray();
+
+  if (admins.length > 0) {
+    const notificationsToInsert = admins.map((admin) => ({
+      userId: admin.userId || admin._id.toString(),
+      title: "Request Instansi Baru",
+      message: `${session.fullName || session.username} (${session.role}) meminta penambahan instansi ${doc.institusi_kerja}.`,
+      type: "REQUEST",
+      isRead: false,
+      link: "/instansi?tab=requests", // Or wherever company requests are shown
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
+    await db.collection("notifications").insertMany(notificationsToInsert);
+  }
+
   return NextResponse.json({ ok: true, insertedId: res.insertedId });
 }
