@@ -96,11 +96,11 @@ export async function POST(req: Request) {
 
   const memberOids = memberIds
     .filter(Boolean)
-    .map((x) => toOidOr400(x))
+    .map((x: string) => toOidOr400(x))
     .filter(Boolean) as ObjectId[];
 
   // leader tidak boleh ada di memberIds (biar bersih)
-  const cleanedMemberIds = memberIds.filter((x) => x && x !== leaderId);
+  const cleanedMemberIds = memberIds.filter((x: string) => x && x !== leaderId);
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");

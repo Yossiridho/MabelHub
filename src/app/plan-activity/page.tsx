@@ -15,6 +15,7 @@ type VisitRow = {
   institusi_kerja?: string;
   satuan_kerja?: string;
   status_visit?: string; // "Visited"
+  visit_image?: string;
 };
 
 type PlanRow = {
@@ -25,7 +26,8 @@ type PlanRow = {
   institusi_kerja: string;
   satuan_kerja: string;
   status: string;
-  _sortTs: number; // sorting helper
+  visit_image: string;
+  _sortTs: number; // untuk sorting (baru -> besar)
 };
 
 function monthIndex(mon: string) {
@@ -51,7 +53,7 @@ function monthIndex(mon: string) {
   return map[m] ?? -1;
 }
 
-// "3-Dec-2025" -> timestamp
+// parse "3-Dec-2025" -> timestamp
 function parseVisitDateToTs(v?: string) {
   if (!v) return 0;
   const parts = v.split("-");
@@ -62,13 +64,14 @@ function parseVisitDateToTs(v?: string) {
   const year = Number(parts[2]);
   if (!day || mon < 0 || !year) return 0;
 
-  const d = new Date(year, mon, day, 12, 0, 0); // noon avoid timezone shift
+  const d = new Date(year, mon, day, 12, 0, 0); // jam 12 biar aman timezone
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-// "2025-12-03 16:15:30" -> timestamp
+// parse "2025-12-03 16:15:30" -> timestamp
 function parseCreatedAtToTs(v?: string) {
   if (!v) return 0;
+  // ubah "YYYY-MM-DD HH:mm:ss" jadi ISO "YYYY-MM-DDTHH:mm:ss"
   const iso = v.includes("T") ? v : v.replace(" ", "T");
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
@@ -137,6 +140,15 @@ export default function PlanActivityPage() {
     fetchPlans(page, search);
   }
 
+  function openImageBase64(base64: string) {
+    const w = window.open("");
+    if (w) {
+      w.document.write(
+        `<iframe src="${base64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`,
+      );
+    }
+  }
+
   // Guard role
   useEffect(() => {
     if (!sessionLoading && user) {
@@ -145,7 +157,6 @@ export default function PlanActivityPage() {
         user.role === "LEADER" ||
         user.role === "ADMIN" ||
         user.role === "SUPERADMIN";
-
       if (!ok) router.replace("/");
     }
   }, [sessionLoading, user, router]);
@@ -170,7 +181,6 @@ export default function PlanActivityPage() {
 
       if (q.trim()) qs.set("q", q.trim());
 
-      // ✅ server yang memfilter berdasarkan session role/team
       const res = await fetch(`/api/visits?${qs.toString()}`, {
         cache: "no-store",
       });
@@ -186,6 +196,7 @@ export default function PlanActivityPage() {
 
       const items: VisitRow[] = Array.isArray(json?.items) ? json.items : [];
 
+      // map + hitung sortTs (visit_date utama, fallback created_at)
       const mapped: PlanRow[] = items.map((v) => {
         const visitTs = parseVisitDateToTs(v.visit_date);
         const createdTs = parseCreatedAtToTs(v.created_at);
@@ -199,21 +210,23 @@ export default function PlanActivityPage() {
           institusi_kerja: v.institusi_kerja || "",
           satuan_kerja: v.satuan_kerja || "",
           status: v.status_visit || "",
+          visit_image: v.visit_image || "",
           _sortTs: sortTs,
         };
       });
 
-      // sort newest first (within page)
+      // pastikan urutan terbaru di page ini
       mapped.sort((a, b) => b._sortTs - a._sortTs);
+
       setPlans(mapped);
 
       const tp = Number(json?.pagination?.totalPages || 1);
       setTotalPages(tp > 0 ? tp : 1);
 
       const total = Number(json?.pagination?.total || 0);
-      setTotalRows(total >= 0 ? total : 0);
+      setTotalRows(total > 0 ? total : 0);
 
-      // open newest group date
+      // buka group tanggal paling baru
       const grouped = groupByTanggal(mapped);
       const firstKey = Object.keys(grouped).sort((a, b) => {
         if (a === "UNKNOWN") return 1;
@@ -228,7 +241,7 @@ export default function PlanActivityPage() {
     }
   }
 
-  // fetch when page changes
+  // fetch awal & saat page berubah
   useEffect(() => {
     if (sessionLoading) return;
     if (!user) return;
@@ -236,7 +249,7 @@ export default function PlanActivityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, sessionLoading, user]);
 
-  // debounce search (reset page)
+  // debounce search + reset page
   useEffect(() => {
     if (sessionLoading) return;
     if (!user) return;
@@ -251,6 +264,7 @@ export default function PlanActivityPage() {
   }, [search]);
 
   const grouped = useMemo(() => {
+    // plans sudah di-sort terbaru, groupnya ikutin
     const g = groupByTanggal(plans);
     const keys = Object.keys(g).sort((a, b) => {
       if (a === "UNKNOWN") return 1;
@@ -306,7 +320,7 @@ export default function PlanActivityPage() {
               <div className="text-sm text-gray-600">
                 {loading
                   ? "Loading..."
-                  : `Total ${totalRows} • Page ${page} / ${totalPages}`}
+                  : `Total ${totalRows || "-"} • Page ${page} / ${totalPages}`}
               </div>
 
               <button
@@ -319,12 +333,13 @@ export default function PlanActivityPage() {
 
             {/* TABLE */}
             <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              <div className="grid grid-cols-7 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
+              <div className="grid grid-cols-8 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
                 <div>Institusi Kerja</div>
                 <div>Satuan Kerja</div>
+                <div className="text-center">Bukti</div>
                 <div className="text-center">Status</div>
                 <div className="text-center">Aksi</div>
               </div>
@@ -360,7 +375,7 @@ export default function PlanActivityPage() {
                           {rows.map((r) => (
                             <div
                               key={r.id}
-                              className="grid grid-cols-7 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
+                              className="grid grid-cols-8 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
                             >
                               <div className="opacity-0 select-none">
                                 {r.tanggal}
@@ -373,6 +388,24 @@ export default function PlanActivityPage() {
                               </div>
                               <div className="uppercase">
                                 {r.satuan_kerja || "-"}
+                              </div>
+                              <div className="flex justify-center items-center">
+                                {r.visit_image ? (
+                                  <div
+                                    className="w-10 h-10 rounded cursor-pointer ring-1 ring-gray-300 hover:opacity-80 transition flex-shrink-0 bg-cover bg-center"
+                                    style={{
+                                      backgroundImage: `url(${r.visit_image})`,
+                                    }}
+                                    onClick={() =>
+                                      openImageBase64(r.visit_image!)
+                                    }
+                                    title="Buka foto penuh"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400 text-xs">
+                                    -
+                                  </span>
+                                )}
                               </div>
                               <div className="text-center font-semibold">
                                 {(r.status || "-").toUpperCase()}
@@ -428,6 +461,8 @@ export default function PlanActivityPage() {
           posisiOptions={posisiOptions}
           statusKunjunganOptions={statusKunjunganOptions}
           kegiatanOptions={kegiatanOptions}
+          currentUserId={user?.userId}
+          currentUserRole={user?.role}
         />
       </div>
     </div>

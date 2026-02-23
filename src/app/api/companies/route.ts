@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { assertLoggedIn } from "@/lib/auth-server";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
     ];
   }
 
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
+
   const rows = await db
     .collection("companies")
     .find(filter)
@@ -33,17 +36,20 @@ export async function GET(req: Request) {
       pic_default: 1,
     })
     .sort({ institusi_kerja: 1 })
-    .limit(10)
+    .limit(limit)
     .toArray();
 
   return NextResponse.json(rows);
 }
 
 export async function POST(req: Request) {
+  const gate = assertLoggedIn(req);
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+
   const body = await req.json();
 
-  // NOTE: di sini idealnya cek session/role SUPER_ADMIN
-  // Untuk sementara kita terima request langsung (nanti kamu pasang auth)
   const client = await clientPromise;
   const db = client.db("MabelHub");
 
@@ -53,6 +59,7 @@ export async function POST(req: Request) {
     kota_kab: body.kota_kab || "",
     klpd: body.klpd || "",
     status_ring: body.status_ring || "",
+    kode_dinas: body.kode_dinas || "",
     pic_default: {
       nama: body.pic_default?.nama || "",
       no_telp: body.pic_default?.no_telp || "",
@@ -70,5 +77,16 @@ export async function POST(req: Request) {
   };
 
   const res = await db.collection("companies").insertOne(doc);
+
+  const userFullName =
+    gate.session.fullName || gate.session.username || "Unknown";
+  await db.collection("company_history").insertOne({
+    companyId: res.insertedId,
+    at: new Date(),
+    action: "CREATE",
+    by: userFullName,
+    note: "Pembuatan instansi baru",
+  });
+
   return NextResponse.json({ ok: true, insertedId: res.insertedId });
 }

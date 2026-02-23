@@ -1,15 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
-type TeamMember = {
-  userId: string;
-  fullName: string;
-  username: string;
-  role: string;
-};
 
 type Company = {
   _id: string;
@@ -27,9 +21,8 @@ type Company = {
 };
 
 type PlanItem = {
-  id: string; // local id untuk render
+  id: string;
   status_ring: string;
-
   institusiQuery: string;
   selectedCompany: Company | null;
 
@@ -44,13 +37,32 @@ type PlanItem = {
     role: string;
   };
 
-  // optional: leader buatkan untuk sales tertentu (isi userId mongodb string)
-  targetUserId?: string;
-
   showSug: boolean;
   loadingSug: boolean;
   sugs: Company[];
 };
+
+type AssigneeOption = {
+  userId: string;
+  fullName?: string;
+  username?: string;
+  role?: string; // "SALES" | "LEADER"
+};
+
+function displayAssignee(a: AssigneeOption) {
+  const name =
+    (a.fullName || "").trim() || (a.username || "").trim() || a.userId;
+  const role = (a.role || "").trim();
+  return role ? `${name} • ${role}` : name;
+}
+
+function pickArray(json: any) {
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.users)) return json.users;
+  if (Array.isArray(json?.members)) return json.members;
+  if (Array.isArray(json)) return json;
+  return [];
+}
 
 function newItem(): PlanItem {
   return {
@@ -65,18 +77,17 @@ function newItem(): PlanItem {
 
     pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
 
-    targetUserId: "",
-
     showSug: false,
     loadingSug: false,
     sugs: [],
   };
 }
 
-export default function AddPlansPage() {
+function AddPlansContent() {
   const router = useRouter();
   const sp = useSearchParams();
-  const editId = sp.get("edit"); // masih belum dipakai (bulk mode)
+
+  const editId = sp.get("edit");
   const { user, loading: sessionLoading } = useSession();
 
   // Guard
@@ -94,25 +105,84 @@ export default function AddPlansPage() {
   const [tanggal, setTanggal] = useState("");
   const [items, setItems] = useState<PlanItem[]>([newItem()]);
   const [saving, setSaving] = useState(false);
-  const [salesOptions, setSalesOptions] = useState<
-  Array<{ userId: string; fullName: string; username: string; role: string }>
->([]);
 
-useEffect(() => {
-  if (sessionLoading) return;
-  if (!user) return;
-  if (user.role !== "LEADER") return;
+  // ✅ Assignee logic
+  const canPickAssignee =
+    user?.role === "LEADER" ||
+    user?.role === "SUPERADMIN" ||
+    user?.role === "ADMIN";
 
-  fetch("/api/teams/me/members", { cache: "no-store" })
-    .then((r) => r.json())
-    .then((j) => {
-      const members = Array.isArray(j?.members) ? j.members : [];
-      setSalesOptions(members.filter((m: any) => m?.role === "SALES"));
-    })
-    .catch(() => setSalesOptions([]));
-}, [sessionLoading, user]);
+  const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
+  const [assigneeUserId, setAssigneeUserId] = useState<string>(""); // "" = self
 
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (!user) return;
 
+    (async () => {
+      try {
+        // SALES: no dropdown
+        if (user.role === "SALES") {
+          setAssigneeOptions([]);
+          setAssigneeUserId("");
+          return;
+        }
+
+        // LEADER: load team members (sales)
+        if (user.role === "LEADER") {
+          const res = await fetch("/api/teams/me/members", {
+            cache: "no-store",
+          });
+          const json = await res.json().catch(() => ({}));
+          const arr = pickArray(json);
+
+          const list: AssigneeOption[] = arr
+            .map((m: any) => ({
+              userId: String(m.userId || m._id || ""),
+              fullName: m.fullName ? String(m.fullName) : "",
+              username: m.username ? String(m.username) : "",
+              role: m.role ? String(m.role) : "SALES",
+            }))
+            .filter((x: AssigneeOption) => x.userId);
+
+          setAssigneeOptions(list);
+          setAssigneeUserId(""); // default self
+          return;
+        }
+
+        // SUPERADMIN/ADMIN: load all users then filter SALES/LEADER
+        if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
+          const res = await fetch("/api/users", { cache: "no-store" });
+          const json = await res.json().catch(() => ({}));
+          const arr = pickArray(json);
+
+          const list: AssigneeOption[] = arr
+            .map((u: any) => ({
+              userId: String(u._id || u.userId || ""),
+              fullName: u.fullName ? String(u.fullName) : "",
+              username: u.username ? String(u.username) : "",
+              role: u.role ? String(u.role) : "",
+            }))
+            .filter(
+              (x: AssigneeOption) =>
+                x.userId && (x.role === "SALES" || x.role === "LEADER"),
+            );
+
+          setAssigneeOptions(list);
+          setAssigneeUserId(""); // default self
+          return;
+        }
+
+        setAssigneeOptions([]);
+        setAssigneeUserId("");
+      } catch {
+        setAssigneeOptions([]);
+        setAssigneeUserId("");
+      }
+    })();
+  }, [sessionLoading, user]);
+
+  // NOTE: sekarang belum handle edit multi.
   useEffect(() => {
     if (editId) {
     }
@@ -121,9 +191,11 @@ useEffect(() => {
   function addItem() {
     setItems((prev) => [...prev, newItem()]);
   }
+
   function removeItem(id: string) {
     setItems((prev) => prev.filter((x) => x.id !== id));
   }
+
   function patchItem(id: string, updates: Partial<PlanItem>) {
     setItems((prev) =>
       prev.map((x) => (x.id === id ? { ...x, ...updates } : x)),
@@ -140,7 +212,7 @@ useEffect(() => {
       klpd: "",
       satuan_kerja: "",
       pic_default: { nama: "", no_telp: "", jabatan: "", role: "" },
-    });
+    } as any);
   }
 
   function pickCompany(id: string, c: Company) {
@@ -160,15 +232,15 @@ useEffect(() => {
     });
   }
 
-  // ✅ biar gak stale closure: passing ring+q langsung
-  async function fetchSuggestion(itemId: string, ring: string, q: string) {
-    if (!ring) return;
+  async function fetchSuggestion(itemId: string, q: string) {
+    const it = items.find((x) => x.id === itemId);
+    if (!it?.status_ring) return;
 
     try {
       patchItem(itemId, { loadingSug: true, showSug: true });
 
       const qs = new URLSearchParams({
-        ring,
+        ring: it.status_ring,
         q: q || "",
         limit: "10",
       });
@@ -195,40 +267,23 @@ useEffect(() => {
   const canSubmit = useMemo(() => {
     if (!tanggal) return false;
     if (!items.length) return false;
-
-    return items.every((it) => {
-      if (!it.status_ring) return false;
-      if (!it.institusiQuery.trim()) return false;
-
-      // leader mode: kalau leader isi targetUserId, harus ada nilainya
-      if (
-        user?.role === "LEADER" &&
-        (it.targetUserId ?? "").trim().length === 0
-      ) {
-        // leader wajib menentukan untuk siapa (biar jelas)
-        return false;
-      }
-      return true;
-    });
-  }, [tanggal, items, user?.role]);
+    return items.every((it) => Boolean(it.status_ring && it.institusiQuery));
+  }, [tanggal, items]);
 
   async function submitAll() {
     if (!canSubmit) {
-      alert(
-        user?.role === "LEADER"
-          ? "Tanggal wajib. Tiap plan wajib punya Ring + Institusi + Target UserId (sales) untuk leader."
-          : "Tanggal wajib, dan setiap plan wajib punya Ring + Institusi.",
-      );
+      alert("Tanggal wajib, dan setiap plan wajib punya Ring + Institusi.");
       return;
     }
 
     try {
       setSaving(true);
 
+      // ✅ kirim targetUserId per item ("" = self)
       const payload = {
-        tanggal, 
-        createdBy: user?.userId || null, 
-        nama_sales: user?.fullName || null, 
+        tanggal,
+        createdBy: user?.userId || null,
+        nama_sales: user?.fullName || null,
         items: items.map((it) => ({
           status_ring: it.status_ring,
           institusi_kerja: it.institusiQuery,
@@ -236,8 +291,7 @@ useEffect(() => {
           klpd: it.klpd,
           satuan_kerja: it.satuan_kerja,
           pic_default: it.pic_default,
-          // optional leader
-          targetUserId: (it.targetUserId ?? "").trim() || null,
+          targetUserId: canPickAssignee ? assigneeUserId : "", // backend resolve
         })),
       };
 
@@ -247,14 +301,13 @@ useEffect(() => {
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json().catch(() => ({}));
-
       if (!res.ok) {
-        alert(json?.error || "Gagal menyimpan");
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || "Gagal menyimpan");
         return;
       }
 
-      alert(`Plan berhasil disimpan (${json?.insertedCount ?? 0} item).`);
+      alert("Plan berhasil disimpan ke database");
       router.push("/plan-activity");
     } finally {
       setSaving(false);
@@ -293,15 +346,54 @@ useEffect(() => {
               )}
             </div>
 
-            {/* TANGGAL */}
-            <div className="mb-6 rounded-2xl bg-[#f5efef] p-6 ring-1 ring-black/10">
-              <label className="text-sm">Tanggal (1 untuk semua plan)</label>
-              <input
-                type="date"
-                value={tanggal}
-                onChange={(e) => setTanggal(e.target.value)}
-                className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-md ring-1 ring-black/10 outline-none"
-              />
+            {/* TANGGAL + ASSIGNEE */}
+            <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-black/10">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm">
+                    Tanggal (1 untuk semua plan)
+                  </label>
+                  <input
+                    type="date"
+                    value={tanggal}
+                    onChange={(e) => setTanggal(e.target.value)}
+                    className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-md ring-1 ring-black/10 outline-none"
+                  />
+                </div>
+
+                {canPickAssignee ? (
+                  <div>
+                    <label className="text-sm">
+                      Assign To (opsional — kosong = diri sendiri)
+                    </label>
+                    <select
+                      value={assigneeUserId}
+                      onChange={(e) => setAssigneeUserId(e.target.value)}
+                      className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
+                    >
+                      <option value="">(Diri sendiri)</option>
+                      {assigneeOptions.map((a) => (
+                        <option key={a.userId} value={a.userId}>
+                          {displayAssignee(a)}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="mt-2 text-xs text-gray-500">
+                      Leader: hanya sales team. Superadmin/Admin: semua
+                      sales/leader.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-gray-50 p-4 ring-1 ring-black/10">
+                    <div className="text-sm font-semibold text-gray-700">
+                      Assign To
+                    </div>
+                    <div className="mt-1 text-sm text-gray-600">
+                      Auto: diri sendiri (role SALES)
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* LIST ITEM */}
@@ -328,40 +420,13 @@ useEffect(() => {
                   </div>
 
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {/* LEADER: target sales */}
-                    {user?.role === "LEADER" && (
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-semibold text-gray-600">
-                          Assign ke Sales
-                        </label>
-                        <select
-                          value={(it.targetUserId || "").trim()}
-                          onChange={(e) =>
-                            patchItem(it.id, { targetUserId: e.target.value })
-                          }
-                          className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
-                        >
-                          <option value="">-- pilih sales team --</option>
-                          {salesOptions.map((m) => (
-                            <option key={m.userId} value={m.userId}>
-                              {m.fullName || m.username || m.userId}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="mt-1 text-xs text-gray-600">
-                          Hanya bisa pilih sales anggota team kamu.
-                        </div>
-                      </div>
-                    )}
-
                     {/* RING */}
                     <div>
                       <label className="text-sm">Status Ring</label>
                       <select
                         value={it.status_ring}
                         onChange={(e) => {
-                          const ring = e.target.value;
-                          patchItem(it.id, { status_ring: ring });
+                          patchItem(it.id, { status_ring: e.target.value });
                           resetCompanyFields(it.id);
                         }}
                         className="mt-2 h-12 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-black/10 outline-none"
@@ -391,16 +456,11 @@ useEffect(() => {
                               institusiQuery: val,
                               showSug: true,
                             });
-                            if (it.status_ring)
-                              fetchSuggestion(it.id, it.status_ring, val);
+                            if (it.status_ring) fetchSuggestion(it.id, val);
                           }}
                           onFocus={() => {
                             if (it.status_ring)
-                              fetchSuggestion(
-                                it.id,
-                                it.status_ring,
-                                it.institusiQuery,
-                              );
+                              fetchSuggestion(it.id, it.institusiQuery);
                           }}
                           disabled={!it.status_ring}
                           placeholder={
@@ -487,21 +547,21 @@ useEffect(() => {
               ))}
             </div>
 
-            {/* ACTIONS */}
-            <div className="mt-6 flex items-center justify-between">
+            {/* ACTIONS BOTTOM */}
+            <div className="mt-6 flex items-center justify-end gap-4">
               <button
                 type="button"
                 onClick={addItem}
                 className="h-12 rounded-full bg-green-600 px-8 text-md font-extrabold text-gray-100 ring-1 ring-black/10 hover:bg-green-700"
               >
-               TAMBAH PLAN
+                TAMBAH PLAN
               </button>
 
               <button
                 type="button"
                 onClick={submitAll}
                 disabled={!canSubmit || saving}
-                className="h-12 w-56 rounded-full bg-blue-600 text-md font-extrabold text-gray-100 ring-1 ring-black/10 hover:bg-blue-700"
+                className="h-12 w-56 rounded-full bg-blue-600 text-md font-extrabold text-gray-100 ring-1 ring-black/10 hover:bg-blue-700 disabled:opacity-60"
               >
                 {saving ? "SAVING..." : "SUBMIT"}
               </button>
@@ -512,5 +572,19 @@ useEffect(() => {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AddPlansPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <AddPlansContent />
+    </Suspense>
   );
 }

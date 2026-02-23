@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { assertLoggedIn, assertLeaderOrSales } from "@/lib/auth-server";
+import { assertLoggedIn } from "@/lib/auth-server";
 
 type Segment = "RING 1" | "RING 2" | "RING 3" | "RING 4" | string;
 
@@ -15,6 +15,17 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
+  // Admin Response Fields per item
+  statusBarangAdmin?: string;
+  tayangInaprocAdmin?: string;
+};
+
+type AssignedTo = {
+  userId: string;
+  role: string;
+  username: string;
+  fullName: string;
 };
 
 type EProcDoc = {
@@ -23,8 +34,8 @@ type EProcDoc = {
   pemohon: string;
   lokasi: string;
   segmen: Segment;
-  deadlineUsulan: string; // yyyy-mm-dd
-  tanggalSubmit: string; // ISO
+  deadlineUsulan: string;
+  tanggalSubmit: string;
   catatan?: string;
 
   items: ProductItem[];
@@ -36,20 +47,50 @@ type EProcDoc = {
     fullName: string;
   };
 
+  // ✅ new
+  assignedTo: AssignedTo;
+
   createdAt: Date;
   updatedAt: Date;
-
-  assignedTo: {
-    userId: string;
-    role: string;
-    username: string;
-    fullName: string;
-  };
 
   takenByAdminId: string | null;
   takenByAdminName: string | null;
   takenAt: Date | null;
+
+  perusahaan?: string;
+  catatanAdmin?: string;
+  statusAkhir?: string;
 };
+
+type TeamDoc = { leaderId: string; memberIds: string[] };
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = (await db
+    .collection("teams")
+    .findOne({ leaderId })) as TeamDoc | null;
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+async function getUserLite(
+  db: any,
+  userId: string,
+): Promise<AssignedTo | null> {
+  if (!ObjectId.isValid(userId)) return null;
+  const u = await db
+    .collection("users")
+    .findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { role: 1, username: 1, fullName: 1 } },
+    );
+  if (!u) return null;
+  return {
+    userId,
+    role: String((u as any).role || ""),
+    username: String((u as any).username || ""),
+    fullName: String((u as any).fullName || ""),
+  };
+}
 
 declare global {
   // eslint-disable-next-line no-var
@@ -64,6 +105,8 @@ async function ensureIndexes(db: any) {
       await col.createIndex({ takenByAdminId: 1, takenAt: -1 });
       await col.createIndex({ createdAt: -1 });
       await col.createIndex({ "createdBy.userId": 1, createdAt: -1 });
+
+      // ✅ new indexes for assignment
       await col.createIndex({ "assignedTo.userId": 1, createdAt: -1 });
     })();
   }
@@ -71,7 +114,6 @@ async function ensureIndexes(db: any) {
 }
 
 function makeRequestId() {
-  // simple & unique enough
   return `REQ-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`.toUpperCase();
 }
 
@@ -89,22 +131,17 @@ export async function GET(req: Request) {
   await ensureIndexes(db);
 
   const col = db.collection<EProcDoc>("eproc_requests");
-
   const filter: any = {};
 
   if (mode === "takeable") {
-    // untuk halaman e-procurement-response: list yang belum diambil
     filter.takenByAdminId = null;
   } else if (mode === "taken") {
-    // untuk rekapitulasi-response: yang sudah diambil
     filter.takenByAdminId = { $ne: null };
-
-    // ADMIN hanya lihat yang diambil dirinya
     if (auth.session.role === "ADMIN") {
       filter.takenByAdminId = auth.session.userId;
     }
   } else if (mode === "mine") {
-    // untuk sales/leader lihat punya sendiri
+    // ✅ mine = createdBy OR assignedTo
     filter.$or = [
       { "createdBy.userId": auth.session.userId },
       { "assignedTo.userId": auth.session.userId },
@@ -118,7 +155,6 @@ export async function GET(req: Request) {
       ];
     }
   } else {
-    // fallback aman
     filter.takenByAdminId = null;
   }
 
@@ -132,23 +168,36 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = assertLeaderOrSales(req);
-  if (!auth.ok) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok)
     return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const session = auth.session;
+
+  // hanya role ini yang boleh create
+  if (
+    session.role !== "SALES" &&
+    session.role !== "LEADER" &&
+    session.role !== "SUPERADMIN"
+  ) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
   const body = await req.json().catch(() => ({}));
   const header = body?.header ?? {};
   const items: ProductItem[] = Array.isArray(body?.items) ? body.items : [];
 
-  const assignedToUserId = String(header.assignedToUserId ?? "").trim();
-
   const requestor = String(header.requestor ?? "").trim();
   const pemohon = String(header.pemohon ?? "").trim();
   const segmen = String(header.segmen ?? "").trim();
-  const deadlineUsulan = String(header.deadline ?? "").trim(); // dari page.tsx kamu
+  const deadlineUsulan = String(header.deadline ?? "").trim();
   const lokasi = String(header.lokasi ?? "").trim();
   const catatan = String(header.catatanHeader ?? "").trim();
+
+  // ✅ assignee input (opsional)
+  const assignedToUserIdRaw =
+    String(header.assignedToUserId ?? "").trim() ||
+    String(body?.assignedToUserId ?? "").trim();
 
   if (!requestor || !pemohon || !segmen) {
     return NextResponse.json(
@@ -161,62 +210,60 @@ export async function POST(req: Request) {
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
   await ensureIndexes(db);
 
-  const requestId = makeRequestId();
-  const now = new Date();
+  // =========================
+  // Resolve target assignment
+  // =========================
+  let targetUserId = session.userId;
 
-  let assignedUserId = auth.session.userId;
-
-  // SALES selalu ke dirinya
-  if (auth.session.role === "SALES") {
-    assignedUserId = auth.session.userId;
-  }
-
-  // LEADER boleh assign ke member team
-  if (auth.session.role === "LEADER") {
-    if (!assignedToUserId) {
+  if (assignedToUserIdRaw) {
+    if (session.role === "SALES") {
       return NextResponse.json(
-        { error: "assignedToUserId wajib untuk leader" },
-        { status: 400 },
-      );
-    }
-    if (!ObjectId.isValid(assignedToUserId)) {
-      return NextResponse.json(
-        { error: "assignedToUserId tidak valid" },
-        { status: 400 },
-      );
-    }
-
-    // ✅ validasi team leader
-    const team = await db
-      .collection("teams")
-      .findOne({ leaderId: auth.session.userId });
-    const memberIds: string[] = Array.isArray((team as any)?.memberIds)
-      ? (team as any).memberIds.map(String)
-      : [];
-    const allowed = new Set([auth.session.userId, ...memberIds]);
-
-    if (!allowed.has(assignedToUserId)) {
-      return NextResponse.json(
-        { error: "FORBIDDEN: sales bukan anggota team leader" },
+        { error: "FORBIDDEN: sales tidak boleh assign user lain" },
         { status: 403 },
       );
     }
 
-    assignedUserId = assignedToUserId;
+    if (session.role === "LEADER") {
+      const allowed = await getLeaderAllowedUserIds(db, session.userId);
+      if (!allowed.includes(assignedToUserIdRaw)) {
+        return NextResponse.json(
+          { error: "FORBIDDEN: target bukan anggota team leader" },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (session.role === "SUPERADMIN") {
+      if (assignedToUserIdRaw !== session.userId) {
+        const u = await getUserLite(db, assignedToUserIdRaw);
+        if (!u)
+          return NextResponse.json(
+            { error: "Target user tidak ditemukan" },
+            { status: 404 },
+          );
+        if (u.role !== "SALES" && u.role !== "LEADER") {
+          return NextResponse.json(
+            {
+              error: "FORBIDDEN: SUPERADMIN hanya boleh assign ke SALES/LEADER",
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+
+    targetUserId = assignedToUserIdRaw;
   }
 
-  const usersCol = db.collection("users");
-  const assignedUser = await usersCol.findOne(
-    { _id: new ObjectId(assignedUserId) },
-    { projection: { fullName: 1, username: 1, role: 1 } },
-  );
+  const assignedTo = (await getUserLite(db, targetUserId)) || {
+    userId: targetUserId,
+    role: "",
+    username: "",
+    fullName: "",
+  };
 
-  if (!assignedUser) {
-    return NextResponse.json(
-      { error: "Assigned user tidak ditemukan" },
-      { status: 404 },
-    );
-  }
+  const requestId = makeRequestId();
+  const now = new Date();
 
   const doc: EProcDoc = {
     requestId,
@@ -231,21 +278,16 @@ export async function POST(req: Request) {
     items,
 
     createdBy: {
-      userId: auth.session.userId,
-      role: auth.session.role,
-      username: auth.session.username,
-      fullName: auth.session.fullName,
+      userId: session.userId,
+      role: session.role,
+      username: session.username,
+      fullName: session.fullName,
     },
+
+    assignedTo,
 
     createdAt: now,
     updatedAt: now,
-
-    assignedTo: {
-      userId: assignedUserId,
-      role: (assignedUser as any)?.role ?? "",
-      username: (assignedUser as any)?.username ?? "",
-      fullName: (assignedUser as any)?.fullName ?? "",
-    },
 
     takenByAdminId: null,
     takenByAdminName: null,

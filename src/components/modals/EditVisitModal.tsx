@@ -10,6 +10,8 @@ type EditModalProps = {
   posisiOptions: string[];
   statusKunjunganOptions: string[];
   kegiatanOptions: string[];
+  currentUserId?: string;
+  currentUserRole?: string;
 };
 
 export default function EditVisitModal({
@@ -20,6 +22,8 @@ export default function EditVisitModal({
   posisiOptions,
   statusKunjunganOptions,
   kegiatanOptions,
+  currentUserId,
+  currentUserRole,
 }: EditModalProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,6 +40,9 @@ export default function EditVisitModal({
     tindak_lanjut: "",
     visit_image: "",
   });
+
+  // Track the owner of the visit data
+  const [ownerId, setOwnerId] = useState("");
 
   useEffect(() => {
     if (!isOpen || !editId) return;
@@ -63,6 +70,7 @@ export default function EditVisitModal({
       })
       .then((data) => {
         if (!isMounted) return;
+        setOwnerId(data.user_id || "");
         setForm({
           pic_name: data.pic_name || "",
           pic_phone: data.pic_phone || "",
@@ -123,6 +131,9 @@ export default function EditVisitModal({
 
   if (!isOpen) return null;
 
+  const isOwner = ownerId === currentUserId;
+  const canEdit = isOwner;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -130,7 +141,7 @@ export default function EditVisitModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
           <h3 className="text-lg font-bold text-black uppercase tracking-wide">
-            PIC DETAIL
+            Edit Kunjungan
           </h3>
           <button
             type="button"
@@ -159,7 +170,12 @@ export default function EditVisitModal({
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, pic_name: e.target.value }))
                   }
-                  className="h-10 w-full bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3"
+                  readOnly={!canEdit}
+                  className={`h-10 w-full bg-gray-300 border-none outline-none px-3 ${
+                    canEdit
+                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
                 />
               </div>
               <div>
@@ -172,7 +188,12 @@ export default function EditVisitModal({
                     setForm((prev) => ({ ...prev, pic_phone: e.target.value }))
                   }
                   placeholder="08XXX"
-                  className="h-10 w-full bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3"
+                  readOnly={!canEdit}
+                  className={`h-10 w-full bg-gray-300 border-none outline-none px-3 ${
+                    canEdit
+                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
                 />
               </div>
 
@@ -186,7 +207,12 @@ export default function EditVisitModal({
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, pic_role: e.target.value }))
                   }
-                  className="h-10 w-full bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3"
+                  readOnly={!canEdit}
+                  className={`h-10 w-full bg-gray-300 border-none outline-none px-3 ${
+                    canEdit
+                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
                 />
               </div>
               <div>
@@ -202,9 +228,14 @@ export default function EditVisitModal({
                         pic_position: e.target.value,
                       }))
                     }
-                    className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3 pr-8"
+                    disabled={!canEdit}
+                    className={`h-10 w-full appearance-none bg-gray-300 border-none outline-none px-3 pr-8 ${
+                      canEdit
+                        ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                        : "text-gray-600 cursor-not-allowed"
+                    }`}
                   >
-                    <option value=""></option>
+                    <option value="">-</option>
                     {posisiOptions.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -231,9 +262,14 @@ export default function EditVisitModal({
                         status_visit: e.target.value,
                       }))
                     }
-                    className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3 pr-8"
+                    disabled={!canEdit}
+                    className={`h-10 w-full appearance-none bg-gray-300 border-none outline-none px-3 pr-8 ${
+                      canEdit
+                        ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                        : "text-gray-600 cursor-not-allowed"
+                    }`}
                   >
-                    <option value=""></option>
+                    <option value="">-</option>
                     {statusKunjunganOptions.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -258,9 +294,14 @@ export default function EditVisitModal({
                         kegiatan_status: e.target.value,
                       }))
                     }
-                    className="h-10 w-full appearance-none bg-gray-300 border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 px-3 pr-8"
+                    disabled={!canEdit}
+                    className={`h-10 w-full appearance-none bg-gray-300 border-none outline-none px-3 pr-8 ${
+                      canEdit
+                        ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                        : "text-gray-600 cursor-not-allowed"
+                    }`}
                   >
-                    <option value=""></option>
+                    <option value="">-</option>
                     {kegiatanOptions.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -286,7 +327,12 @@ export default function EditVisitModal({
                       descriptions: e.target.value,
                     }))
                   }
-                  className="h-28 w-full bg-gray-300 resize-none border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 p-3"
+                  readOnly={!canEdit}
+                  className={`h-28 w-full bg-gray-300 resize-none border-none outline-none p-3 ${
+                    canEdit
+                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
                 />
               </div>
 
@@ -303,22 +349,74 @@ export default function EditVisitModal({
                       tindak_lanjut: e.target.value,
                     }))
                   }
-                  className="h-28 w-full bg-gray-300 resize-none border-none outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 p-3"
+                  readOnly={!canEdit}
+                  className={`h-28 w-full bg-gray-300 resize-none border-none outline-none p-3 ${
+                    canEdit
+                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
                 />
               </div>
 
-              {/* Row 5 */}
+              {/* Row 5 / Image Upload/Preview */}
               <div className="col-span-1 md:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-gray-800">
-                  Upload Foto <span className="text-red-500">*</span>
+                <label className="mb-2 block text-sm font-medium text-gray-800 flex items-center justify-between">
+                  <span>
+                    Upload Foto <span className="text-red-500">*</span>
+                  </span>
+                  {form.visit_image && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const w = window.open("");
+                        if (w) {
+                          w.document.write(`
+                            <html>
+                              <body style="margin:0;display:flex;justify-content:center;align-items:center;background:#0e0e0e;height:100vh;">
+                                <img src="${form.visit_image}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+                              </body>
+                            </html>
+                          `);
+                          w.document.close();
+                        }
+                      }}
+                      className="text-blue-600 hover:underline text-xs bg-transparent border-none cursor-pointer p-0"
+                    >
+                      Buka Gambar Penuh
+                    </button>
+                  )}
                 </label>
-                <div className="flex items-center h-10 w-full bg-gray-300 px-2">
-                  <label className="cursor-pointer bg-gray-200 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-gray-400 hover:bg-gray-300 text-black">
+
+                {form.visit_image && !fileObj && (
+                  <div className="mb-3">
+                    <img
+                      src={form.visit_image}
+                      alt="Preview Kunjungan"
+                      className="w-full h-40 object-contain bg-gray-200 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                )}
+
+                {fileObj && (
+                  <div className="mb-3 text-sm text-green-700 font-medium px-2 py-1 bg-green-100 rounded border border-green-200">
+                    File baru terpilih: {fileObj.name}
+                  </div>
+                )}
+
+                <div className="flex items-center h-10 w-full bg-gray-300 px-2 rounded">
+                  <label
+                    className={`bg-gray-200 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-gray-400 text-black ${
+                      canEdit
+                        ? "cursor-pointer hover:bg-gray-300"
+                        : "opacity-50 cursor-not-allowed"
+                    }`}
+                  >
                     CHOOSE FILE
                     <input
                       type="file"
                       accept="image/*"
                       className="hidden"
+                      disabled={!canEdit}
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           setFileObj(e.target.files[0]);
@@ -336,7 +434,7 @@ export default function EditVisitModal({
         </div>
 
         {/* Footer */}
-        {!loading && (
+        {!loading && canEdit && (
           <div className="px-6 pb-6 flex justify-end">
             <button
               onClick={handleSave}

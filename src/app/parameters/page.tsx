@@ -11,7 +11,8 @@ type ParamKey =
   | "status_kunjungan"
   | "posisi"
   | "kegiatan"
-  | "klpd";
+  | "klpd"
+  | "perusahaan";
 
 type ParamDoc = {
   _id: string;
@@ -21,6 +22,7 @@ type ParamDoc = {
   posisi: string[];
   kegiatan: string[];
   klpd: string[];
+  perusahaan: string[];
   updatedAt?: string;
 };
 
@@ -35,9 +37,11 @@ const KEY_LABEL: Record<ParamKey, string> = {
   posisi: "Posisi",
   kegiatan: "Kegiatan",
   klpd: "KLPD",
+  perusahaan: "Perusahaan",
 };
 
 const ALL_KEYS: ParamKey[] = [
+  "perusahaan",
   "sales",
   "segmen",
   "status_kunjungan",
@@ -94,15 +98,13 @@ export default function ParameterPage() {
       posisi: d?.posisi ?? [],
       kegiatan: d?.kegiatan ?? [],
       klpd: d?.klpd ?? [],
+      perusahaan: d?.perusahaan ?? [],
     } as Record<ParamKey, string[]>;
   }, [doc]);
 
   async function onAdd() {
     const v = value.trim();
-    if (!v) {
-      setErr("Value harus diisi terlebih dahulu.");
-      return;
-    }
+    if (!v) return;
 
     setSaving(true);
     setErr("");
@@ -211,7 +213,7 @@ export default function ParameterPage() {
               <div className="mt-8 md:col-span-2 md:flex md:justify-end">
                 <button
                   onClick={onAdd}
-                  disabled={saving}
+                  disabled={saving || !value.trim()}
                   className={cn(
                     "h-12 w-full rounded-xl px-5 text-md font-semibold shadow-sm",
                     saving || !value.trim()
@@ -229,8 +231,9 @@ export default function ParameterPage() {
           <section className="mt-6 grid gap-6 md:grid-cols-3">
             {(
               [
-                ["sales", "segmen", "status_kunjungan"],
-                ["posisi", "kegiatan", "klpd"],
+                ["perusahaan", "sales", "segmen"],
+                ["status_kunjungan", "posisi", "kegiatan"],
+                ["klpd"],
               ] as ParamKey[][]
             )
               .flat()
@@ -276,19 +279,17 @@ function CardList({
   );
 
   return (
-<div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
-  
-  {/* TITLE */}
-  <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
-    {title}
-  </div>
+    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
+      {/* TITLE */}
+      <div className="bg-blue-300 px-5 py-4 text-md font-extrabold text-black">
+        {title}
+      </div>
 
-  {/* CONTENT */}
-  <div className="bg-white">
-  </div>
+      {/* CONTENT */}
+      <div className="bg-white"></div>
 
       <div className="p-2">
-        {  sorted.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="text-sm text-gray-500">Belum ada data.</div>
         ) : (
           <div className="space-y-2">
@@ -298,7 +299,7 @@ function CardList({
                 <div
                   key={v}
                   className={cn(
-                    "flex items-start gap-3 rounded-xl px-4 py-3 ring-1",
+                    "flex items-center justify-between rounded-xl px-4 py-3 ring-1",
                     isActive
                       ? "bg-gray-100 ring-gray-300"
                       : "bg-gray-50 ring-gray-200 hover:bg-gray-200/70",
@@ -307,8 +308,8 @@ function CardList({
                   <button
                     type="button"
                     onClick={() => onPick(v)}
-                    className="min-w-0 flex-1 text-left text-sm font-semibold text-gray-900 break-words whitespace-normal"
-                    title={v}
+                    className="flex-1 text-left text-sm font-semibold text-black"
+                    title="Klik untuk pilih"
                   >
                     {v}
                   </button>
@@ -318,7 +319,7 @@ function CardList({
                     disabled={disabled}
                     onClick={() => onDelete(v)}
                     className={cn(
-                      "shrink-0 grid h-9 w-9 place-items-center rounded-lg",
+                      "ml-3 grid h-9 w-9 place-items-center rounded-lg",
                       disabled
                         ? "bg-white"
                         : "bg-gray-100 ring-1 ring-black/10 hover:bg-gray-50",

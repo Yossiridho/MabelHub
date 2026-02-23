@@ -16,6 +16,47 @@ function formatCreatedAt(dt: Date) {
   return dt.toISOString().slice(0, 19).replace("T", " ");
 }
 
+type TeamDoc = { leaderId: string; memberIds: string[] };
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = (await db
+    .collection("teams")
+    .findOne({ leaderId })) as TeamDoc | null;
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+type UserLite = {
+  userId: string;
+  role: string;
+  username: string;
+  fullName: string;
+};
+
+async function loadUsersMap(db: any, userIds: string[]) {
+  const ids = Array.from(new Set(userIds)).filter((x) => ObjectId.isValid(x));
+  if (!ids.length) return new Map<string, UserLite>();
+
+  const rows = await db
+    .collection("users")
+    .find(
+      { _id: { $in: ids.map((x) => new ObjectId(x)) } },
+      { projection: { role: 1, username: 1, fullName: 1 } },
+    )
+    .toArray();
+
+  const map = new Map<string, UserLite>();
+  for (const r of rows) {
+    map.set(String((r as any)._id), {
+      userId: String((r as any)._id),
+      role: String((r as any).role || ""),
+      username: String((r as any).username || ""),
+      fullName: String((r as any).fullName || ""),
+    });
+  }
+  return map;
+}
+
 export async function POST(req: Request) {
   const auth = assertLoggedIn(req);
   if (!auth.ok) {
@@ -24,13 +65,11 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-
     const tanggal = String(body?.tanggal ?? "").trim();
     const items = Array.isArray(body?.items) ? body.items : [];
 
-    if (!tanggal) {
+    if (!tanggal)
       return NextResponse.json({ error: "tanggal wajib" }, { status: 400 });
-    }
     if (!items.length) {
       return NextResponse.json(
         { error: "items wajib (min 1)" },
@@ -53,45 +92,82 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB || "MabelHub");
     const visits = db.collection("VisitActivity");
-    const users = db.collection("users");
 
-    // helper: ambil daftar userId yang boleh di-assign oleh leader
-    async function getLeaderAllowedUserIds(leaderId: string) {
-      const team = await db
-        .collection<{ leaderId: string; memberIds: string[] }>("teams")
-        .findOne({ leaderId });
-      const ids = [leaderId, ...(team?.memberIds ?? [])].map(String);
-      return Array.from(new Set(ids));
-    }
-
-    // cache nama user (target sales) biar tidak query berulang
-    const nameCache = new Map<string, string | null>();
-    async function resolveNamaSales(userId: string) {
-      const key = String(userId || "").trim();
-      if (!key) return null;
-      if (nameCache.has(key)) return nameCache.get(key) ?? null;
-
-      let nm: string | null = null;
-      if (ObjectId.isValid(key)) {
-        const u = await users.findOne(
-          { _id: new ObjectId(key) },
-          { projection: { fullName: 1, username: 1 } },
-        );
-        nm = (u as any)?.fullName ?? (u as any)?.username ?? null;
-      }
-      nameCache.set(key, nm);
-      return nm;
-    }
-
-    // kalau leader: hitung allowed sekali
+    // LEADER allowed list (self + memberIds)
     const leaderAllowed =
       session.role === "LEADER"
-        ? await getLeaderAllowedUserIds(session.userId)
-        : null;
+        ? await getLeaderAllowedUserIds(db, session.userId)
+        : [];
 
-    const docs: any[] = [];
+    // 1) hitung target user per item + validasi role
+    const resolvedTargets: string[] = [];
 
     for (const it of items) {
+      let targetUserId = session.userId;
+      const requestedTarget = String(it?.targetUserId ?? "").trim();
+
+      if (requestedTarget) {
+        // SALES tidak boleh override
+        if (session.role === "SALES") {
+          return NextResponse.json(
+            { error: "FORBIDDEN: sales tidak boleh assign user lain" },
+            { status: 403 },
+          );
+        }
+
+        // LEADER: harus anggota tim / self
+        if (session.role === "LEADER") {
+          if (!leaderAllowed.includes(requestedTarget)) {
+            return NextResponse.json(
+              { error: "FORBIDDEN: target bukan anggota team leader" },
+              { status: 403 },
+            );
+          }
+          targetUserId = requestedTarget;
+        }
+
+        // SUPERADMIN/ADMIN: boleh assign ke SALES/LEADER saja (atau self)
+        if (session.role === "SUPERADMIN" || session.role === "ADMIN") {
+          targetUserId = requestedTarget;
+        }
+      }
+
+      resolvedTargets.push(targetUserId);
+    }
+
+    // 2) preload user map untuk semua target agar nama_sales benar
+    const userMap = await loadUsersMap(db, [
+      session.userId,
+      ...resolvedTargets,
+    ]);
+
+    // 3) validasi role target untuk SUPERADMIN/ADMIN
+    if (session.role === "SUPERADMIN" || session.role === "ADMIN") {
+      for (const tid of resolvedTargets) {
+        if (tid === session.userId) continue;
+        const u = userMap.get(tid);
+        if (!u) {
+          return NextResponse.json(
+            { error: `Target user tidak ditemukan: ${tid}` },
+            { status: 404 },
+          );
+        }
+        if (u.role !== "SALES" && u.role !== "LEADER") {
+          return NextResponse.json(
+            {
+              error: "FORBIDDEN: SUPERADMIN hanya boleh assign ke SALES/LEADER",
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+
+    // 4) build docs
+    const docs: any[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+
       const status_ring = String(it?.status_ring ?? "").trim();
       const institusi_kerja = String(it?.institusi_kerja ?? "").trim();
       const kota_kab = String(it?.kota_kab ?? "").trim();
@@ -99,49 +175,45 @@ export async function POST(req: Request) {
       const satuan_kerja = String(it?.satuan_kerja ?? "").trim();
 
       if (!status_ring || !institusi_kerja) {
-        throw new Error(
-          "Setiap plan wajib punya status_ring & institusi_kerja",
+        return NextResponse.json(
+          { error: "Setiap plan wajib punya status_ring & institusi_kerja" },
+          { status: 400 },
         );
       }
 
-      let targetUserId = session.userId;
+      const targetUserId = resolvedTargets[i];
+      const targetUser = userMap.get(targetUserId);
 
-      // LEADER: boleh assign, tapi harus anggota tim
-      if (session.role === "LEADER") {
-        const requestedTarget = String(it?.targetUserId ?? "").trim();
-
-        if (requestedTarget) {
-          if (!ObjectId.isValid(requestedTarget)) {
-            return NextResponse.json(
-              { error: "targetUserId tidak valid" },
-              { status: 400 },
-            );
-          }
-
-          if (leaderAllowed && !leaderAllowed.includes(requestedTarget)) {
-            return NextResponse.json(
-              { error: "FORBIDDEN: targetUserId bukan anggota tim" },
-              { status: 403 },
-            );
-          }
-
-          targetUserId = requestedTarget;
-        }
-      }
-
-      // SALES: tidak boleh override
-      if (session.role === "SALES") {
-        targetUserId = session.userId;
-      }
+      const nama_sales =
+        (targetUser?.fullName || "").trim() ||
+        (targetUser?.username || "").trim() ||
+        session.fullName ||
+        session.username ||
+        null;
 
       const pic = it?.pic_default ?? {};
 
-      // ✅ nama_sales harus mengikuti targetUserId
-      const nama_sales = await resolveNamaSales(targetUserId);
-
       docs.push({
-        id: null, // kalau mau incremental, bikin counter atomik nanti
+        id: null,
+
+        // legacy
         user_id: targetUserId || null,
+
+        // new
+        assignedTo: targetUser
+          ? {
+              userId: targetUser.userId,
+              role: targetUser.role,
+              username: targetUser.username,
+              fullName: targetUser.fullName,
+            }
+          : {
+              userId: targetUserId || "",
+              role: "",
+              username: "",
+              fullName: "",
+            },
+
         nama_sales,
 
         visit_date,
@@ -156,8 +228,6 @@ export async function POST(req: Request) {
         pic_role: pic?.role ?? null,
 
         created_at,
-
-        // audit: siapa yang membuat plan
         created_by_user_id: session.userId,
         created_by_name: session.fullName || session.username,
 

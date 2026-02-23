@@ -32,6 +32,25 @@ function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
 }
 
+function pickArray(json: any) {
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.users)) return json.users;
+  if (Array.isArray(json?.members)) return json.members;
+  if (Array.isArray(json)) return json;
+  return [];
+}
+
+function displayName(m: {
+  fullName?: string;
+  username?: string;
+  userId: string;
+  role?: string;
+}) {
+  const name =
+    (m.fullName || "").trim() || (m.username || "").trim() || m.userId;
+  return m.role ? `${name} • ${m.role}` : name;
+}
+
 async function apiCreateEProc(payload: any) {
   const res = await fetch("/api/e-procurement/requests", {
     method: "POST",
@@ -70,28 +89,10 @@ async function apiUpdateEProc(requestId: string, payload: any) {
 export default function EProcurementRequestPage() {
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
-  const [salesOptions, setSalesOptions] = useState<TeamMember[]>([]);
-  const [assignedToUserId, setAssignedToUserId] = useState("");
 
-  useEffect(() => {
-    if (!user) return;
-    if (user.role !== "LEADER") return;
-
-    fetch("/api/teams/me/members", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        const arr: TeamMember[] = Array.isArray(j?.members) ? j.members : [];
-        const sales = arr.filter((m) => m.role === "SALES");
-        setSalesOptions(sales);
-      })
-      .catch(() => setSalesOptions([]));
-  }, [user]);
-
-  // ✅ Guard (opsional): halaman request biasanya untuk SALES/LEADER
-  useEffect(() => {
-    if (!sessionLoading && user) {
-    }
-  }, [sessionLoading, user, router]);
+  // ✅ assignee options (team members or all users)
+  const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([]);
+  const [assignedToUserId, setAssignedToUserId] = useState(""); // "" = self
 
   // ===== Header form state =====
   const [requestor, setRequestor] = useState("");
@@ -127,6 +128,106 @@ export default function EProcurementRequestPage() {
   const [revisiId, setRevisiId] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
+  const canPickAssignee =
+    user?.role === "LEADER" ||
+    user?.role === "SUPERADMIN" ||
+    user?.role === "ADMIN";
+
+  // Prefill requestor untuk non-leader/superadmin (dan tetap bisa edit manual)
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (!user) return;
+    const myName =
+      (user.fullName || "").trim() || (user.username || "").trim() || "";
+    setRequestor((prev) => prev || myName);
+  }, [sessionLoading, user]);
+
+  // ✅ Load options sesuai role
+  useEffect(() => {
+    if (!user) return;
+
+    (async () => {
+      try {
+        // SALES: no dropdown
+        if (user.role === "SALES") {
+          setAssigneeOptions([]);
+          setAssignedToUserId("");
+          return;
+        }
+
+        // LEADER: team members (sales)
+        if (user.role === "LEADER") {
+          const res = await fetch("/api/teams/me/members", {
+            cache: "no-store",
+          });
+          const j = await res.json().catch(() => ({}));
+          const arr = pickArray(j);
+
+          const sales = arr
+            .map((m: any) => ({
+              userId: String(m.userId || m._id || ""),
+              fullName: m.fullName ? String(m.fullName) : "",
+              username: m.username ? String(m.username) : "",
+              role: String(m.role || "SALES"),
+            }))
+            .filter((m: TeamMember) => m.userId && m.role === "SALES");
+
+          setAssigneeOptions(sales);
+          setAssignedToUserId(""); // default self
+          return;
+        }
+
+        // SUPERADMIN/ADMIN: all sales + leader
+        if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
+          const res = await fetch("/api/users", { cache: "no-store" });
+          const j = await res.json().catch(() => ({}));
+          const arr = pickArray(j);
+
+          const list: TeamMember[] = arr
+            .map((u: any) => ({
+              userId: String(u._id || u.userId || ""),
+              fullName: u.fullName ? String(u.fullName) : "",
+              username: u.username ? String(u.username) : "",
+              role: String(u.role || ""),
+            }))
+            .filter(
+              (m: TeamMember) =>
+                m.userId && (m.role === "SALES" || m.role === "LEADER"),
+            );
+
+          setAssigneeOptions(list);
+          setAssignedToUserId(""); // default self
+          return;
+        }
+
+        setAssigneeOptions([]);
+        setAssignedToUserId("");
+      } catch {
+        setAssigneeOptions([]);
+        setAssignedToUserId("");
+      }
+    })();
+  }, [user]);
+
+  // ✅ kalau assignee berubah: set requestor otomatis (biar dokumen kebaca)
+  useEffect(() => {
+    if (!user) return;
+    if (!canPickAssignee) return;
+
+    const myName =
+      (user.fullName || "").trim() || (user.username || "").trim() || "";
+
+    if (!assignedToUserId) {
+      // self
+      setRequestor(myName);
+      return;
+    }
+
+    const picked = assigneeOptions.find((x) => x.userId === assignedToUserId);
+    if (picked)
+      setRequestor((picked.fullName || picked.username || "").trim() || myName);
+  }, [assignedToUserId, assigneeOptions, user, canPickAssignee]);
+
   const addItem = () => {
     setItems((prev) => [
       ...prev,
@@ -158,7 +259,6 @@ export default function EProcurementRequestPage() {
     );
   };
 
-  // ===== Modal handlers =====
   const closeModal = () => {
     setOpenRevisi(false);
     setOpenUpload(false);
@@ -172,7 +272,6 @@ export default function EProcurementRequestPage() {
       if (!revisiId.trim()) return alert("Masukkan Request ID");
       const data = await apiLoadEProc(revisiId.trim());
 
-      // set header
       setRequestor(data.requestor ?? "");
       setPemohon(data.pemohon ?? "");
       setSegmen((data.segmen ?? "") as any);
@@ -180,14 +279,11 @@ export default function EProcurementRequestPage() {
       setLokasi(data.lokasi ?? "");
       setCatatanHeader(data.catatan ?? "");
 
-      // set items
       setItems(
         Array.isArray(data.items) && data.items.length ? data.items : items,
       );
 
-      // info id
       setInfoId(data.requestId ?? "REQ-");
-
       setOpenRevisi(false);
     } catch (e: any) {
       alert(e?.message ?? "Gagal load");
@@ -214,15 +310,14 @@ export default function EProcurementRequestPage() {
           deadline,
           lokasi,
           catatanHeader,
-          assignedToUserId:
-            user?.role === "LEADER" ? assignedToUserId : undefined,
+          // ✅ allow self (""), leader/team, superadmin/global
+          assignedToUserId: canPickAssignee ? assignedToUserId : "",
         },
         items,
       };
 
-      if (user?.role === "LEADER" && !assignedToUserId) {
-        return alert("Leader wajib memilih Sales team untuk request ini.");
-      }
+      // ❌ hapus rule lama: leader wajib pilih sales
+      // Karena sekarang leader boleh assign ke diri sendiri.
 
       if (infoId && infoId !== "REQ-") {
         await apiUpdateEProc(infoId, payload);
@@ -240,60 +335,45 @@ export default function EProcurementRequestPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        {/* SIDEBAR */}
         <Sidebar />
 
-       <div className="flex-1 p-6 h-screen overflow-y-auto">
-      <div className="px-3 pt-2 pb-2">
-        <h1 className="text-2xl font-extrabold pl-4 text-black">
-        E-PROCUREMENT
-        </h1>
-        <div className="px-6 pb-6">
-        </div>
-     </div>
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
+          <div className="px-3 pt-2 pb-2">
+            <h1 className="text-2xl font-extrabold pl-4 text-black">
+              E-PROCUREMENT
+            </h1>
+            <div className="px-6 pb-6"></div>
+          </div>
 
-          {/* ===== HEADER FORM CARD ===== */}
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
                 <label className="text-sm font-semibold text-blue-600">
                   REQUESTOR
                 </label>
+
                 <div className="relative mt-2">
-                  {user?.role === "LEADER" ? (
+                  {canPickAssignee ? (
                     <select
                       value={assignedToUserId}
-                      onChange={(e) => {
-                        const uid = e.target.value;
-                        setAssignedToUserId(uid);
-                        const picked = salesOptions.find(
-                          (x) => x.userId === uid,
-                        );
-                        // requestor tetap string, isi nama sales agar kebaca di dokumen
-                        setRequestor(
-                          picked?.fullName || picked?.username || "",
-                        );
-                      }}
-                      className="h-12 w-full ..."
+                      onChange={(e) => setAssignedToUserId(e.target.value)}
+                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
                     >
-                      <option value="">-- Pilih Sales Team --</option>
-                      {salesOptions.map((m) => (
+                      <option value="">(Diri sendiri)</option>
+                      {assigneeOptions.map((m) => (
                         <option key={m.userId} value={m.userId}>
-                          {m.fullName || m.username}
+                          {displayName(m)}
                         </option>
                       ))}
                     </select>
                   ) : (
-                    <select
+                    // SALES: requestor tampil auto (boleh edit manual kalau mau)
+                    <input
                       value={requestor}
                       onChange={(e) => setRequestor(e.target.value)}
-                      className="h-12 w-full ..."
-                    >
-                      <option value="">-- Pilih --</option>
-                      <option value="Sales A">Sales A</option>
-                      <option value="Sales B">Sales B</option>
-                      <option value="Sales C">Sales C</option>
-                    </select>
+                      className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="Nama requestor"
+                    />
                   )}
 
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
@@ -307,6 +387,13 @@ export default function EProcurementRequestPage() {
                     </svg>
                   </span>
                 </div>
+
+                {canPickAssignee ? (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Leader: bisa assign ke sales team atau diri sendiri.
+                    Superadmin/Admin: semua sales/leader.
+                  </div>
+                ) : null}
               </div>
 
               <div>
@@ -320,7 +407,6 @@ export default function EProcurementRequestPage() {
                 />
               </div>
 
-              {/* SEGMEN */}
               <div>
                 <label className="text-sm font-semibold text-blue-600">
                   SEGMEN
@@ -351,7 +437,6 @@ export default function EProcurementRequestPage() {
                 </div>
               </div>
 
-              {/* DEADLINE */}
               <div>
                 <label className="text-sm font-semibold text-blue-600">
                   DEADLINE USULAN
@@ -366,7 +451,6 @@ export default function EProcurementRequestPage() {
                 </div>
               </div>
 
-              {/* LOKASI */}
               <div>
                 <label className="text-sm font-semibold text-blue-600">
                   LOKASI
@@ -378,7 +462,6 @@ export default function EProcurementRequestPage() {
                 />
               </div>
 
-              {/* CATATAN HEADER */}
               <div>
                 <label className="text-sm font-semibold text-blue-600">
                   CATATAN HEADER
@@ -419,11 +502,11 @@ export default function EProcurementRequestPage() {
             </div>
           </section>
 
-          {/* ===== PRODUCT CARDS ===== */}
+          {/* PRODUCT CARDS */}
           <section className="space-y-6">
             {items.map((it, idx) => (
               <div
-                key={it.id} // key={`${it.id}-${idx}`}
+                key={it.id}
                 className="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
               >
                 <div className="absolute inset-y-0 left-0 w-2 bg-blue-600" />
@@ -438,7 +521,7 @@ export default function EProcurementRequestPage() {
                   aria-label="Remove item"
                   title="Remove item"
                 >
-                X
+                  X
                 </button>
 
                 <div className="mb-6 p-8 pl-20">
@@ -628,7 +711,6 @@ export default function EProcurementRequestPage() {
           </div>
         )}
 
-        {/* ===== MODAL UPLOAD ===== */}
         {openUpload && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div
