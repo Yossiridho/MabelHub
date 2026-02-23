@@ -557,7 +557,7 @@ export default function InstansiPage() {
                   </Select>
                 </Field>
 
-                <Field label="SEGMEN">
+                <Field label="RING">
                   <Select
                     value={segmen}
                     onChange={(e) => {
@@ -565,7 +565,7 @@ export default function InstansiPage() {
                       setPage(1);
                     }}
                   >
-                    <option value="ALL">Semua Segmen</option>
+                    <option value="ALL">Semua Ring</option>
                     {segmenOptions.map((x) => (
                       <option key={x} value={x}>
                         {x}
@@ -592,7 +592,7 @@ export default function InstansiPage() {
                         "No. HP PIC",
                         "Jabatan PIC",
                         "Role PIC",
-                        "Status Segmen",
+                        "Status Ring",
                         "History",
                         "Aksi",
                       ].map((h) => (

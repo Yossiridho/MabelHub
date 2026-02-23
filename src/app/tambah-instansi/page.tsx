@@ -627,7 +627,7 @@ export default function AddInstansiPage() {
                                 <option value="">Pilih Status Ring...</option>
                                 {paramRing.map((opt) => (
                                   <option key={opt} value={opt}>
-                                    RING {opt}
+                                    {opt}
                                   </option>
                                 ))}
                               </Select>
