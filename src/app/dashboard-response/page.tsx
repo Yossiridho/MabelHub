@@ -272,31 +272,7 @@ export default function DashboardResponsePage() {
             </div>
 
             {/* Overview (putih + shadow) */}
-            <div className="mt-6 rounded-xl bg-white p-4 shadow-md">
-              <div className="text-sm font-semibold text-neutral-900">
-                Overview
-              </div>
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <OverviewCard title="PERUSAHAAN" className="lg:col-span-2">
-                  <ChartPlaceholder
-                    icon={<BarChart3 className="h-16 w-16" />}
-                  />
-                </OverviewCard>
 
-                <OverviewCard title="TOTAL REQUEST" className="lg:row-span-2">
-                  <ChartPlaceholder
-                    icon={<PieChart className="h-20 w-20" />}
-                    tall
-                  />
-                </OverviewCard>
-
-                <OverviewCard title="STATUS" className="lg:col-span-2">
-                  <ChartPlaceholder
-                    icon={<BarChart3 className="h-16 w-16" />}
-                  />
-                </OverviewCard>
-              </div>
-            </div>
 
             <div className="h-10" />
           </div>
