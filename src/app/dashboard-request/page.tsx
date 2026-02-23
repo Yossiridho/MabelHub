@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { Bell } from "lucide-react";
+import { Search } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import {
@@ -137,26 +138,7 @@ export default function DashboardRequestPage() {
                   className="h-12 w-full rounded-full bg-white px-6 pr-14 text-sm shadow-sm outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-blue-300"
                 />
                 <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-gray-500">
-                  {/* search icon */}
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M16.5 16.5 21 21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <Search className="h-5 w-5" />
                 </span>
               </div>
 
@@ -238,154 +220,131 @@ export default function DashboardRequestPage() {
           </div>
 
           {/* CHARTS SECTION */}
-          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Total Visits Chart */}
-            <div className="rounded-xl bg-white p-5 shadow">
-              <h3 className="mb-4 text-sm font-semibold text-gray-600">
-                VISITS OVERVIEW
-              </h3>
-              <div className="h-64 w-full">
-                {loadingStats ? (
-                  <div className="flex h-full items-center justify-center text-gray-400">
-                    Loading...
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Visits", value: stats?.totalVisits || 0 },
-                          {
-                            name: "Stay Office",
-                            value: stats?.stayOffice || 0,
-                          },
-                          {
-                            name: "Not Visited",
-                            value: stats?.notVisited || 0,
-                          },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        <Cell fill="#3b82f6" /> {/* blue-500 */}
-                        <Cell fill="#10b981" /> {/* emerald-500 */}
-                        <Cell fill="#ef4444" /> {/* red-500 */}
-                      </Pie>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" height={36} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
+            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:auto-rows-fr">
+          <div className="rounded-xl bg-white p-6 shadow lg:row-span-2 lg:col-span-1">
+             <h3 className="mb-4 text-md font-semibold text-black">
+                 VISITS OVERVIEW
+             </h3>
 
-            {/* Market Coverage Chart */}
-            <div className="rounded-xl bg-white p-5 shadow">
-              <h3 className="mb-4 text-sm font-semibold text-gray-600">
-                MARKET COVERAGE
-              </h3>
-              <div className="h-64 w-full">
-                {loadingStats ? (
-                  <div className="flex h-full items-center justify-center text-gray-400">
-                    Loading...
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { name: "Sales", count: stats?.salesCount || 0 },
-                        { name: "Satker", count: stats?.satkerCount || 0 },
-                        { name: "City", count: stats?.cityCount || 0 },
-                      ]}
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="#E5E7EB"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "#6B7280" }}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "#6B7280" }}
-                      />
-                      <Tooltip cursor={{ fill: "transparent" }} />
-                      <Bar
-                        dataKey="count"
-                        fill="#8b5cf6"
-                        radius={[4, 4, 0, 0]}
-                        barSize={40}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
+           <div className="h-[420px] w-full">
+           {loadingStats ? (
+         <div className="flex h-full items-center justify-center text-gray-400">
+        Loading...
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={[
+              { name: "Visits", value: stats?.totalVisits || 0 },
+              { name: "Stay Office", value: stats?.stayOffice || 0 },
+              { name: "Not Visited", value: stats?.notVisited || 0 },
+            ]}
+            cx="50%"
+            cy="50%"
+            outerRadius={130}   // dibesarkan
+            paddingAngle={3}
+            dataKey="value"
+            label
+          >
+            <Cell fill="#3b82f6" />
+            <Cell fill="#10b981" />
+            <Cell fill="#ef4444" />
+          </Pie>
 
-            {/* Ring Distribution Chart */}
-            <div className="rounded-xl bg-white p-5 shadow">
-              <h3 className="mb-4 text-sm font-semibold text-gray-600">
-                RING DISTRIBUTION
-              </h3>
-              <div className="h-64 w-full">
-                {loadingStats ? (
-                  <div className="flex h-full items-center justify-center text-gray-400">
-                    Loading...
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
-                        { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
-                        { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
-                        { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
-                      ]}
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      layout="vertical"
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        horizontal={false}
-                        stroke="#E5E7EB"
-                      />
-                      <XAxis
-                        type="number"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "#6B7280" }}
-                      />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "#6B7280" }}
-                        width={60}
-                      />
-                      <Tooltip cursor={{ fill: "transparent" }} />
-                      <Bar
-                        dataKey="count"
-                        fill="#f59e0b"
-                        radius={[0, 4, 4, 0]}
-                        barSize={20}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-          </div>
+          <Tooltip />
+          <Legend verticalAlign="bottom" height={50} />
+        </PieChart>
+      </ResponsiveContainer>
+    )}
+  </div>
+</div>
+
+  {/* Market Coverage Chart (KANAN ATAS) */}
+  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+    <h3 className="mb-4 text-md font-bold text-black">
+      MARKET COVERAGE
+    </h3>
+    <div className="h-64 w-full">
+      {loadingStats ? (
+        <div className="flex h-full items-center justify-center text-gray-400">
+          Loading...
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={[
+              { name: "Sales", count: stats?.salesCount || 0 },
+              { name: "Satker", count: stats?.satkerCount || 0 },
+              { name: "City", count: stats?.cityCount || 0 },
+            ]}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "black" }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "gray" }}
+            />
+            <Tooltip cursor={{ fill: "transparent" }} />
+            <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  </div>
+
+  {/* Ring Distribution Chart (KANAN BAWAH) */}
+  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+    <h3 className="mb-4 text-md font-bold text-black">
+      RING DISTRIBUTION
+    </h3>
+    <div className="h-64 w-full">
+      {loadingStats ? (
+        <div className="flex h-full items-center justify-center text-gray-400">
+          Loading...
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={[
+              { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
+              { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
+              { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
+              { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
+            ]}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            layout="vertical"
+          >
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+            <XAxis
+              type="number"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#6B7280" }}
+            />
+            <YAxis
+              dataKey="name"
+              type="category"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "black" }}
+              width={65}
+            />
+            <Tooltip cursor={{ fill: "transparent" }} />
+            <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>
