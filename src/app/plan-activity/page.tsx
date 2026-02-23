@@ -15,6 +15,7 @@ type VisitRow = {
   institusi_kerja?: string;
   satuan_kerja?: string;
   status_visit?: string; // "Visited"
+  visit_image?: string;
 };
 
 type PlanRow = {
@@ -25,6 +26,7 @@ type PlanRow = {
   institusi_kerja: string;
   satuan_kerja: string;
   status: string;
+  visit_image: string;
   _sortTs: number; // untuk sorting (baru -> besar)
 };
 
@@ -138,6 +140,15 @@ export default function PlanActivityPage() {
     fetchPlans(page, search);
   }
 
+  function openImageBase64(base64: string) {
+    const w = window.open("");
+    if (w) {
+      w.document.write(
+        `<iframe src="${base64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`,
+      );
+    }
+  }
+
   // Guard role
   useEffect(() => {
     if (!sessionLoading && user) {
@@ -199,6 +210,7 @@ export default function PlanActivityPage() {
           institusi_kerja: v.institusi_kerja || "",
           satuan_kerja: v.satuan_kerja || "",
           status: v.status_visit || "",
+          visit_image: v.visit_image || "",
           _sortTs: sortTs,
         };
       });
@@ -321,12 +333,13 @@ export default function PlanActivityPage() {
 
             {/* TABLE */}
             <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              <div className="grid grid-cols-7 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
+              <div className="grid grid-cols-8 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
                 <div>Institusi Kerja</div>
                 <div>Satuan Kerja</div>
+                <div className="text-center">Bukti</div>
                 <div className="text-center">Status</div>
                 <div className="text-center">Aksi</div>
               </div>
@@ -362,7 +375,7 @@ export default function PlanActivityPage() {
                           {rows.map((r) => (
                             <div
                               key={r.id}
-                              className="grid grid-cols-7 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
+                              className="grid grid-cols-8 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
                             >
                               <div className="opacity-0 select-none">
                                 {r.tanggal}
@@ -375,6 +388,24 @@ export default function PlanActivityPage() {
                               </div>
                               <div className="uppercase">
                                 {r.satuan_kerja || "-"}
+                              </div>
+                              <div className="flex justify-center items-center">
+                                {r.visit_image ? (
+                                  <div
+                                    className="w-10 h-10 rounded cursor-pointer ring-1 ring-gray-300 hover:opacity-80 transition flex-shrink-0 bg-cover bg-center"
+                                    style={{
+                                      backgroundImage: `url(${r.visit_image})`,
+                                    }}
+                                    onClick={() =>
+                                      openImageBase64(r.visit_image!)
+                                    }
+                                    title="Buka foto penuh"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400 text-xs">
+                                    -
+                                  </span>
+                                )}
                               </div>
                               <div className="text-center font-semibold">
                                 {(r.status || "-").toUpperCase()}
@@ -430,6 +461,8 @@ export default function PlanActivityPage() {
           posisiOptions={posisiOptions}
           statusKunjunganOptions={statusKunjunganOptions}
           kegiatanOptions={kegiatanOptions}
+          currentUserId={user?.userId}
+          currentUserRole={user?.role}
         />
       </div>
     </div>
