@@ -16,10 +16,11 @@ type EProcRow = {
   deadlineUsulan: string | Date;
   tanggalSubmit: string | Date;
   catatan?: string;
-
   takenByAdminId?: string | null;
   takenByAdminName?: string | null;
   takenAt?: string | Date | null;
+
+  items?: any[];
 };
 
 function fmtDate(d: string | Date) {
@@ -114,14 +115,14 @@ export default function EProcurementResponsePage() {
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-              <div>
-                <div className="text-2xl pl-4 font-extrabold text-black">
-                  E-PROCUREMENT RESPONSE
-                </div>
-                <div className="text-sm ml-4 text-gray-600">
-                  Request e-procurement yang bisa diambil admin.
-                </div>
+            <div>
+              <div className="text-2xl pl-4 font-extrabold text-black">
+                E-PROCUREMENT RESPONSE
               </div>
+              <div className="text-sm ml-4 text-gray-600">
+                Request e-procurement yang bisa diambil admin.
+              </div>
+            </div>
 
             {/* Main container */}
             <div className="mt-6 rounded-2xl bg-white shadow-md overflow-hidden">
@@ -146,7 +147,7 @@ export default function EProcurementResponsePage() {
                         <th className="px-4 py-3 text-left">Lokasi</th>
                         <th className="px-4 py-3 text-left">Segmen</th>
                         <th className="px-4 py-3 text-left">Deadline</th>
-                        <th className="px-4 py-3 text-right">Aksi</th>
+                        <th className="px-4 py-3 text-center">Aksi</th>
                       </tr>
                     </thead>
 
@@ -226,27 +227,25 @@ function FragmentRow({
 }) {
   return (
     <>
-      <tr className="border-b border-neutral-100 hover:bg-neutral-50">
-        <td className="px-4 py-3 font-semibold">
-          <button
-            className="text-left hover:underline"
-            onClick={onToggle}
-            type="button"
-            title="Klik untuk lihat detail"
-          >
-            {r.requestId}
-          </button>
-        </td>
+      <tr
+        className="border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer"
+        onClick={onToggle}
+        title="Klik untuk lihat detail"
+      >
+        <td className="px-4 py-3">{r.requestId}</td>
         <td className="px-4 py-3">{r.requestor}</td>
         <td className="px-4 py-3">{r.pemohon}</td>
         <td className="px-4 py-3">{r.lokasi}</td>
         <td className="px-4 py-3">{r.segmen}</td>
         <td className="px-4 py-3">{fmtDate(r.deadlineUsulan)}</td>
 
-        <td className="px-4 py-3 text-right">
+        <td className="px-4 py-3 text-center">
           <button
             disabled={isTaking}
-            onClick={onTake}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTake();
+            }}
             className={[
               "h-8 rounded-full px-4 text-xs font-semibold text-white",
               isTaking
@@ -260,9 +259,9 @@ function FragmentRow({
       </tr>
 
       {isOpen ? (
-        <tr className="border-b border-neutral-100">
-          <td colSpan={7} className="px-4 py-3 bg-neutral-50 text-sm">
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <tr className="border-b border-neutral-100 bg-neutral-50">
+          <td colSpan={7} className="px-4 py-4 text-sm">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
               <div>
                 <span className="font-medium text-neutral-700">
                   Tanggal Submit:
@@ -273,6 +272,81 @@ function FragmentRow({
                 <span className="font-medium text-neutral-700">Catatan:</span>{" "}
                 {r.catatan?.trim() ? r.catatan : "-"}
               </div>
+            </div>
+
+            <div className="mb-2">
+              <h4 className="font-semibold text-neutral-800 mb-2">
+                Rincian Items ({r.items?.length || 0})
+              </h4>
+              {r.items && r.items.length > 0 ? (
+                <div className="overflow-x-auto border border-neutral-200 rounded-md">
+                  <table className="w-full text-xs text-left bg-white">
+                    <thead className="bg-neutral-100">
+                      <tr>
+                        <th className="px-2 py-2">Merek</th>
+                        <th className="px-2 py-2">Sub Kategori</th>
+                        <th className="px-2 py-2">Spesifikasi</th>
+                        <th className="px-2 py-2">Qty</th>
+                        <th className="px-2 py-2 pl-4">Pagu</th>
+                        <th className="px-2 py-2">Harga Tayang</th>
+                        <th className="px-2 py-2">Link Inaproc</th>
+                        <th className="px-2 py-2">Link ECom</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {r.items.map((it, idx) => (
+                        <tr
+                          key={it.id || idx}
+                          className="border-t border-neutral-200"
+                        >
+                          <td className="px-2 py-2">{it.merek || "-"}</td>
+                          <td className="px-2 py-2">{it.subKategori || "-"}</td>
+                          <td className="px-2 py-2">{it.spesifikasi || "-"}</td>
+                          <td className="px-2 py-2">{it.qty ?? "-"}</td>
+                          <td className="px-2 py-2 pl-4">
+                            {it.paguPerItem || "-"}
+                          </td>
+                          <td className="px-2 py-2">{it.hargaTayang || "-"}</td>
+                          <td className="px-2 py-2">
+                            {it.linkInaproc ? (
+                              <a
+                                href={it.linkInaproc}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-500 hover:underline"
+                                onClick={(e) => e.stopPropagation()} // in case
+                              >
+                                Link
+                              </a>
+                            ) : (
+                              <span className="text-black">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2">
+                            {it.linkEcom ? (
+                              <a
+                                href={it.linkEcom}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-500 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Link
+                              </a>
+                            ) : (
+                              <span className="text-black">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-neutral-500 text-xs">
+                  Tidak ada item rincian
+                </div>
+              )}
             </div>
           </td>
         </tr>

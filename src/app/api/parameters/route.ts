@@ -14,7 +14,8 @@ type ParamKey =
   | "posisi"
   | "status_kunjungan"
   | "kegiatan"
-  | "perusahaan";
+  | "perusahaan"
+  | "status_akhir";
 
 function norm(v: string) {
   return String(v ?? "").trim();
@@ -42,6 +43,7 @@ async function ensureDoc() {
     status_kunjungan: [],
     kegiatan: [],
     perusahaan: [],
+    status_akhir: [],
     updatedAt: new Date(),
   });
 
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const key = norm(body?.key) as ParamKey;
-  const value = norm(body?.value);
+  const value = norm(body?.value).toUpperCase();
 
   if (!key) return bad("key wajib");
   if (!value) return bad("value wajib");
@@ -88,6 +90,7 @@ export async function POST(req: Request) {
     "status_kunjungan",
     "kegiatan",
     "perusahaan",
+    "status_akhir",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
 
@@ -126,6 +129,7 @@ export async function DELETE(req: Request) {
     "status_kunjungan",
     "kegiatan",
     "perusahaan",
+    "status_akhir",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, Fragment } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type ProductItem = {
   id: string;
@@ -16,6 +17,8 @@ type ProductItem = {
   linkEcom: string;
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
+  tanggalProses?: string | Date;
+  tanggalDone?: string | Date;
 };
 
 type EProcDoc = {
@@ -35,6 +38,7 @@ type EProcDoc = {
   takenAt?: string | null;
 
   statusAkhir?: string;
+  statusUsulan?: string;
   perusahaan?: string;
 };
 
@@ -42,10 +46,10 @@ function clsx(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
 
-function formatDateTime(iso?: string | null) {
+function formatDateTime(iso?: string | Date | null): string {
   if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return String(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(
     d.getHours(),
@@ -76,6 +80,7 @@ export default function RekapitulasiEProcurementPage() {
   const [requestor, setRequestor] = useState("ALL");
   const [pemohon, setPemohon] = useState("ALL");
   const [status, setStatus] = useState("ALL");
+  const [statusAkhir, setStatusAkhir] = useState("ALL");
   const [tindakLanjut, setTindakLanjut] = useState("ALL");
   const [segmen, setSegmen] = useState("ALL");
 
@@ -93,6 +98,7 @@ export default function RekapitulasiEProcurementPage() {
 
   const [paramRing, setParamRing] = useState<string[]>([]);
   const [paramSegmen, setParamSegmen] = useState<string[]>([]);
+  const [paramStatusAkhir, setParamStatusAkhir] = useState<string[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -103,6 +109,7 @@ export default function RekapitulasiEProcurementPage() {
         if (d) {
           setParamRing(d.ring || []);
           setParamSegmen(d.segmen || []);
+          if (d.status_akhir) setParamStatusAkhir(d.status_akhir);
         }
       })
       .catch(() => {});
@@ -141,17 +148,27 @@ export default function RekapitulasiEProcurementPage() {
     return Array.from(set).filter(Boolean).sort();
   }, [rows]);
 
-  // ===== mapping status sesuai kebutuhan UI (sementara) =====
-  // kamu bisa ubah nanti kalau field "status usulan / current status / tindak lanjut" sudah ada di DB
   function getStatusUsulan(r: EProcDoc) {
-    return "MASUK";
+    return r.statusUsulan || r.statusAkhir || "Masuk";
   }
-  function getCurrentStatus(r: EProcDoc) {
-    return r.statusAkhir || "Open";
+  function getDisplayStatusAkhir(val?: string) {
+    if (!val) return "-";
+    const legacy = [
+      "Open",
+      "Proses",
+      "Done",
+      "Selesai",
+      "Batal",
+      "Masuk",
+      "MASUK",
+    ];
+    if (legacy.includes(val)) return "-";
+    if (paramStatusAkhir.length > 0 && !paramStatusAkhir.includes(val))
+      return "-";
+    return val;
   }
   function getTindakLanjutValue(_r: EProcDoc) {
-    // belum ada field di schema kamu → placeholder "-"
-    return "-";
+    return "-"; // belum ada field di schema -> placeholder "-"
   }
 
   const filtered = useMemo(() => {
@@ -181,8 +198,13 @@ export default function RekapitulasiEProcurementPage() {
         if (segmen !== "ALL" && r.segmen !== segmen) return false;
 
         if (status !== "ALL") {
-          const s = getCurrentStatus(r);
+          const s = getStatusUsulan(r);
           if (s !== status) return false;
+        }
+
+        if (statusAkhir !== "ALL") {
+          const displayStatusAkhir = getDisplayStatusAkhir(r.statusAkhir);
+          if (displayStatusAkhir !== statusAkhir) return false;
         }
 
         if (tindakLanjut !== "ALL") {
@@ -214,6 +236,7 @@ export default function RekapitulasiEProcurementPage() {
     requestor,
     pemohon,
     status,
+    statusAkhir,
     tindakLanjut,
     selectedRing,
     segmen,
@@ -270,21 +293,18 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     REQUESTOR
                   </div>
-                  <select
+                  <SearchableSelect
                     value={requestor}
-                    onChange={(e) => {
-                      setRequestor(e.target.value);
+                    onChange={(val: string) => {
+                      setRequestor(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Sales</option>
-                    {requestorOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Sales" },
+                      ...requestorOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Tanggal Mulai */}
@@ -356,27 +376,43 @@ export default function RekapitulasiEProcurementPage() {
                   </select>
                 </div>
 
+                {/* Status Akhir */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    STATUS AKHIR
+                  </div>
+                  <SearchableSelect
+                    value={statusAkhir}
+                    onChange={(val: string) => {
+                      setStatusAkhir(val);
+                      setPage(1);
+                    }}
+                    options={[
+                      { value: "ALL", label: "Semua Status" },
+                      ...paramStatusAkhir.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
+                </div>
+
                 {/* Ring (Parent Segmen) */}
                 <div className="md:col-span-1">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     RING
                   </div>
-                  <select
+                  <SearchableSelect
                     value={selectedRing}
-                    onChange={(e) => {
-                      setSelectedRing(e.target.value);
+                    onChange={(val: string) => {
+                      setSelectedRing(val);
                       setSegmen("ALL");
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Ring</option>
-                    {paramRing.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Ring" },
+                      ...paramRing.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Segmen */}
@@ -384,42 +420,39 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     SEGMEN
                   </div>
-                  <select
+                  <SearchableSelect
                     value={segmen}
-                    onChange={(e) => {
-                      setSegmen(e.target.value);
+                    onChange={(val: string) => {
+                      setSegmen(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Segmen</option>
-                    {availableSegmen.map((x) => (
-                      <option key={x} value={x}>
-                        {formatSegmen(x)}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Segmen" },
+                      ...availableSegmen.map((x) => ({
+                        value: x,
+                        label: formatSegmen(x),
+                      })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
                 {/* Pemohon */}
                 <div className="md:col-span-2">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     PEMOHON
                   </div>
-                  <select
+                  <SearchableSelect
                     value={pemohon}
-                    onChange={(e) => {
-                      setPemohon(e.target.value);
+                    onChange={(val: string) => {
+                      setPemohon(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Pemohon</option>
-                    {pemohonOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Pemohon" },
+                      ...pemohonOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Search ID */}
@@ -455,7 +488,7 @@ export default function RekapitulasiEProcurementPage() {
                         "Lokasi",
                         "Deadline Usulan",
                         "Status Usulan",
-                        "Current Status",
+                        "Status Akhir",
                       ].map((h) => (
                         <th
                           key={h}
@@ -508,7 +541,9 @@ export default function RekapitulasiEProcurementPage() {
                             {r.deadlineUsulan || "-"}
                           </td>
                           <td className="px-3 py-2">{getStatusUsulan(r)}</td>
-                          <td className="px-3 py-2">{getCurrentStatus(r)}</td>
+                          <td className="px-3 py-2">
+                            {getDisplayStatusAkhir(r.statusAkhir)}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -667,9 +702,10 @@ export default function RekapitulasiEProcurementPage() {
                     <div>
                       <div className="text-sm text-black/50">Status Akhir</div>
                       <div className="font-semibold text-black">
-                        {getCurrentStatus(selected)}
+                        {getDisplayStatusAkhir(selected.statusAkhir)}
                       </div>
                     </div>
+
                     <div>
                       <div className="text-sm text-black/50">Perusahaan</div>
                       <div className="font-semibold text-black">
@@ -777,9 +813,15 @@ export default function RekapitulasiEProcurementPage() {
                                   </td>
                                   <td className="px-3 py-3">{it.qty ?? "-"}</td>
                                   <td className="px-3 py-3">
-                                    {formatDateTime(selected.takenAt)}
+                                    {it.tanggalProses
+                                      ? formatDateTime(it.tanggalProses)
+                                      : "-"}
                                   </td>
-                                  <td className="px-3 py-3">-</td>
+                                  <td className="px-3 py-3">
+                                    {it.tanggalDone
+                                      ? formatDateTime(it.tanggalDone)
+                                      : "-"}
+                                  </td>
                                   <td className="px-3 py-3">
                                     {it.statusBarangAdmin || "Masuk"}
                                   </td>

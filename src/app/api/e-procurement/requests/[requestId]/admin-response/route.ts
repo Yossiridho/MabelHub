@@ -26,7 +26,8 @@ export async function PUT(
 
   const perusahaan = String(body.perusahaan ?? "").trim();
   const catatanAdmin = String(body.catatanAdmin ?? "").trim();
-  const items = Array.isArray(body.items) ? body.items : [];
+  const statusAkhirInput = String(body.statusAkhir ?? "").trim();
+  const incomingItems = Array.isArray(body.items) ? body.items : [];
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
@@ -53,8 +54,36 @@ export async function PUT(
     }
   }
 
+  const existingItems = existing.items || [];
+  const now = new Date();
+
+  // Merge items to manage tanggalProses and tanggalDone
+  const items = incomingItems.map((inItem: any) => {
+    const exItem = existingItems.find((e: any) => e.id === inItem.id) || {};
+    const outItem = { ...inItem };
+
+    // Preserve existing dates
+    if (exItem.tanggalProses) outItem.tanggalProses = exItem.tanggalProses;
+    if (exItem.tanggalDone) outItem.tanggalDone = exItem.tanggalDone;
+
+    // Check if status changed
+    const oldStatus = (exItem.statusBarangAdmin || "").toLowerCase();
+    const newStatus = (inItem.statusBarangAdmin || "").toLowerCase();
+
+    if (newStatus !== oldStatus) {
+      if (newStatus === "progress" && !outItem.tanggalProses) {
+        outItem.tanggalProses = now;
+      }
+      if (newStatus === "done" && !outItem.tanggalDone) {
+        outItem.tanggalDone = now;
+      }
+    }
+
+    return outItem;
+  });
+
   // Auto-calculate statusAkhir
-  let computedStatus = "Open";
+  let computedStatus = "Masuk";
   if (items && items.length > 0) {
     const total = items.length;
     let countDone = 0;
@@ -71,10 +100,10 @@ export async function PUT(
     if (countProgress > 0) {
       computedStatus = "Proses";
     } else if (countDone === total) {
-      computedStatus = "Selesai";
+      computedStatus = "Done";
     } else if (countDone > 0 && countDone + countHoldCancel === total) {
       // Ada yang done, sisanya cuma hold/cancel
-      computedStatus = "Selesai";
+      computedStatus = "Done";
     } else if (countHoldCancel === total) {
       computedStatus = "Batal";
     } else if (countDone > 0 || countHoldCancel > 0) {
@@ -83,8 +112,6 @@ export async function PUT(
     }
   }
 
-  const now = new Date();
-
   const rawResult = await col.findOneAndUpdate(
     { requestId: rid },
     {
@@ -92,7 +119,8 @@ export async function PUT(
         perusahaan,
         catatanAdmin,
         items,
-        statusAkhir: computedStatus,
+        statusUsulan: computedStatus,
+        statusAkhir: computedStatus === "Done" ? statusAkhirInput : "",
         updatedAt: now,
       },
     },

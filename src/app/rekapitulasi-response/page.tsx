@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type ProductItem = {
   id: string;
@@ -39,6 +40,7 @@ type EProcRow = {
   catatanAdmin?: string;
   tayangInaproc?: string;
   statusAkhir?: string;
+  statusUsulan?: string;
 };
 
 function fmtDate(d: string | Date) {
@@ -277,10 +279,12 @@ function FragmentRow({
   const [form, setForm] = useState({
     perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
+    statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
   });
 
   const [companies, setCompanies] = useState<string[]>([]);
+  const [statusAkhirOptions, setStatusAkhirOptions] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -290,10 +294,42 @@ function FragmentRow({
           if (json?.data?.perusahaan) {
             setCompanies(json.data.perusahaan);
           }
+          if (json?.data?.status_akhir) {
+            setStatusAkhirOptions(json.data.status_akhir);
+          }
         })
         .catch(() => {});
     }
   }, [isOpen]);
+
+  const computedStatusUsulan = useMemo(() => {
+    const total = form.items.length;
+    if (total === 0) return "Masuk";
+    let countDone = 0;
+    let countHoldCancel = 0;
+    let countProgress = 0;
+    for (const it of form.items) {
+      const st = (it.statusBarangAdmin || "").toLowerCase();
+      if (st === "done") countDone++;
+      else if (st === "progress") countProgress++;
+      else if (st === "hold" || st === "cancel") countHoldCancel++;
+    }
+
+    if (countProgress > 0) return "Proses";
+    if (countDone === total) return "Done";
+    if (countDone > 0 && countDone + countHoldCancel === total) return "Done";
+    if (countHoldCancel === total) return "Batal";
+    if (countDone > 0 || countHoldCancel > 0) return "Proses";
+    return "Masuk";
+  }, [form.items]);
+
+  const isDone = computedStatusUsulan === "Done";
+
+  useEffect(() => {
+    if (!isDone && form.statusAkhir !== "") {
+      setForm((prev) => ({ ...prev, statusAkhir: "" }));
+    }
+  }, [isDone, form.statusAkhir]);
 
   // check if editable
   // only simple ADMIN who acts as the taker can edit, or SUPERADMIN can edit
@@ -333,17 +369,12 @@ function FragmentRow({
 
   return (
     <>
-      <tr className="border-b border-neutral-100 hover:bg-neutral-50">
-        <td className="px-4 py-3 font-semibold">
-          <button
-            className="text-left hover:underline text-blue-600"
-            onClick={onToggle}
-            type="button"
-            title="Klik untuk lihat detail"
-          >
-            {r.requestId}
-          </button>
-        </td>
+      <tr
+        className="border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer"
+        onClick={onToggle}
+        title="Klik untuk lihat detail"
+      >
+        <td className="px-4 py-3">{r.requestId}</td>
         <td className="px-4 py-3">{r.requestor}</td>
         <td className="px-4 py-3">{r.pemohon}</td>
         <td className="px-4 py-3">{r.lokasi}</td>
@@ -382,14 +413,22 @@ function FragmentRow({
                       {r.items.map((it, idx) => (
                         <React.Fragment key={it.id || idx}>
                           <tr className="border-t border-neutral-200">
-                            <td className="px-2 py-2">{it.merek}</td>
-                            <td className="px-2 py-2">{it.subKategori}</td>
-                            <td className="px-2 py-2">{it.spesifikasi}</td>
-                            <td className="px-2 py-2">{it.qty}</td>
-                            <td className="px-2 py-2">{it.paguPerItem}</td>
-                            <td className="px-2 py-2">{it.hargaTayang}</td>
+                            <td className="px-2 py-2">{it.merek || "-"}</td>
                             <td className="px-2 py-2">
-                              {it.linkInaproc && (
+                              {it.subKategori || "-"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {it.spesifikasi || "-"}
+                            </td>
+                            <td className="px-2 py-2">{it.qty ?? "-"}</td>
+                            <td className="px-2 py-2">
+                              {it.paguPerItem || "-"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {it.hargaTayang || "-"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {it.linkInaproc ? (
                                 <a
                                   href={it.linkInaproc}
                                   target="_blank"
@@ -398,10 +437,12 @@ function FragmentRow({
                                 >
                                   Link
                                 </a>
+                              ) : (
+                                <span className="text-black">-</span>
                               )}
                             </td>
                             <td className="px-2 py-2">
-                              {it.linkEcom && (
+                              {it.linkEcom ? (
                                 <a
                                   href={it.linkEcom}
                                   target="_blank"
@@ -410,6 +451,8 @@ function FragmentRow({
                                 >
                                   Link
                                 </a>
+                              ) : (
+                                <span className="text-black">-</span>
                               )}
                             </td>
                           </tr>
@@ -495,32 +538,53 @@ function FragmentRow({
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Perusahaan (Penyedia)
                   </label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                  <SearchableSelect
+                    className="mt-1"
                     value={form.perusahaan}
-                    onChange={(e) =>
-                      setForm({ ...form, perusahaan: e.target.value })
+                    onChange={(val: string) =>
+                      setForm({ ...form, perusahaan: val })
                     }
-                    disabled={!canEdit || loading}
-                  >
-                    <option value="">Pilih Perusahaan...</option>
-                    {companies.map((c, i) => (
-                      <option key={i} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    isDisabled={!canEdit || loading}
+                    options={companies.map((c) => ({
+                      value: c,
+                      label: c,
+                    }))}
+                    placeholder="Pilih Perusahaan..."
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    Status Akhir
+                    Status Usulan (Otomatis)
                   </label>
                   <input
                     className="w-full border rounded-md px-3 py-2 text-sm outline-none bg-neutral-100 text-neutral-600 font-semibold cursor-not-allowed"
-                    value={r.statusAkhir || "Open"}
+                    value={computedStatusUsulan}
                     disabled
                     readOnly
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
+                    Status Akhir (Manual)
+                  </label>
+                  <SearchableSelect
+                    className="mt-1"
+                    value={form.statusAkhir}
+                    onChange={(val: string) =>
+                      setForm({ ...form, statusAkhir: val })
+                    }
+                    isDisabled={!canEdit || loading || !isDone}
+                    options={statusAkhirOptions.map((s) => ({
+                      value: s,
+                      label: s,
+                    }))}
+                    placeholder={
+                      !isDone
+                        ? "Status Usulan belum Done"
+                        : "Pilih Status Akhir..."
+                    }
                   />
                 </div>
 
