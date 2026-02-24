@@ -412,14 +412,22 @@ function FragmentRow({
                       {r.items.map((it, idx) => (
                         <React.Fragment key={it.id || idx}>
                           <tr className="border-t border-neutral-200">
-                            <td className="px-2 py-2">{it.merek}</td>
-                            <td className="px-2 py-2">{it.subKategori}</td>
-                            <td className="px-2 py-2">{it.spesifikasi}</td>
-                            <td className="px-2 py-2">{it.qty}</td>
-                            <td className="px-2 py-2">{it.paguPerItem}</td>
-                            <td className="px-2 py-2">{it.hargaTayang}</td>
+                            <td className="px-2 py-2">{it.merek || "-"}</td>
                             <td className="px-2 py-2">
-                              {it.linkInaproc && (
+                              {it.subKategori || "-"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {it.spesifikasi || "-"}
+                            </td>
+                            <td className="px-2 py-2">{it.qty ?? "-"}</td>
+                            <td className="px-2 py-2">
+                              {it.paguPerItem || "-"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {it.hargaTayang || "-"}
+                            </td>
+                            <td className="px-2 py-2">
+                              {it.linkInaproc ? (
                                 <a
                                   href={it.linkInaproc}
                                   target="_blank"
@@ -428,10 +436,12 @@ function FragmentRow({
                                 >
                                   Link
                                 </a>
+                              ) : (
+                                <span className="text-black">-</span>
                               )}
                             </td>
                             <td className="px-2 py-2">
-                              {it.linkEcom && (
+                              {it.linkEcom ? (
                                 <a
                                   href={it.linkEcom}
                                   target="_blank"
@@ -440,6 +450,8 @@ function FragmentRow({
                                 >
                                   Link
                                 </a>
+                              ) : (
+                                <span className="text-black">-</span>
                               )}
                             </td>
                           </tr>

@@ -352,7 +352,7 @@ function CardList({
         </span>
       </div>
 
-      <div className="p-3 bg-gray-50/50 flex-1 overflow-y-auto max-h-[320px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <div className="p-3 bg-gray-50/50 flex-1 overflow-y-auto max-h-[250px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
         {loading ? (
           <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
             <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
