@@ -288,7 +288,9 @@ export default function InstansiPage() {
       limit: String(limit),
     });
 
-    const res = await fetch(`/api/instansi?${qs.toString()}`);
+    const res = await fetch(`/api/instansi?${qs.toString()}`, {
+      cache: "no-store",
+    });
     const data = (await res.json()) as ApiResp;
     setResp(data);
     setLoading(false);
@@ -377,7 +379,9 @@ export default function InstansiPage() {
 
   async function loadPending() {
     setPendingLoading(true);
-    const res = await fetch("/api/company-requests?status=PENDING");
+    const res = await fetch("/api/company-requests?status=PENDING", {
+      cache: "no-store",
+    });
     const data = await res.json();
     setPending(Array.isArray(data) ? data : []);
     setPendingLoading(false);
@@ -393,7 +397,19 @@ export default function InstansiPage() {
     if (!confirm("Approve instansi ini?")) return;
     setBusyId(id);
 
-    await fetch(`/api/company-requests/${id}/approve`, { method: "POST" });
+    try {
+      const res = await fetch(`/api/company-requests/${id}/approve`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(
+          `Gagal approve: ${errorData.message || "Terjadi kesalahan pada server"}`,
+        );
+      }
+    } catch (e: any) {
+      alert(`Terjadi kesalahan jaringan: ${e.message}`);
+    }
 
     setBusyId(null);
     await loadPending();
@@ -406,11 +422,21 @@ export default function InstansiPage() {
     if (!reason) return;
 
     setBusyId(id);
-    await fetch(`/api/company-requests/${id}/reject`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reject_reason: reason }),
-    });
+    try {
+      const res = await fetch(`/api/company-requests/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reject_reason: reason }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(
+          `Gagal reject: ${errorData.message || "Terjadi kesalahan pada server"}`,
+        );
+      }
+    } catch (e: any) {
+      alert(`Terjadi kesalahan jaringan: ${e.message}`);
+    }
 
     setBusyId(null);
     await loadPending();

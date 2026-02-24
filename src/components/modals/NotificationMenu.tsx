@@ -39,6 +39,7 @@ export default function NotificationMenu() {
   // State for Auto Popup
   const [popup, setPopup] = useState<NotificationItem | null>(null);
   const isFirstLoad = useRef(true);
+  const prevUnreadCount = useRef(0);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -70,7 +71,7 @@ export default function NotificationMenu() {
         const newCount = data.unreadCount || 0;
 
         // Show popup if it's not the initial load and the count has increased
-        if (!isFirstLoad.current && newCount > unreadCount) {
+        if (!isFirstLoad.current && newCount > prevUnreadCount.current) {
           fetchLatestForPopup();
         }
 
@@ -78,6 +79,7 @@ export default function NotificationMenu() {
           isFirstLoad.current = false;
         }
 
+        prevUnreadCount.current = newCount;
         setUnreadCount(newCount);
       }
     } catch (err) {
@@ -128,7 +130,11 @@ export default function NotificationMenu() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setUnreadCount((prev) => {
+        const next = Math.max(0, prev - 1);
+        prevUnreadCount.current = next;
+        return next;
+      });
 
       await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
 
@@ -146,6 +152,7 @@ export default function NotificationMenu() {
       // Optimistic upate
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
+      prevUnreadCount.current = 0;
 
       await fetch("/api/notifications/read-all", { method: "POST" });
     } catch (err) {

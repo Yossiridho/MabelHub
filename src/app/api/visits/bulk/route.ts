@@ -256,7 +256,7 @@ export async function POST(req: Request) {
           message: `${session.fullName || session.username} (Leader/Admin) memberikan tugas visit ke instansi ${doc.institusi_kerja} pada tanggal ${visit_date}.`,
           type: "TASK",
           isRead: false,
-          link: "/dashboard-request", // Or "/plan-activity" or wherever is best
+          link: "/plan-activity", // Directs to the activity planning page where tasks are managed
           createdAt: new Date(),
           updatedAt: new Date(),
         });
