@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import { Bell } from "lucide-react";
+import NotificationMenu from "@/components/modals/NotificationMenu";
 import { Search } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,60 @@ type DashboardStats = {
   };
 };
 
+function cn(...s: Array<string | false | null | undefined>) {
+  return s.filter(Boolean).join(" ");
+}
+
+function formatDateID(iso: string | Date | undefined) {
+  if (!iso || iso === "-") return "-";
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return String(iso);
+  }
+}
+
+function StatusPill({ value }: { value: string | undefined }) {
+  const upper = (value || "-").toUpperCase();
+  const isVisited = upper.includes("VISIT") && !upper.includes("NOT");
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center rounded-full px-4 py-1 text-xs font-extrabold tracking-wide",
+        isVisited
+          ? "bg-green-100 text-green-700 ring-1 ring-green-200"
+          : "bg-gray-100 text-gray-600 ring-1 ring-gray-200",
+      )}
+    >
+      {upper}
+    </span>
+  );
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | undefined;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-extrabold tracking-wider text-gray-500">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-semibold text-gray-900">
+        {value || "-"}
+      </div>
+    </div>
+  );
+}
+
 type VisitRow = {
   _id: string;
   nama_sales?: string;
@@ -45,6 +99,16 @@ type VisitRow = {
   pic_name?: string;
   pic_phone?: string;
   status_ring?: string;
+  created_at?: string;
+  status_market?: string;
+  klpd?: string;
+  reschedule?: string;
+  institusi_kerja?: string;
+  pic_position?: string;
+  pic_role?: string;
+  tindak_lanjut?: string;
+  kegiatan_status?: string;
+  descriptions?: string;
 };
 
 export default function DashboardRequestPage() {
@@ -55,9 +119,9 @@ export default function DashboardRequestPage() {
   const [visits, setVisits] = useState<VisitRow[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingTable, setLoadingTable] = useState(true);
+  const [selected, setSelected] = useState<VisitRow | null>(null);
 
   const [search, setSearch] = useState("");
-  const [unreadNotif, setUnreadNotif] = useState(3);
   useEffect(() => {
     if (!sessionLoading && user) {
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
@@ -99,7 +163,7 @@ export default function DashboardRequestPage() {
 
       try {
         setLoadingTable(true);
-        const res = await fetch("/api/visits?limit=10&page=1", {
+        const res = await fetch("/api/visits?limit=5&page=1", {
           cache: "no-store",
         });
         const data = await res.json().catch(() => ({}));
@@ -155,21 +219,7 @@ export default function DashboardRequestPage() {
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setUnreadNotif(0)}
-                className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
-                aria-label="Notifications"
-              >
-                <Bell className="h-6 w-6 text-gray-700" />
-
-                {/* Badge unread */}
-                {unreadNotif > 0 && (
-                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                    {unreadNotif}
-                  </span>
-                )}
-              </button>
+              <NotificationMenu />
             </div>
           </div>
 
@@ -385,7 +435,15 @@ export default function DashboardRequestPage() {
 
           {/* RECENT VISITS TABLE */}
           <div className="mt-6 rounded-xl bg-white p-6 shadow">
-            <h3 className="mb-4 text-md font-bold text-black">RECENT VISITS</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-md font-bold text-black">RECENT VISITS</h3>
+              <button
+                onClick={() => router.push("/rekapitulasi-visit")}
+                className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-100 transition-colors"
+              >
+                See All
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-white">
@@ -430,33 +488,119 @@ export default function DashboardRequestPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredVisits.map((v) => (
-                      <tr
-                        key={v._id}
-                        className="border-b border-black/5 hover:bg-gray-50"
-                      >
-                        <td className="px-3 py-3 text-black">
-                          {v.nama_sales || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-black">
-                          {v.satuan_kerja || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-black">
-                          {v.city || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-black">
-                          {v.status_visit || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-black">
-                          {v.status_ring || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-black">
-                          {v.visit_date
-                            ? new Date(v.visit_date).toLocaleDateString("id-ID")
-                            : "-"}
-                        </td>
-                      </tr>
-                    ))
+                    filteredVisits.slice(0, 5).map((v) => {
+                      const active = selected?._id === v._id;
+                      return (
+                        <React.Fragment key={v._id}>
+                          <tr
+                            onClick={() => setSelected(active ? null : v)}
+                            className={cn(
+                              "cursor-pointer border-b border-black/5 transition-colors",
+                              active ? "bg-blue-50/60" : "hover:bg-gray-50",
+                            )}
+                          >
+                            <td
+                              className={cn(
+                                "px-3 py-3 text-black font-medium",
+                                active
+                                  ? "border-l-[4px] border-blue-600 pl-2"
+                                  : "border-l-[4px] border-transparent pl-2",
+                              )}
+                            >
+                              {v.nama_sales || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              {v.satuan_kerja || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              {v.city || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              <StatusPill value={v.status_visit} />
+                            </td>
+                            <td className="px-3 py-3 font-bold text-[#0B6AA9]">
+                              {v.status_ring || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              {formatDateID(v.visit_date)}
+                            </td>
+                          </tr>
+                          {active && (
+                            <tr className="bg-blue-50/30">
+                              <td
+                                colSpan={6}
+                                className="border-b border-blue-100 border-l-[4px] border-blue-600 px-3 py-4"
+                              >
+                                <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
+                                  <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
+                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
+                                      📖
+                                    </span>
+                                    Detail Kunjungan
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-6 border-t border-gray-100 pt-4 md:grid-cols-4 lg:grid-cols-5">
+                                    <DetailItem
+                                      label="Created At"
+                                      value={formatDateID(v.created_at)}
+                                    />
+                                    <DetailItem
+                                      label="Market Status"
+                                      value={v.status_market}
+                                    />
+                                    <DetailItem label="KLPD" value={v.klpd} />
+                                    <DetailItem
+                                      label="Reschedule"
+                                      value={
+                                        v.reschedule && v.reschedule !== "-"
+                                          ? formatDateID(v.reschedule)
+                                          : "-"
+                                      }
+                                    />
+                                    <DetailItem
+                                      label="Institusi Kerja"
+                                      value={v.institusi_kerja}
+                                    />
+                                    <DetailItem
+                                      label="PIC Name"
+                                      value={v.pic_name}
+                                    />
+                                    <DetailItem
+                                      label="PIC Phone"
+                                      value={v.pic_phone}
+                                    />
+                                    <DetailItem
+                                      label="PIC Position"
+                                      value={v.pic_position}
+                                    />
+                                    <DetailItem
+                                      label="PIC Role"
+                                      value={v.pic_role}
+                                    />
+                                    <DetailItem
+                                      label="Tindak Lanjut"
+                                      value={v.tindak_lanjut}
+                                    />
+                                    <DetailItem
+                                      label="Kegiatan Status"
+                                      value={v.kegiatan_status}
+                                    />
+                                  </div>
+
+                                  <div className="mt-6 border-t border-gray-100 pt-4">
+                                    <div className="text-xs font-extrabold tracking-wider text-gray-500">
+                                      DESKRIPSI
+                                    </div>
+                                    <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
+                                      {v.descriptions || "-"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
