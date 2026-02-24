@@ -60,10 +60,10 @@ export async function POST(req: Request) {
 
   const res = await db.collection("company_requests").insertOne(doc);
 
-  // Send notifications to SUPERADMIN and ADMIN
+  // Send notifications to SUPERADMIN
   const admins = await db
     .collection("users")
-    .find({ role: { $in: ["SUPERADMIN", "ADMIN"] } })
+    .find({ role: "SUPERADMIN" })
     .toArray();
 
   if (admins.length > 0) {
