@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = assertLoggedIn(req);
   if (!auth.ok) {

@@ -8,6 +8,7 @@ import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
 import DeleteInstansiModal from "@/components/modals/DeleteInstansiModal";
 import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Company = {
   _id: string;
@@ -550,54 +551,48 @@ export default function InstansiPage() {
                 </Field>
 
                 <Field label="KOTA/KABUPATEN">
-                  <Select
+                  <SearchableSelect
                     value={kota}
-                    onChange={(e) => {
-                      setKota(e.target.value);
+                    onChange={(val: string) => {
+                      setKota(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua Kota</option>
-                    {kotaOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua Kota" },
+                      ...kotaOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
 
                 <Field label="KLPD">
-                  <Select
+                  <SearchableSelect
                     value={klpd}
-                    onChange={(e) => {
-                      setKlpd(e.target.value);
+                    onChange={(val: string) => {
+                      setKlpd(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua KLPD</option>
-                    {klpdOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua KLPD" },
+                      ...klpdOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
 
                 <Field label="RING">
-                  <Select
+                  <SearchableSelect
                     value={segmen}
-                    onChange={(e) => {
-                      setSegmen(e.target.value);
+                    onChange={(val: string) => {
+                      setSegmen(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua Ring</option>
-                    {segmenOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua Ring" },
+                      ...segmenOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
               </div>
             </div>

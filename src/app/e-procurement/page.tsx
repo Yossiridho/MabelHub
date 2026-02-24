@@ -5,6 +5,7 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type TeamMember = {
   userId: string;
@@ -422,18 +423,19 @@ export default function EProcurementRequestPage() {
 
                 <div className="relative mt-2">
                   {canPickAssignee ? (
-                    <select
+                    <SearchableSelect
                       value={assignedToUserId}
-                      onChange={(e) => setAssignedToUserId(e.target.value)}
-                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                    >
-                      <option value="">(Diri sendiri)</option>
-                      {assigneeOptions.map((m) => (
-                        <option key={m.userId} value={m.userId}>
-                          {displayName(m)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val: string) => setAssignedToUserId(val)}
+                      options={[
+                        { value: "", label: "(Diri sendiri)" },
+                        ...assigneeOptions.map((m) => ({
+                          value: m.userId,
+                          label: displayName(m),
+                        })),
+                      ]}
+                      className="border-0 bg-white"
+                      placeholder="Pilih Assignee..."
+                    />
                   ) : (
                     // SALES: requestor tampil auto (boleh edit manual kalau mau)
                     <input
@@ -481,21 +483,19 @@ export default function EProcurementRequestPage() {
                     PILIH RING
                   </label>
                   <div className="relative mt-2">
-                    <select
+                    <SearchableSelect
                       value={selectedRing}
-                      onChange={(e) => {
-                        setSelectedRing(e.target.value);
+                      onChange={(val: string) => {
+                        setSelectedRing(val);
                         setSegmen("");
                       }}
-                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                    >
-                      <option value="">-- Pilih --</option>
-                      {paramRing.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: "", label: "-- Pilih --" },
+                        ...paramRing.map((r) => ({ value: r, label: r })),
+                      ]}
+                      className="border-0 bg-white"
+                      placeholder="Pilih Ring..."
+                    />
                     <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
                       <svg
                         width="18"
@@ -519,19 +519,20 @@ export default function EProcurementRequestPage() {
                     SEGMEN
                   </label>
                   <div className="relative mt-2">
-                    <select
+                    <SearchableSelect
                       value={segmen}
-                      onChange={(e) => setSegmen(e.target.value)}
-                      disabled={!selectedRing}
-                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-400"
-                    >
-                      <option value="">-- Pilih --</option>
-                      {availableSegmen.map((s) => (
-                        <option key={s} value={`${selectedRing}::${s}`}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val: string) => setSegmen(val)}
+                      isDisabled={!selectedRing}
+                      options={[
+                        { value: "", label: "-- Pilih --" },
+                        ...availableSegmen.map((s) => ({
+                          value: `${selectedRing}::${s}`,
+                          label: s,
+                        })),
+                      ]}
+                      className="border-0 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                      placeholder="Pilih Segmen..."
+                    />
                     <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
                       <svg
                         width="18"

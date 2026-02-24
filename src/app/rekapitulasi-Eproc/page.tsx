@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, Fragment } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type ProductItem = {
   id: string;
@@ -292,21 +293,18 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     REQUESTOR
                   </div>
-                  <select
+                  <SearchableSelect
                     value={requestor}
-                    onChange={(e) => {
-                      setRequestor(e.target.value);
+                    onChange={(val: string) => {
+                      setRequestor(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Sales</option>
-                    {requestorOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Sales" },
+                      ...requestorOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Tanggal Mulai */}
@@ -383,21 +381,18 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     STATUS AKHIR
                   </div>
-                  <select
+                  <SearchableSelect
                     value={statusAkhir}
-                    onChange={(e) => {
-                      setStatusAkhir(e.target.value);
+                    onChange={(val: string) => {
+                      setStatusAkhir(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Status</option>
-                    {paramStatusAkhir.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Status" },
+                      ...paramStatusAkhir.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Ring (Parent Segmen) */}
@@ -405,22 +400,19 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     RING
                   </div>
-                  <select
+                  <SearchableSelect
                     value={selectedRing}
-                    onChange={(e) => {
-                      setSelectedRing(e.target.value);
+                    onChange={(val: string) => {
+                      setSelectedRing(val);
                       setSegmen("ALL");
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Ring</option>
-                    {paramRing.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Ring" },
+                      ...paramRing.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Segmen */}
@@ -428,42 +420,39 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     SEGMEN
                   </div>
-                  <select
+                  <SearchableSelect
                     value={segmen}
-                    onChange={(e) => {
-                      setSegmen(e.target.value);
+                    onChange={(val: string) => {
+                      setSegmen(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Segmen</option>
-                    {availableSegmen.map((x) => (
-                      <option key={x} value={x}>
-                        {formatSegmen(x)}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Segmen" },
+                      ...availableSegmen.map((x) => ({
+                        value: x,
+                        label: formatSegmen(x),
+                      })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
                 {/* Pemohon */}
                 <div className="md:col-span-2">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     PEMOHON
                   </div>
-                  <select
+                  <SearchableSelect
                     value={pemohon}
-                    onChange={(e) => {
-                      setPemohon(e.target.value);
+                    onChange={(val: string) => {
+                      setPemohon(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Pemohon</option>
-                    {pemohonOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Pemohon" },
+                      ...pemohonOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Search ID */}

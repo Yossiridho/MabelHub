@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useRouter } from "next/navigation";
 
 type VisitRow = {
@@ -369,8 +370,8 @@ export default function RekapitulasiVisitPage() {
                               className={cn(
                                 "px-6 py-6 font-extrabold text-[#0B6AA9]",
                                 active
-                                  ? "border-l-[4px] border-blue-600"
-                                  : "border-l-[4px] border-transparent",
+                                  ? "border-l-4 border-l-blue-600"
+                                  : "border-l-4 border-l-transparent",
                               )}
                             >
                               {r.nama_sales}
@@ -401,7 +402,7 @@ export default function RekapitulasiVisitPage() {
                             <tr className="bg-blue-50/30">
                               <td
                                 colSpan={8}
-                                className="px-6 py-6 border-l-[4px] border-blue-600 border-b border-blue-100"
+                                className="px-6 py-6 border-l-4 border-l-blue-600 border-b border-b-blue-100"
                               >
                                 <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
                                   <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
@@ -557,20 +558,13 @@ function FilterSelect({
         {label}
       </div>
       <div className="relative mt-2">
-        <select
+        <SearchableSelect
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-12 w-full appearance-none rounded-xl border border-blue-200 bg-white px-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-        >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-700">
-          ▾
-        </span>
+          onChange={(val: string) => onChange(val)}
+          options={options}
+          placeholder={`Pilih ${label}...`}
+          className="h-12 w-full appearance-none rounded-xl border-blue-200 border bg-white"
+        />
       </div>
     </div>
   );

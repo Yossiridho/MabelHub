@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type ProductItem = {
   id: string;
@@ -537,21 +538,19 @@ function FragmentRow({
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Perusahaan (Penyedia)
                   </label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                  <SearchableSelect
+                    className="mt-1"
                     value={form.perusahaan}
-                    onChange={(e) =>
-                      setForm({ ...form, perusahaan: e.target.value })
+                    onChange={(val: string) =>
+                      setForm({ ...form, perusahaan: val })
                     }
-                    disabled={!canEdit || loading}
-                  >
-                    <option value="">Pilih Perusahaan...</option>
-                    {companies.map((c, i) => (
-                      <option key={i} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    isDisabled={!canEdit || loading}
+                    options={companies.map((c) => ({
+                      value: c,
+                      label: c,
+                    }))}
+                    placeholder="Pilih Perusahaan..."
+                  />
                 </div>
 
                 <div>
@@ -570,25 +569,23 @@ function FragmentRow({
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Status Akhir (Manual)
                   </label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                  <SearchableSelect
+                    className="mt-1"
                     value={form.statusAkhir}
-                    onChange={(e) =>
-                      setForm({ ...form, statusAkhir: e.target.value })
+                    onChange={(val: string) =>
+                      setForm({ ...form, statusAkhir: val })
                     }
-                    disabled={!canEdit || loading || !isDone}
-                  >
-                    <option value="">
-                      {!isDone
+                    isDisabled={!canEdit || loading || !isDone}
+                    options={statusAkhirOptions.map((s) => ({
+                      value: s,
+                      label: s,
+                    }))}
+                    placeholder={
+                      !isDone
                         ? "Status Usulan belum Done"
-                        : "Pilih Status Akhir..."}
-                    </option>
-                    {statusAkhirOptions.map((s, i) => (
-                      <option key={i} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                        : "Pilih Status Akhir..."
+                    }
+                  />
                 </div>
 
                 <div className="md:col-span-2">

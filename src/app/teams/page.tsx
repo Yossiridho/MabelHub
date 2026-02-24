@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type TeamDoc = {
   _id: string;
@@ -208,19 +208,16 @@ export default function TeamsPage() {
                   <div className="text-xs font-semibold text-gray-700">
                     Leader
                   </div>
-                  <select
+                  <SearchableSelect
                     value={leaderId}
-                    onChange={(e) => setLeaderId(e.target.value)}
-                    className="mt-2 h-11 w-full rounded-full bg-white px-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
-                  >
-                    <option value="">-- pilih leader --</option>
-                    {leaders.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {displayName(u)} ({u.username})
-                        {u.teamId ? " • sudah punya team" : ""}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val: string) => setLeaderId(val)}
+                    options={leaders.map((u) => ({
+                      value: u._id,
+                      label: `${displayName(u)} (${u.username})${u.teamId ? " • sudah punya team" : ""}`,
+                    }))}
+                    placeholder="-- pilih leader --"
+                    className="mt-2 border-0"
+                  />
                 </div>
               </div>
 

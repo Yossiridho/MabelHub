@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 function clsx(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
@@ -301,35 +302,33 @@ export default function EditInstansiModal({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="KOTA/KABUPATEN">
-              <Select
+              <SearchableSelect
                 value={form.kota_kab}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, kota_kab: e.target.value }))
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, kota_kab: val }))
                 }
-              >
-                <option value="">Pilih...</option>
-                {paramKotaKab.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Select>
+                options={paramKotaKab.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih Kota/Kabupaten..."
+                className="h-11 border-0"
+              />
             </Field>
 
             <Field label="KLPD">
-              <Select
+              <SearchableSelect
                 value={form.klpd}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, klpd: e.target.value }))
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, klpd: val }))
                 }
-              >
-                <option value="">Pilih...</option>
-                {paramKlpd.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Select>
+                options={paramKlpd.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih KLPD..."
+                className="h-11 border-0"
+              />
             </Field>
           </div>
 
@@ -345,19 +344,18 @@ export default function EditInstansiModal({
             </Field>
 
             <Field label="STATUS SEGMEN (RING)">
-              <Select
+              <SearchableSelect
                 value={form.status_ring}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, status_ring: e.target.value }))
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, status_ring: val }))
                 }
-              >
-                <option value="">Pilih...</option>
-                {paramRing.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Select>
+                options={paramRing.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih Status Ring..."
+                className="h-11 border-0"
+              />
             </Field>
           </div>
 
@@ -373,19 +371,18 @@ export default function EditInstansiModal({
             </Field>
 
             <Field label="ROLE PIC (OPSIONAL)">
-              <Select
+              <SearchableSelect
                 value={form.pic_role}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, pic_role: e.target.value }))
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, pic_role: val }))
                 }
-              >
-                <option value="">Pilih...</option>
-                {paramPosisi.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Select>
+                options={paramPosisi.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih Jabatan PIC..."
+                className="h-11 border-0"
+              />
             </Field>
           </div>
 

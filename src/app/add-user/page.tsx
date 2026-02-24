@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -347,16 +348,18 @@ export default function AddUserPage() {
                 </Field>
 
                 <Field label="Role">
-                  <select
+                  <SearchableSelect
                     value={userRole}
-                    onChange={(e) => setUserRole(e.target.value as UserRole)}
-                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
-                  >
-                    <option value="SUPERADMIN">Superadmin</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="LEADER">Leader</option>
-                    <option value="SALES">Sales</option>
-                  </select>
+                    onChange={(val: string) => setUserRole(val as UserRole)}
+                    options={[
+                      { value: "SUPERADMIN", label: "Superadmin" },
+                      { value: "ADMIN", label: "Admin" },
+                      { value: "LEADER", label: "Leader" },
+                      { value: "SALES", label: "Sales" },
+                    ]}
+                    className="h-10 border-0"
+                    placeholder="Pilih Role..."
+                  />
                 </Field>
 
                 <div className="flex items-end justify-end">
@@ -468,7 +471,7 @@ export default function AddUserPage() {
 
       {/* ===== Edit Modal ===== */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)}>
-          <div className="w-full max-w-6xl rounded-xl bg-white p-10 shadow-lg">
+        <div className="w-full max-w-6xl rounded-xl bg-white p-10 shadow-lg">
           <div className="text-lg font-extrabold text-gray-900">EDIT USER</div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -507,16 +510,18 @@ export default function AddUserPage() {
             </Field>
 
             <Field label="Role">
-              <select
+              <SearchableSelect
                 value={eRole}
-                onChange={(e) => setERole(e.target.value as UserRole)}
-                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
-              >
-                <option value="SUPERADMIN">Superadmin</option>
-                <option value="ADMIN">Admin</option>
-                <option value="LEADER">Leader</option>
-                <option value="SALES">Sales</option>
-              </select>
+                onChange={(val: string) => setERole(val as UserRole)}
+                options={[
+                  { value: "SUPERADMIN", label: "Superadmin" },
+                  { value: "ADMIN", label: "Admin" },
+                  { value: "LEADER", label: "Leader" },
+                  { value: "SALES", label: "Sales" },
+                ]}
+                className="h-10 border-0"
+                placeholder="Pilih Role..."
+              />
             </Field>
 
             <div className="flex items-end justify-end gap-3">
@@ -548,9 +553,7 @@ export default function AddUserPage() {
       {/* ===== Delete Confirm Modal ===== */}
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>
         <div className="w-full max-w-xl rounded-lg bg-white p-12 shadow-lg">
-          <div className="text-lg font-bold text-black">
-            Konfirmasi Hapus
-          </div>
+          <div className="text-lg font-bold text-black">Konfirmasi Hapus</div>
           <div className="mt-3 text-sm text-gray-700">
             Apakah anda yakin ingin menghapus user{" "}
             <span className="font-bold">{selected?.username}</span>?

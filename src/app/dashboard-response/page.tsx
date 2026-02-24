@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
@@ -10,10 +10,34 @@ import {
   ClipboardList,
   Building2,
   CheckCircle2,
-  BarChart3,
-  PieChart,
   PackageOpen,
 } from "lucide-react";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  Legend,
+  Sector,
+  Rectangle,
+} from "recharts";
+
+const COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#14b8a6",
+  "#f97316",
+];
 
 type EProcRow = {
   requestId: string;
@@ -28,6 +52,10 @@ type EProcRow = {
   takenByAdminId?: string | null;
   takenByAdminName?: string | null;
   takenAt?: string | Date | null;
+
+  perusahaan?: string;
+  statusUsulan?: string;
+  statusAkhir?: string;
 };
 
 type Summary = {
@@ -35,6 +63,90 @@ type Summary = {
   bySegment: Array<{ label: string; value: number }>;
   byCompany: Array<{ label: string; value: number }>;
   byStatus: Array<{ label: string; value: number }>;
+};
+
+const renderActiveShape = (props: any) => {
+  const RADIAN = Math.PI / 180;
+  const {
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+    payload,
+    percent,
+    value,
+  } = props;
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sx = cx + (outerRadius + 10) * cos;
+  const sy = cy + (outerRadius + 10) * sin;
+  const mx = cx + (outerRadius + 30) * cos;
+  const my = cy + (outerRadius + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? "start" : "end";
+
+  return (
+    <g>
+      <text
+        x={cx}
+        y={cy}
+        dy={8}
+        textAnchor="middle"
+        fill={fill}
+        className="font-bold text-sm"
+      >
+        {payload.label}
+      </text>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
+        fill={fill}
+      />
+      <path
+        d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+        stroke={fill}
+        fill="none"
+      />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text
+        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        y={ey}
+        textAnchor={textAnchor}
+        fill="#333"
+        className="text-xs font-semibold"
+      >
+        {`Total: ${value}`}
+      </text>
+      <text
+        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        y={ey}
+        dy={18}
+        textAnchor={textAnchor}
+        fill="#999"
+        className="text-[10px]"
+      >
+        {`(${(percent * 100).toFixed(2)}%)`}
+      </text>
+    </g>
+  );
 };
 
 function fmtDate(d: string | Date) {
@@ -48,6 +160,15 @@ function fmtDate(d: string | Date) {
 
 async function apiListTakeable(): Promise<EProcRow[]> {
   const res = await fetch("/api/e-procurement/requests?mode=takeable", {
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const json = await res.json().catch(() => ({}));
+  return (json?.data ?? []) as EProcRow[];
+}
+
+async function apiListAll(): Promise<EProcRow[]> {
+  const res = await fetch("/api/e-procurement/requests?mode=all", {
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -72,10 +193,16 @@ export default function DashboardResponsePage() {
   const { user, loading: sessionLoading } = useSession();
 
   const [rows, setRows] = useState<EProcRow[]>([]);
+  const [allRows, setAllRows] = useState<EProcRow[]>([]);
   const [loadingRows, setLoadingRows] = useState(true);
   const [takingId, setTakingId] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const onPieEnter = useCallback((_: any, index: number) => {
+    setActiveIndex(index);
+  }, []);
 
   // Guard: dashboard response untuk ADMIN/SUPERADMIN saja (opsional tapi masuk akal)
   useEffect(() => {
@@ -86,28 +213,39 @@ export default function DashboardResponsePage() {
     }
   }, [sessionLoading, user, router]);
 
-  // Dummy summary (nanti bisa dari API)
-  const summary: Summary = useMemo(
-    () => ({
-      total: 30,
-      bySegment: [
-        { label: "B2G", value: 10 },
-        { label: "B2B", value: 10 },
-        { label: "B2C", value: 10 },
-      ],
-      byCompany: [
-        { label: "ARDIT SOLUSI NUSANTARA", value: 10 },
-        { label: "MABEL SOLUSI MANDIRI", value: 10 },
-        { label: "MEKAR KREASI MANDIRI", value: 10 },
-      ],
-      byStatus: [
-        { label: "RILIS KONTRAK", value: 10 },
-        { label: "BARANG TERKIRIM KE USER", value: 10 },
-        { label: "TERBIT BAST", value: 10 },
-      ],
-    }),
-    [],
-  );
+  // Dynamic summary
+  const summary: Summary = useMemo(() => {
+    let total = allRows.length;
+    const countSegmen: Record<string, number> = {};
+    const countCompany: Record<string, number> = {};
+    const countStatus: Record<string, number> = {};
+
+    allRows.forEach((r) => {
+      // Segmen
+      const s = r.segmen || "Unknown";
+      countSegmen[s] = (countSegmen[s] || 0) + 1;
+
+      // Company
+      const c = r.perusahaan || "Belum Ditentukan";
+      countCompany[c] = (countCompany[c] || 0) + 1;
+
+      // Status
+      const st = r.statusAkhir || r.statusUsulan || "Masuk";
+      countStatus[st] = (countStatus[st] || 0) + 1;
+    });
+
+    const toArr = (obj: Record<string, number>) =>
+      Object.entries(obj)
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value);
+
+    return {
+      total,
+      bySegment: toArr(countSegmen),
+      byCompany: toArr(countCompany),
+      byStatus: toArr(countStatus),
+    };
+  }, [allRows]);
 
   useEffect(() => {
     let mounted = true;
@@ -116,9 +254,15 @@ export default function DashboardResponsePage() {
       if (!user) return;
 
       setLoadingRows(true);
-      const data = await apiListTakeable();
-      if (mounted) setRows(data);
-      if (mounted) setLoadingRows(false);
+      const [takeableData, entireData] = await Promise.all([
+        apiListTakeable(),
+        apiListAll(),
+      ]);
+      if (mounted) {
+        setRows(takeableData);
+        setAllRows(entireData);
+        setLoadingRows(false);
+      }
     })();
     return () => {
       mounted = false;
@@ -150,8 +294,11 @@ export default function DashboardResponsePage() {
       setTakingId(requestId);
       await apiTake(requestId);
       // refresh list
-      const data = await apiListTakeable();
-      setRows(data);
+      const takeableData = await apiListTakeable();
+      setRows(takeableData);
+
+      const allData = await apiListAll();
+      setAllRows(allData);
     } catch (e: any) {
       alert(e?.message ?? "Gagal mengambil request");
     } finally {
@@ -266,22 +413,156 @@ export default function DashboardResponsePage() {
               </div>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <OverviewCard title="PERUSAHAAN" className="lg:col-span-2">
-                  <ChartPlaceholder
-                    icon={<BarChart3 className="h-16 w-16" />}
-                  />
+                  <div className="h-[280px] w-full text-xs">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={summary.byCompany}
+                        layout="vertical"
+                        margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          horizontal={false}
+                          stroke="#e5e7eb"
+                        />
+                        <XAxis
+                          type="number"
+                          allowDecimals={false}
+                          tick={{ fill: "#6b7280" }}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={200}
+                          tick={{
+                            fontSize: 11,
+                            fill: "#374151",
+                            fontWeight: 500,
+                          }}
+                          interval={0}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#f3f4f6" }}
+                          formatter={(value: any) => [value, "Request"]}
+                          contentStyle={{
+                            borderRadius: "8px",
+                            border: "none",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill="#3b82f6"
+                          radius={[0, 4, 4, 0]}
+                          barSize={20}
+                          activeBar={
+                            <Rectangle
+                              fill="#bae6fd"
+                              stroke="#3b82f6"
+                              strokeWidth={1}
+                              radius={[0, 4, 4, 0]}
+                            />
+                          }
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </OverviewCard>
 
                 <OverviewCard title="TOTAL REQUEST" className="lg:row-span-2">
-                  <ChartPlaceholder
-                    icon={<PieChart className="h-20 w-20" />}
-                    tall
-                  />
+                  <div className="h-[400px] w-full flex justify-center items-center text-xs mt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          // @ts-ignore
+                          activeIndex={activeIndex}
+                          activeShape={renderActiveShape}
+                          data={summary.bySegment}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={90}
+                          innerRadius={60}
+                          dataKey="value"
+                          nameKey="label"
+                          onMouseEnter={onPieEnter}
+                        >
+                          {summary.bySegment.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any) => [value, "Request"]}
+                          contentStyle={{
+                            borderRadius: "8px",
+                            border: "none",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
+                        <Legend
+                          wrapperStyle={{
+                            fontSize: "11px",
+                            paddingTop: "20px",
+                          }}
+                          verticalAlign="bottom"
+                        />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </OverviewCard>
 
                 <OverviewCard title="STATUS" className="lg:col-span-2">
-                  <ChartPlaceholder
-                    icon={<BarChart3 className="h-16 w-16" />}
-                  />
+                  <div className="h-[280px] w-full text-xs">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={summary.byStatus}
+                        margin={{ top: 20, right: 30, left: 0, bottom: 60 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#e5e7eb"
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 10, fill: "#374151" }}
+                          interval={0}
+                          angle={-25}
+                          textAnchor="end"
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fill: "#6b7280" }}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#f3f4f6" }}
+                          formatter={(value: any) => [value, "Request"]}
+                          contentStyle={{
+                            borderRadius: "8px",
+                            border: "none",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill="#10b981"
+                          radius={[4, 4, 0, 0]}
+                          barSize={30}
+                          activeBar={
+                            <Rectangle
+                              fill="#6ee7b7"
+                              stroke="#10b981"
+                              strokeWidth={1}
+                              radius={[4, 4, 0, 0]}
+                            />
+                          }
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </OverviewCard>
               </div>
             </div>
@@ -501,7 +782,7 @@ function ChartPlaceholder({
       ].join(" ")}
     >
       <div className="absolute inset-0 opacity-[0.35]">
-        <div className="h-full w-full bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <div className="h-full w-full bg-[linear-gradient(to_right,rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-size-[24px_24px]" />
       </div>
       <div className="relative flex h-full items-center justify-center text-neutral-700">
         {icon}
