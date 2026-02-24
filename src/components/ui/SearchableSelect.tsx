@@ -12,6 +12,7 @@ export interface SearchableSelectProps extends Omit<
   onChange?: (val: string) => void;
   placeholder?: string;
   className?: string;
+  isClearable?: boolean;
 }
 
 export default function SearchableSelect({
@@ -20,6 +21,7 @@ export default function SearchableSelect({
   onChange,
   placeholder = "Pilih...",
   className = "",
+  isClearable = false,
   ...rest
 }: SearchableSelectProps) {
   // Finding the object that matches the current string value
@@ -36,7 +38,7 @@ export default function SearchableSelect({
         }
       }}
       placeholder={placeholder}
-      isClearable
+      isClearable={isClearable}
       isSearchable
       styles={{
         control: (base, state) => ({
