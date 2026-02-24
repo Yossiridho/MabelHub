@@ -334,7 +334,9 @@ export default function DashboardResponsePage() {
                 </div>
 
                 {/* Bell */}
-                <NotificationMenu />
+                <div className="hidden lg:flex">
+                  <NotificationMenu />
+                </div>
               </div>
             </div>
 

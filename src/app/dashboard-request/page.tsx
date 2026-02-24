@@ -219,7 +219,10 @@ export default function DashboardRequestPage() {
                 </span>
               </div>
 
-              <NotificationMenu />
+              {/* Bell is available on desktop, hidden on mobile to avoid duplicate */}
+              <div className="hidden lg:flex">
+                <NotificationMenu />
+              </div>
             </div>
           </div>
 
