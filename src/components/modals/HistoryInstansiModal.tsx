@@ -32,7 +32,7 @@ function Modal({
       />
       <div
         className={clsx(
-          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          "relative mt-16 w-[70%] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10",
           widthClass,
         )}
       >
@@ -48,10 +48,10 @@ function Modal({
 
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-xl font-black text-black hover:bg-black/10"
+            className="grid h-9 w-9 place-items-center rounded-lg bg-white text-xl font-bold text-black hover:bg-red-500"
             aria-label="Close"
           >
-            ×
+            X
           </button>
         </div>
 

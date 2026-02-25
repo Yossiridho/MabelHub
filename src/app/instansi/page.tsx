@@ -8,6 +8,8 @@ import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
 import DeleteInstansiModal from "@/components/modals/DeleteInstansiModal";
 import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
+import { Search, Clock, Building2, Pen, Trash2, 
+ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight} from "lucide-react";
 
 type Company = {
   _id: string;
@@ -73,7 +75,7 @@ function Modal({
       />
       <div
         className={clsx(
-          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          "relative mt-16 w-[94%] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10",
           widthClass,
         )}
       >
@@ -111,7 +113,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[11px] font-bold tracking-wide text-gray-500 uppercase">
+      <label className="text-sm font-bold tracking-wide text-blue-500 uppercase">
         {label}
       </label>
       {children}
@@ -136,7 +138,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={clsx(
-        "block w-full rounded-lg border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 bg-white transition-all",
+        "w-full rounded-lg px-4 py-2 text-black text-sm shadow-sm border border-gray-300 focus:ring-1 focus:ring-blue-300 focus:outline-none ",
         props.className || "",
       )}
     />
@@ -424,21 +426,11 @@ export default function InstansiPage() {
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <main className="mx-auto pt-4 max-w-none">
-            {/* BREADCRUMB */}
-            <nav className="mb-4 flex" aria-label="Breadcrumb">
-              <ol className="flex items-center space-x-2 text-sm font-medium text-gray-500">
-                <li aria-current="page">
-                  <span className="text-black font-extrabold cursor-default">
-                    Instansi
-                  </span>
-                </li>
-              </ol>
-            </nav>
 
             {/* Top */}
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex flex-col">
-                <h1 className="text-2xl font-extrabold tracking-wide text-black uppercase">
+                <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black uppercase">
                   Daftar Instansi
                 </h1>
                 <p className="text-xs text-black/60 font-medium mt-0.5">
@@ -452,38 +444,14 @@ export default function InstansiPage() {
                     onClick={() => router.push("/tambah-instansi")}
                     className="flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 hover:shadow transition-all"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
+                    <Building2 className="w-5 h-4" />
                     TAMBAH INSTANSI
                   </button>
                   <button
                     onClick={openPendingModal}
-                    className="relative flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
+                    className="flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-bold text-orange-600 shadow-sm ring-1 ring-gray-300 hover:bg-gray-100"
                   >
-                    <svg
-                      className="w-4 h-4 text-orange-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <Clock className="w-5 h-4" />
                     REQUEST PENDING
                     {pendingCount > 0 && (
                       <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-white shadow-sm">
@@ -496,26 +464,17 @@ export default function InstansiPage() {
             </div>
 
             {/* Filters */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 mb-6">
+            <div className="rounded-2xl bg-white p-10 shadow-sm ring-1 ring-gray-200 mb-6">
               <div className="grid gap-6 md:grid-cols-4 md:items-end">
                 <Field label="PENCARIAN">
                   <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                      <svg
-                        className="h-4 w-4 text-gray-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Search className="h-4 w-4 text-gray-600" />
                     </div>
+
                     <input
                       type="text"
-                      className="block w-full rounded-lg border-0 py-2.5 pl-10 pr-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all"
+                      className="w-full rounded-lg px-4 py-2 pl-10 text-black text-sm shadow-sm border border-gray-300 focus:ring-1 focus:ring-blue-300 focus:outline-none "
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Cari institusi / satuan kerja / PIC..."
@@ -577,10 +536,10 @@ export default function InstansiPage() {
             </div>
 
             {/* Table */}
-            <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left">
-                  <thead className="bg-gray-50/50 border-b border-gray-200">
+                  <thead className="bg-blue-100 border-b border-gray-200">
                     <tr>
                       {[
                         "Kota/Kab",
@@ -593,12 +552,11 @@ export default function InstansiPage() {
                         "Jabatan PIC",
                         "Role PIC",
                         "Status Ring",
-                        "History",
                         "Aksi",
                       ].map((h) => (
                         <th
                           key={h}
-                          className="whitespace-nowrap px-6 py-4 text-xs font-bold tracking-wider text-gray-500 uppercase"
+                          className="whitespace-nowrap px-6 py-4 text-sm font-bold text-black uppercase"
                         >
                           {h}
                         </th>
@@ -606,12 +564,12 @@ export default function InstansiPage() {
                     </tr>
                   </thead>
 
-                  <tbody className="divide-y divide-gray-100 bg-white">
+                  <tbody className="divide-y divide-gray-300">
                     {loading ? (
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-6 py-12 text-center text-sm text-gray-500"
+                          className="px-6 py-12 text-center text-sm text-gray-700"
                         >
                           <div className="flex justify-center items-center gap-2">
                             <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
@@ -625,105 +583,68 @@ export default function InstansiPage() {
                           key={c._id}
                           className="hover:bg-gray-50/50 transition-colors group"
                         >
-                          <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.kota_kab ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.klpd ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-900 font-bold">
+                          <td className="whitespace-nowrap px-6 py-4 font-bold">
                             {c.institusi_kerja ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.satuan_kerja ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.kode_dinas ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-900">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.nama ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.no_telp ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.jabatan ?? "-"}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.role ?? "-"}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-center">
                             <StatusPill value={c.status_ring} />
                           </td>
+
                           <td className="whitespace-nowrap px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
                             <button
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all mx-auto"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-black/70 hover:text-blue-600 hover:bg-blue-50 transition-all mx-auto"
                               title="History"
                               onClick={() => {
                                 setActiveCompany(c);
                                 setOpenHistory(true);
                               }}
                             >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
+                            <Clock className="w-5 h-4" />
                             </button>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                               <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-all ring-1 ring-inset ring-transparent hover:ring-blue-100"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 ring-1 ring-inset ring-transparent hover:ring-blue-100"
                                 title="Edit"
                                 onClick={() => {
                                   setActiveCompany(c);
                                   setOpenEdit(true);
                                 }}
                               >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                  />
-                                </svg>
+                                <Pen className="w-4 h-4" />
                               </button>
                               <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-all ring-1 ring-inset ring-transparent hover:ring-red-100"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 ring-1 ring-inset ring-transparent hover:ring-red-100"
                                 title="Delete"
                                 onClick={() => {
                                   setActiveCompany(c);
                                   setOpenDelete(true);
                                 }}
                               >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -782,19 +703,7 @@ export default function InstansiPage() {
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="First"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                        />
-                      </svg>
+                    <ChevronsLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -802,25 +711,17 @@ export default function InstansiPage() {
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Prev"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 19l-7-7 7-7"
-                        />
-                      </svg>
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
 
-                    <div className="px-3 text-sm font-bold text-gray-700 whitespace-nowrap">
-                      Hal {page}{" "}
-                      <span className="text-gray-400 font-normal">
-                        dari {totalPages}
+                    <div className="px-3 text-sm text-gray-800 whitespace-nowrap">
+                      Hal 
+                      <b className="text-black"> {page}{" "}
+                      </b>
+                      <span className="text-gray-600 ">
+                        dari 
+                        <b className="text-black"> {totalPages}
+                        </b>
                       </span>
                     </div>
 
@@ -832,19 +733,7 @@ export default function InstansiPage() {
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Next"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setPage(totalPages)}
@@ -852,19 +741,7 @@ export default function InstansiPage() {
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Last"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                        />
-                      </svg>
+                      <ChevronsRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

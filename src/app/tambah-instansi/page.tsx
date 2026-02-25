@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import { FileUp, Upload } from "lucide-react";
 
 type Role = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -335,7 +336,7 @@ export default function AddInstansiPage() {
         <Sidebar />
 
         <div className="flex-1 p-6 min-h-screen overflow-y-auto">
-          <main className="mx-auto pt-4 max-w-10xl">
+          <main className="w-full max-w-none">
             {/* BREADCRUMB */}
             <nav className="mb-4 flex" aria-label="Breadcrumb">
               <ol className="flex items-center space-x-2 text-sm font-medium text-gray-500">
@@ -742,21 +743,8 @@ export default function AddInstansiPage() {
                   <button
                     type="button"
                     onClick={addMore}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 h-11 rounded-lg bg-white px-6 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors mt-4 md:mt-0"
+                    className="w-full md:w-auto flex items-center justify-center gap-2 h-11 rounded-lg bg-white px-6 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 transition-colors mt-4 md:mt-0"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
                     TAMBAH FORM LAIN
                   </button>
 
@@ -765,21 +753,9 @@ export default function AddInstansiPage() {
                       type="button"
                       onClick={() => fileRef.current?.click()}
                       disabled={saving}
-                      className="w-full md:w-auto flex items-center justify-center gap-2 h-11 rounded-lg px-6 text-sm font-bold text-green-700 bg-green-50 shadow-sm ring-1 ring-inset ring-green-200 hover:bg-green-100 transition-colors"
+                      className="w-full md:w-auto flex items-center justify-center gap-2 h-11 rounded-lg px-6 text-md font-bold text-green-700 bg-white shadow-sm ring-1 ring-inset ring-green-400 hover:bg-green-100 transition-colors"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                        />
-                      </svg>
+                      < FileUp className="w-4 h-4" />
                       UPLOAD EXCEL
                     </button>
 
@@ -787,7 +763,7 @@ export default function AddInstansiPage() {
                       type="button"
                       onClick={submit}
                       disabled={saving || !canSubmit}
-                      className={`w-full md:w-48 flex items-center justify-center gap-2 h-11 rounded-lg px-6 text-sm font-bold text-white shadow-sm transition-all
+                      className={`w-full md:w-48 flex items-center justify-center gap-2 h-11 rounded-lg px-6 text-md font-extrabold text-white/95 shadow-sm transition-all
                         ${
                           !canSubmit || saving
                             ? "bg-blue-400 cursor-not-allowed opacity-80"
@@ -801,19 +777,6 @@ export default function AddInstansiPage() {
                         </>
                       ) : (
                         <>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
                           SIMPAN DATA
                         </>
                       )}
