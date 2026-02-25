@@ -41,10 +41,6 @@ type EProcDoc = {
 
   statusAkhir?: string;
   statusUsulan?: string;
-  tanggalKontrak?: string;
-  nominalKontrak?: number;
-  tanggalPembayaran?: string;
-  nominalPembayaran?: number;
   perusahaan?: string;
 };
 
@@ -756,65 +752,6 @@ export default function RekapitulasiEProcurementPage() {
                         {selected.catatan || "-"}
                       </div>
                     </div>
-
-                    {/* Informasi Finansial Khusus E-Proc */}
-                    {String(selected.statusAkhir).toUpperCase() ===
-                      "RILIS KONTRAK" ||
-                    String(selected.statusAkhir).toUpperCase() ===
-                      "TERBIT BAST" ? (
-                      <>
-                        <div>
-                          <div className="text-sm text-black/50">
-                            Tgl Kontrak
-                          </div>
-                          <div className="font-semibold text-black">
-                            {selected.tanggalKontrak
-                              ? formatDateTime(selected.tanggalKontrak).split(
-                                  " ",
-                                )[0]
-                              : "-"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-black/50">
-                            Nominal Kontrak
-                          </div>
-                          <div className="font-semibold text-black">
-                            {typeof selected.nominalKontrak === "number" &&
-                            selected.nominalKontrak > 0
-                              ? `Rp. ${selected.nominalKontrak.toLocaleString("id-ID")}`
-                              : "-"}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    {String(selected.statusAkhir).toUpperCase() ===
-                    "TERBIT BAST" ? (
-                      <>
-                        <div>
-                          <div className="text-sm text-black/50">Tgl SP2D</div>
-                          <div className="font-semibold text-black">
-                            {selected.tanggalPembayaran
-                              ? formatDateTime(
-                                  selected.tanggalPembayaran,
-                                ).split(" ")[0]
-                              : "-"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-black/50">
-                            Nominal Terbayar
-                          </div>
-                          <div className="font-semibold text-black">
-                            {typeof selected.nominalPembayaran === "number" &&
-                            selected.nominalPembayaran > 0
-                              ? `Rp. ${selected.nominalPembayaran.toLocaleString("id-ID")}`
-                              : "-"}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
                   </div>
                 ) : (
                   <div className="mt-3 text-sm text-black/50">
