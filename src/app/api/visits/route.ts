@@ -95,6 +95,7 @@ export async function GET(req: Request) {
   const satker = searchParams.get("satker");
   const startStr = searchParams.get("start");
   const endStr = searchParams.get("end");
+  const statusGroup = searchParams.get("statusGroup");
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
@@ -148,9 +149,27 @@ export async function GET(req: Request) {
   // =========================
   if (sales) match.nama_sales = sales;
   if (status) match.status_visit = status;
-  if (ring) match.status_ring = ring;
+  if (ring) match.status_ring = ring.toUpperCase(); // Ensure ring filter from dashboard is uppercase
   if (city) match.city = city;
   if (satker) match.satuan_kerja = satker;
+
+  // =========================
+  // STATUS GROUP FILTER
+  // =========================
+  if (statusGroup) {
+    if (statusGroup === "Visits") {
+      if (!match.$and) match.$and = [];
+      match.$and.push({ status_visit: { $regex: /visit/i } });
+      match.$and.push({ status_visit: { $not: /not|belum/i } });
+    } else if (statusGroup === "Stay Office") {
+      match.status_visit = { $regex: /stay[\s_]*office/i };
+    } else if (statusGroup === "Not Visited") {
+      match.status_visit = {
+        $regex:
+          /not[\s_]*visited|not[\s_]*visit|belum[\s_]*visit|belum[\s_]*visited/i,
+      };
+    }
+  }
 
   // =========================
   // DATE RANGE FILTER (Post-Match)
