@@ -1,7 +1,32 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { assertLoggedIn } from "@/lib/auth-server";
 
-export async function GET() {
+type TeamDoc = {
+  leaderId: string;
+  memberIds: string[];
+};
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = (await db
+    .collection("teams")
+    .findOne({ leaderId })) as TeamDoc | null;
+
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+export async function GET(req: Request) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const session = auth.session;
+  const { searchParams } = new URL(req.url);
+  const ring = searchParams.get("ring");
+  const statusGroup = searchParams.get("statusGroup");
+
   const client = await clientPromise;
   const db = client.db("MabelHub");
 
@@ -10,23 +35,61 @@ export async function GET() {
 
   // helper normalisasi status agar "Stay Office" == "STAY_OFFICE" == "stay office"
   const normalize = (s: any) =>
-    (typeof s === "string" ? s : "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_"); // spasi -> underscore
+    (typeof s === "string" ? s : "").trim().toLowerCase().replace(/\s+/g, "_"); // spasi -> underscore
+
+  // Build match query based on cross-filters
+  const matchQuery: any = {};
+
+  // =========================
+  // ACCESS FILTER (ROLE)
+  // =========================
+  if (session.role === "SALES") {
+    matchQuery.user_id = session.userId;
+  } else if (session.role === "LEADER") {
+    const allowed = await getLeaderAllowedUserIds(db, session.userId);
+    matchQuery.user_id = { $in: allowed };
+  } else {
+    // ADMIN/SUPERADMIN can see all - no strict user_id filter applied
+  }
+
+  if (ring) {
+    matchQuery.status_ring = ring.toUpperCase(); // e.g., "RING 1"
+  }
+
+  if (statusGroup) {
+    // Mimic the aggregation condition logic
+    if (statusGroup === "Visits") {
+      matchQuery.status_visit = { $regex: /visited|visit|sudah_visit/i };
+      // Filter out 'not_visited'/'belum_visit' implicitly depending on regex, or do negative lookahead
+      // Better to use an $in logic or simpler regex with negative check, but simplest is to just regex match
+      // but exclude 'not' / 'belum'
+      matchQuery.$and = [
+        { status_visit: { $regex: /visit/i } },
+        { status_visit: { $not: /not|belum/i } },
+      ];
+    } else if (statusGroup === "Stay Office") {
+      matchQuery.status_visit = { $regex: /stay[\s_]*office/i };
+    } else if (statusGroup === "Not Visited") {
+      matchQuery.status_visit = {
+        $regex:
+          /not[\s_]*visited|not[\s_]*visit|belum[\s_]*visit|belum[\s_]*visited/i,
+      };
+    }
+  }
 
   // Ambil beberapa distinct dulu untuk coverage (lebih simpel & akurat)
   const [salesDistinct, satkerDistinct, cityDistinct] = await Promise.all([
-    col.distinct("nama_sales"),
-    col.distinct("satuan_kerja"),
+    col.distinct("nama_sales", matchQuery),
+    col.distinct("satuan_kerja", matchQuery),
     // sesuaikan: kalau field city kamu namanya "city" pakai ini,
     // kalau "kota_kab" ganti jadi "kota_kab"
-    col.distinct("city"),
+    col.distinct("city", matchQuery),
   ]);
 
   // AGGREGATE utama untuk status + ring
   const agg = await col
     .aggregate([
+      { $match: matchQuery },
       {
         $project: {
           status_visit: 1,

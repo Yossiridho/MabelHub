@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import NotificationMenu from "@/components/modals/NotificationMenu";
-import { Search } from "lucide-react";
+import { Search, X, Filter } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +22,7 @@ import {
 
 type DashboardStats = {
   totalVisits: number;
+  visited: number;
   stayOffice: number;
   notVisited: number;
   salesCount: number;
@@ -122,6 +123,14 @@ export default function DashboardRequestPage() {
   const [selected, setSelected] = useState<VisitRow | null>(null);
 
   const [search, setSearch] = useState("");
+  const [activeFilters, setActiveFilters] = useState<{
+    ring: string | null;
+    statusGroup: string | null;
+  }>({
+    ring: null,
+    statusGroup: null,
+  });
+
   useEffect(() => {
     if (!sessionLoading && user) {
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
@@ -137,7 +146,12 @@ export default function DashboardRequestPage() {
 
       try {
         setLoadingStats(true);
-        const res = await fetch("/api/dashboard-request", {
+        const params = new URLSearchParams();
+        if (activeFilters.ring) params.set("ring", activeFilters.ring);
+        if (activeFilters.statusGroup)
+          params.set("statusGroup", activeFilters.statusGroup);
+
+        const res = await fetch(`/api/dashboard-request?${params.toString()}`, {
           cache: "no-store",
         });
         const json = await res.json().catch(() => ({}));
@@ -153,7 +167,7 @@ export default function DashboardRequestPage() {
     return () => {
       mounted = false;
     };
-  }, [sessionLoading, user]);
+  }, [sessionLoading, user, activeFilters]);
 
   useEffect(() => {
     let mounted = true;
@@ -163,7 +177,12 @@ export default function DashboardRequestPage() {
 
       try {
         setLoadingTable(true);
-        const res = await fetch("/api/visits?limit=5&page=1", {
+        const params = new URLSearchParams({ limit: "5", page: "1" });
+        if (activeFilters.ring) params.set("ring", activeFilters.ring);
+        if (activeFilters.statusGroup)
+          params.set("statusGroup", activeFilters.statusGroup);
+
+        const res = await fetch(`/api/visits?${params.toString()}`, {
           cache: "no-store",
         });
         const data = await res.json().catch(() => ({}));
@@ -179,7 +198,7 @@ export default function DashboardRequestPage() {
     return () => {
       mounted = false;
     };
-  }, [sessionLoading, user]);
+  }, [sessionLoading, user, activeFilters]);
 
   const filteredVisits = visits.filter((v) => {
     if (!search) return true;
@@ -203,7 +222,53 @@ export default function DashboardRequestPage() {
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl pl-4 font-extrabold">VISIT DASHBOARD</h2>
+            <div>
+              <h2 className="text-2xl pl-4 font-extrabold flex items-center gap-3">
+                VISIT DASHBOARD
+              </h2>
+              {/* Active Filters Indicator */}
+              {(activeFilters.ring || activeFilters.statusGroup) && (
+                <div className="pl-4 mt-2 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500 font-semibold flex items-center gap-1">
+                    <Filter className="w-3 h-3" /> Filters:
+                  </span>
+                  {activeFilters.statusGroup && (
+                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">
+                      {activeFilters.statusGroup}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, statusGroup: null }))
+                        }
+                        className="hover:text-blue-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.ring && (
+                    <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-bold">
+                      {activeFilters.ring}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, ring: null }))
+                        }
+                        className="hover:text-orange-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    onClick={() =>
+                      setActiveFilters({ ring: null, statusGroup: null })
+                    }
+                    className="text-xs text-gray-500 hover:text-red-500 underline ml-2 transition-colors"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
@@ -302,7 +367,7 @@ export default function DashboardRequestPage() {
                     <PieChart>
                       <Pie
                         data={[
-                          { name: "Visits", value: stats?.totalVisits || 0 },
+                          { name: "Visits", value: stats?.visited || 0 }, // Changed from totalVisits
                           {
                             name: "Stay Office",
                             value: stats?.stayOffice || 0,
@@ -314,17 +379,43 @@ export default function DashboardRequestPage() {
                         ]}
                         cx="50%"
                         cy="50%"
-                        outerRadius={130} // dibesarkan
+                        outerRadius={130}
                         paddingAngle={3}
                         dataKey="value"
                         label
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              statusGroup: name,
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer", transition: "all 0.3s" }}
                       >
-                        <Cell fill="#3b82f6" />
-                        <Cell fill="#10b981" />
-                        <Cell fill="#ef4444" />
+                        <Cell
+                          fill="#3b82f6"
+                          className="hover:opacity-80 drop-shadow-sm"
+                        />
+                        <Cell
+                          fill="#10b981"
+                          className="hover:opacity-80 drop-shadow-sm"
+                        />
+                        <Cell
+                          fill="#ef4444"
+                          className="hover:opacity-80 drop-shadow-sm"
+                        />
                       </Pie>
 
-                      <Tooltip />
+                      <Tooltip
+                        cursor={{ fill: "transparent" }}
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "none",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
                       <Legend verticalAlign="bottom" height={50} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -422,12 +513,30 @@ export default function DashboardRequestPage() {
                         tick={{ fontSize: 12, fill: "black" }}
                         width={65}
                       />
-                      <Tooltip cursor={{ fill: "transparent" }} />
+                      <Tooltip
+                        cursor={{ fill: "transparent" }}
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "none",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
                       <Bar
                         dataKey="count"
                         fill="#f59e0b"
                         radius={[0, 4, 4, 0]}
                         barSize={20}
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              ring: name.toUpperCase(),
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
+                        className="hover:opacity-80 transition-opacity"
                       />
                     </BarChart>
                   </ResponsiveContainer>
