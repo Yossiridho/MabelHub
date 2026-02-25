@@ -19,8 +19,10 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
+  catatanAdminItem?: string;
   tanggalProses?: string | Date;
   tanggalDone?: string | Date;
 };
@@ -43,6 +45,10 @@ type EProcDoc = {
 
   statusAkhir?: string;
   statusUsulan?: string;
+  tanggalKontrak?: string;
+  nominalKontrak?: number;
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number;
   perusahaan?: string;
   tindakLanjut?: string;
   statusReqSales?: string;
@@ -227,7 +233,8 @@ export default function RekapitulasiEProcurementPage() {
       "Proses",
       "Done",
       "Selesai",
-      "Batal",
+      "Cancel",
+      "Hold",
       "Masuk",
       "MASUK",
     ];
@@ -1111,11 +1118,72 @@ export default function RekapitulasiEProcurementPage() {
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <div className="text-sm text-black/50">Catatan</div>
+                      <div className="text-sm text-black/50">
+                        Catatan Pemohon
+                      </div>
                       <div className="font-semibold text-black">
                         {selected.catatan || "-"}
                       </div>
                     </div>
+
+                    {/* Informasi Finansial Khusus E-Proc */}
+                    {String(selected.statusAkhir).toUpperCase() ===
+                      "RILIS KONTRAK" ||
+                    String(selected.statusAkhir).toUpperCase() ===
+                      "TERBIT BAST" ? (
+                      <>
+                        <div>
+                          <div className="text-sm text-black/50">
+                            Tgl Kontrak
+                          </div>
+                          <div className="font-semibold text-black">
+                            {selected.tanggalKontrak
+                              ? formatDateTime(selected.tanggalKontrak).split(
+                                  " ",
+                                )[0]
+                              : "-"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-black/50">
+                            Nominal Kontrak
+                          </div>
+                          <div className="font-semibold text-black">
+                            {typeof selected.nominalKontrak === "number" &&
+                            selected.nominalKontrak > 0
+                              ? `Rp. ${selected.nominalKontrak.toLocaleString("id-ID")}`
+                              : "-"}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+
+                    {String(selected.statusAkhir).toUpperCase() ===
+                    "TERBIT BAST" ? (
+                      <>
+                        <div>
+                          <div className="text-sm text-black/50">Tgl SP2D</div>
+                          <div className="font-semibold text-black">
+                            {selected.tanggalPembayaran
+                              ? formatDateTime(
+                                  selected.tanggalPembayaran,
+                                ).split(" ")[0]
+                              : "-"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-black/50">
+                            Nominal Terbayar
+                          </div>
+                          <div className="font-semibold text-black">
+                            {typeof selected.nominalPembayaran === "number" &&
+                            selected.nominalPembayaran > 0
+                              ? `Rp. ${selected.nominalPembayaran.toLocaleString("id-ID")}`
+                              : "-"}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="mt-3 text-sm text-black/50">
@@ -1145,6 +1213,7 @@ export default function RekapitulasiEProcurementPage() {
                             "Tanggal Done",
                             "Status Barang (Admin)",
                             "Tayang Inaproc (Admin)",
+                            "Catatan Admin",
                           ].map((h) => (
                             <th
                               key={h}
@@ -1160,7 +1229,7 @@ export default function RekapitulasiEProcurementPage() {
                         {!selected?.items?.length ? (
                           <tr>
                             <td
-                              colSpan={8}
+                              colSpan={9}
                               className="px-3 py-10 text-center text-black/50"
                             >
                               Pilih request terlebih dahulu.
@@ -1198,12 +1267,18 @@ export default function RekapitulasiEProcurementPage() {
                                   <td className="px-3 py-3">
                                     {it.tayangInaprocAdmin || "-"}
                                   </td>
+                                  <td
+                                    className="px-3 py-3 max-w-[200px] truncate"
+                                    title={it.catatanAdminItem}
+                                  >
+                                    {it.catatanAdminItem || "-"}
+                                  </td>
                                 </tr>
 
                                 {isOpen ? (
                                   <tr className="border-t border-black/5">
                                     <td
-                                      colSpan={8}
+                                      colSpan={9}
                                       className="bg-gray-100 px-4 py-4"
                                     >
                                       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -1255,6 +1330,34 @@ export default function RekapitulasiEProcurementPage() {
                                             ) : (
                                               <span className="text-black">
                                                 -
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div className="md:col-span-3 mt-2 border-t border-black/10 pt-3">
+                                          <div className="text-md font-bold text-indigo-600 flex items-center gap-1.5">
+                                            <svg
+                                              className="w-4 h-4"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                              />
+                                            </svg>
+                                            Catatan Admin
+                                          </div>
+                                          <div className="mt-1 pl-2 text-sm text-slate-700 italic bg-white p-3 rounded-md border border-slate-200 shadow-sm min-h-[40px]">
+                                            {it.catatanAdminItem ? (
+                                              it.catatanAdminItem
+                                            ) : (
+                                              <span className="text-slate-400 not-italic">
+                                                Belum ada catatan dari Admin.
                                               </span>
                                             )}
                                           </div>

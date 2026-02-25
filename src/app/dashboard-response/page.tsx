@@ -56,6 +56,17 @@ type EProcRow = {
   perusahaan?: string;
   statusUsulan?: string;
   statusAkhir?: string;
+
+  tanggalKontrak?: string;
+  nominalKontrak?: number | string;
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number | string;
+};
+
+type ChartFilter = {
+  company: string | null;
+  segment: string | null;
+  status: string | null;
 };
 
 type Summary = {
@@ -91,7 +102,7 @@ const renderActiveShape = (props: any) => {
   const textAnchor = cos >= 0 ? "start" : "end";
 
   return (
-    <g>
+    <g style={{ cursor: "pointer" }}>
       <text
         x={cx}
         y={cy}
@@ -204,6 +215,22 @@ export default function DashboardResponsePage() {
     setActiveIndex(index);
   }, []);
 
+  const [chartFilter, setChartFilter] = useState<ChartFilter>({
+    company: null,
+    segment: null,
+    status: null,
+  });
+
+  const toggleFilter = (
+    type: "company" | "segment" | "status",
+    value: string,
+  ) => {
+    setChartFilter((prev) => ({
+      ...prev,
+      [type]: prev[type] === value ? null : value,
+    }));
+  };
+
   // Guard: dashboard response untuk ADMIN/SUPERADMIN saja (opsional tapi masuk akal)
   useEffect(() => {
     if (!sessionLoading && user) {
@@ -215,21 +242,79 @@ export default function DashboardResponsePage() {
 
   // Dynamic summary
   const summary: Summary = useMemo(() => {
-    let total = allRows.length;
+    const fullyFiltered = allRows.filter((r) => {
+      if (
+        chartFilter.company &&
+        (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
+      )
+        return false;
+      if (
+        chartFilter.segment &&
+        (r.segmen || "Unknown") !== chartFilter.segment
+      )
+        return false;
+      if (
+        chartFilter.status &&
+        (r.statusAkhir || r.statusUsulan || "Masuk") !== chartFilter.status
+      )
+        return false;
+      return true;
+    });
+
     const countSegmen: Record<string, number> = {};
     const countCompany: Record<string, number> = {};
     const countStatus: Record<string, number> = {};
 
-    allRows.forEach((r) => {
-      // Segmen
+    const segmenData = allRows.filter((r) => {
+      if (
+        chartFilter.company &&
+        (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
+      )
+        return false;
+      if (
+        chartFilter.status &&
+        (r.statusAkhir || r.statusUsulan || "Masuk") !== chartFilter.status
+      )
+        return false;
+      return true;
+    });
+    segmenData.forEach((r) => {
       const s = r.segmen || "Unknown";
       countSegmen[s] = (countSegmen[s] || 0) + 1;
+    });
 
-      // Company
+    const companyData = allRows.filter((r) => {
+      if (
+        chartFilter.segment &&
+        (r.segmen || "Unknown") !== chartFilter.segment
+      )
+        return false;
+      if (
+        chartFilter.status &&
+        (r.statusAkhir || r.statusUsulan || "Masuk") !== chartFilter.status
+      )
+        return false;
+      return true;
+    });
+    companyData.forEach((r) => {
       const c = r.perusahaan || "Belum Ditentukan";
       countCompany[c] = (countCompany[c] || 0) + 1;
+    });
 
-      // Status
+    const statusData = allRows.filter((r) => {
+      if (
+        chartFilter.company &&
+        (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
+      )
+        return false;
+      if (
+        chartFilter.segment &&
+        (r.segmen || "Unknown") !== chartFilter.segment
+      )
+        return false;
+      return true;
+    });
+    statusData.forEach((r) => {
       const st = r.statusAkhir || r.statusUsulan || "Masuk";
       countStatus[st] = (countStatus[st] || 0) + 1;
     });
@@ -240,12 +325,12 @@ export default function DashboardResponsePage() {
         .sort((a, b) => b.value - a.value);
 
     return {
-      total,
+      total: fullyFiltered.length,
       bySegment: toArr(countSegmen),
       byCompany: toArr(countCompany),
       byStatus: toArr(countStatus),
     };
-  }, [allRows]);
+  }, [allRows, chartFilter]);
 
   useEffect(() => {
     let mounted = true;
@@ -270,9 +355,28 @@ export default function DashboardResponsePage() {
   }, [sessionLoading, user]);
 
   const filtered = useMemo(() => {
+    let base = rows;
+
+    if (chartFilter.company) {
+      base = base.filter(
+        (r) => (r.perusahaan || "Belum Ditentukan") === chartFilter.company,
+      );
+    }
+    if (chartFilter.segment) {
+      base = base.filter(
+        (r) => (r.segmen || "Unknown") === chartFilter.segment,
+      );
+    }
+    if (chartFilter.status) {
+      base = base.filter(
+        (r) =>
+          (r.statusAkhir || r.statusUsulan || "Masuk") === chartFilter.status,
+      );
+    }
+
     const qq = q.trim().toLowerCase();
-    if (!qq) return rows;
-    return rows.filter((r) =>
+    if (!qq) return base;
+    return base.filter((r) =>
       [
         r.requestId,
         r.requestor,
@@ -285,7 +389,7 @@ export default function DashboardResponsePage() {
         .toLowerCase()
         .includes(qq),
     );
-  }, [rows, q]);
+  }, [rows, q, chartFilter]);
 
   const hasOrders = filtered.length > 0;
 
@@ -307,8 +411,10 @@ export default function DashboardResponsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      <div className="flex">
+    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
+      <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
+
+      <div className="flex relative z-10">
         {/* Sidebar */}
         <Sidebar />
 
@@ -317,8 +423,13 @@ export default function DashboardResponsePage() {
           <div className="w-full px-6 py-6">
             {/* Header row (mirip dashboard-request) */}
             <div className="flex items-center justify-between gap-4">
-              <div className="text-2xl pl-4 font-extrabold text-black">
-                RESPONSE DASHBOARD
+              <div>
+                <div className="text-3xl pl-4 font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
+                  RESPONSE DASHBOARD
+                </div>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Analisis data E-Procurement dan ambil request dengan cepat.
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -328,9 +439,9 @@ export default function DashboardResponsePage() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search..."
-                    className="w-[360px] rounded-full border border-neutral-200 bg-white px-4 py-2 pr-10 text-sm shadow-sm outline-none focus:ring-2 focus:ring-sky-200"
+                    className="w-[360px] rounded-full border border-slate-200 bg-white/80 px-4 py-2 pr-10 text-sm shadow-sm outline-none transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/20"
                   />
-                  <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                  <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
 
                 {/* Bell */}
@@ -349,41 +460,132 @@ export default function DashboardResponsePage() {
                   <div className="text-3xl font-bold">{summary.total}</div>
                 }
               >
-                <MiniTable rows={summary.bySegment} />
+                <MiniTable
+                  rows={summary.bySegment}
+                  onRowClick={(val) => toggleFilter("segment", val)}
+                  activeLabel={chartFilter.segment}
+                />
               </TopCard>
 
               <TopCard
                 title="PERUSAHAAN"
                 icon={<Building2 className="h-4 w-4 text-neutral-500" />}
               >
-                <MiniTable rows={summary.byCompany} />
+                <MiniTable
+                  rows={summary.byCompany}
+                  onRowClick={(val) => toggleFilter("company", val)}
+                  activeLabel={chartFilter.company}
+                />
               </TopCard>
 
               <TopCard
                 title="STATUS"
                 icon={<CheckCircle2 className="h-4 w-4 text-neutral-500" />}
               >
-                <MiniTable rows={summary.byStatus} />
+                <MiniTable
+                  rows={summary.byStatus}
+                  onRowClick={(val) => toggleFilter("status", val)}
+                  activeLabel={chartFilter.status}
+                />
               </TopCard>
             </div>
 
             {/* Takeable orders (putih, rounded, shadow) */}
-            <div className="mt-6 rounded-xl bg-white p-4 shadow-md">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-neutral-900">
-                    Request yang bisa diambil
+            <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm border border-slate-200 transition-shadow">
+              <div className="flex items-end justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-500">
+                    <ClipboardList strokeWidth={2.5} className="w-5 h-5" />
                   </div>
-                  <div className="text-xs text-neutral-500">
-                    Request order dari e-procurement yang bisa di-claim admin.
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-800">
+                      Request yang bisa diambil
+                    </h3>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Segera klaim permohonan E-Procurement ini.
+                    </div>
                   </div>
                 </div>
 
-                <div className="hidden md:block text-xs text-neutral-600">
-                  Queue:{" "}
-                  <span className="font-semibold">{filtered.length}</span>
+                <div className="hidden md:flex flex-col items-end">
+                  <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
+                    {filtered.length} Tersedia
+                  </span>
                 </div>
               </div>
+
+              {(chartFilter.company ||
+                chartFilter.segment ||
+                chartFilter.status) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-neutral-500">
+                    Active Filters:
+                  </span>
+                  {chartFilter.company && (
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 ring-1 ring-inset ring-sky-200">
+                      <span className="flex items-center gap-1">
+                        <span className="text-sky-500">🏢</span>
+                        Perusahaan:{" "}
+                        <span className="font-bold">{chartFilter.company}</span>
+                      </span>
+                      <button
+                        onClick={() =>
+                          toggleFilter("company", chartFilter.company!)
+                        }
+                        className="ml-1 flex h-5 w-5 items-center justify-center rounded-md hover:bg-sky-200/50 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  {chartFilter.segment && (
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-800 ring-1 ring-inset ring-purple-200">
+                      <span className="flex items-center gap-1">
+                        <span className="text-purple-500">🎯</span>
+                        Segmen:{" "}
+                        <span className="font-bold">{chartFilter.segment}</span>
+                      </span>
+                      <button
+                        onClick={() =>
+                          toggleFilter("segment", chartFilter.segment!)
+                        }
+                        className="ml-1 flex h-5 w-5 items-center justify-center rounded-md hover:bg-purple-200/50 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  {chartFilter.status && (
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                      <span className="flex items-center gap-1">
+                        <span className="text-emerald-500">✅</span>
+                        Status:{" "}
+                        <span className="font-bold">{chartFilter.status}</span>
+                      </span>
+                      <button
+                        onClick={() =>
+                          toggleFilter("status", chartFilter.status!)
+                        }
+                        className="ml-1 flex h-5 w-5 items-center justify-center rounded-md hover:bg-emerald-200/50 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() =>
+                      setChartFilter({
+                        company: null,
+                        segment: null,
+                        status: null,
+                      })
+                    }
+                    className="text-xs font-semibold text-red-500 hover:text-red-700 underline underline-offset-2 ml-2"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
 
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {loadingRows ? (
@@ -454,7 +656,6 @@ export default function DashboardResponsePage() {
                         />
                         <Bar
                           dataKey="value"
-                          fill="#3b82f6"
                           radius={[0, 4, 4, 0]}
                           barSize={20}
                           activeBar={
@@ -465,7 +666,25 @@ export default function DashboardResponsePage() {
                               radius={[0, 4, 4, 0]}
                             />
                           }
-                        />
+                        >
+                          {summary.byCompany.map((entry, index) => {
+                            const isSelected =
+                              chartFilter.company === entry.label;
+                            const isDimmed =
+                              chartFilter.company !== null && !isSelected;
+                            return (
+                              <Cell
+                                key={`cell-${index}`}
+                                cursor="pointer"
+                                fill={isDimmed ? "#93c5fd" : "#3b82f6"}
+                                opacity={isDimmed ? 0.35 : 1}
+                                onClick={() =>
+                                  toggleFilter("company", entry.label)
+                                }
+                              />
+                            );
+                          })}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -488,13 +707,32 @@ export default function DashboardResponsePage() {
                           dataKey="value"
                           nameKey="label"
                           onMouseEnter={onPieEnter}
+                          onClick={(data, index) => {
+                            if (summary.bySegment[index]) {
+                              toggleFilter(
+                                "segment",
+                                summary.bySegment[index].label,
+                              );
+                            }
+                          }}
                         >
-                          {summary.bySegment.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
+                          {summary.bySegment.map((entry, index) => {
+                            const isSelected =
+                              chartFilter.segment === entry.label;
+                            const isDimmed =
+                              chartFilter.segment !== null && !isSelected;
+                            return (
+                              <Cell
+                                key={`cell-${index}`}
+                                cursor="pointer"
+                                fill={COLORS[index % COLORS.length]}
+                                opacity={isDimmed ? 0.35 : 1}
+                                onClick={() =>
+                                  toggleFilter("segment", entry.label)
+                                }
+                              />
+                            );
+                          })}
                         </Pie>
                         <Tooltip
                           formatter={(value: any) => [value, "Request"]}
@@ -550,7 +788,6 @@ export default function DashboardResponsePage() {
                         />
                         <Bar
                           dataKey="value"
-                          fill="#10b981"
                           radius={[4, 4, 0, 0]}
                           barSize={30}
                           activeBar={
@@ -561,7 +798,25 @@ export default function DashboardResponsePage() {
                               radius={[4, 4, 0, 0]}
                             />
                           }
-                        />
+                        >
+                          {summary.byStatus.map((entry, index) => {
+                            const isSelected =
+                              chartFilter.status === entry.label;
+                            const isDimmed =
+                              chartFilter.status !== null && !isSelected;
+                            return (
+                              <Cell
+                                key={`cell-${index}`}
+                                cursor="pointer"
+                                fill={isDimmed ? "#a7f3d0" : "#10b981"}
+                                opacity={isDimmed ? 0.35 : 1}
+                                onClick={() =>
+                                  toggleFilter("status", entry.label)
+                                }
+                              />
+                            );
+                          })}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -609,24 +864,40 @@ function TopCard({
 
 function MiniTable({
   rows,
+  onRowClick,
+  activeLabel,
 }: {
   rows: Array<{ label: string; value: number }>;
+  onRowClick?: (label: string) => void;
+  activeLabel?: string | null;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-neutral-200">
-      {rows.map((r, idx) => (
-        <div
-          key={r.label}
-          className={`flex items-center justify-between px-3 py-2 text-[11px] ${
-            idx !== rows.length - 1 ? "border-b border-neutral-200" : ""
-          }`}
-        >
-          <div className="font-medium text-neutral-700">{r.label}</div>
-          <div className="tabular-nums font-semibold text-neutral-900">
-            {r.value}
+      {rows.map((r, idx) => {
+        const isActive = activeLabel === r.label;
+        return (
+          <div
+            key={r.label}
+            onClick={() => onRowClick && onRowClick(r.label)}
+            className={`flex items-center justify-between px-3 py-2 text-[11px] ${
+              idx !== rows.length - 1 ? "border-b border-neutral-200" : ""
+            } ${onRowClick ? "cursor-pointer hover:bg-sky-50 transition-colors" : ""} ${
+              isActive ? "bg-sky-100/50" : ""
+            }`}
+          >
+            <div
+              className={`font-medium ${isActive ? "text-sky-800 font-bold" : "text-neutral-700"}`}
+            >
+              {r.label}
+            </div>
+            <div
+              className={`tabular-nums font-semibold ${isActive ? "text-sky-900" : "text-neutral-900"}`}
+            >
+              {r.value}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -641,29 +912,59 @@ function TakeCard({
   taking: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-indigo-200">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
+          <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
             REQUEST ID
           </div>
-          <div className="mt-1 text-sm font-semibold text-neutral-900">
+          <div className="mt-1 text-lg font-bold text-neutral-900">
             {row.requestId}
           </div>
         </div>
 
         <button
-          className="h-9 rounded-full bg-neutral-900 px-4 text-xs font-semibold text-white hover:bg-neutral-800 active:scale-[0.98]"
+          className={[
+            "h-9 rounded-full px-5 text-xs font-bold transition-all flex items-center justify-center shadow-sm",
+            taking
+              ? "bg-slate-300 text-slate-500 shadow-none cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 active:scale-95",
+          ].join(" ")}
           onClick={onTake}
           disabled={taking}
         >
-          {taking ? "TAKING..." : "TAKE"}
+          {taking ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-1.5 h-3 w-3 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              TAKING...
+            </>
+          ) : (
+            "TAKE"
+          )}
         </button>
       </div>
 
-      <div className="mt-3 h-px w-full bg-neutral-200" />
+      <div className="mt-4 h-px w-full bg-slate-100" />
 
-      <div className="mt-3 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-2 gap-y-5 gap-x-4">
         <Info label="REQUESTOR" value={row.requestor} />
         <Info label="DEADLINE USULAN" value={fmtDate(row.deadlineUsulan)} />
 
@@ -673,10 +974,10 @@ function TakeCard({
 
         <Info label="SEGMEN" value={row.segmen} />
         <div>
-          <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
+          <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
             KOTA/LOKASI
           </div>
-          <div className="mt-1 inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-800">
+          <div className="mt-1.5 inline-flex rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-sm font-bold text-neutral-800">
             {row.lokasi}
           </div>
         </div>
@@ -696,11 +997,11 @@ function Info({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
+      <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
         {label}
       </div>
       <div
-        className={`mt-1 text-[13px] text-neutral-800 ${bold ? "font-semibold" : ""}`}
+        className={`mt-1.5 text-sm text-neutral-800 ${bold ? "font-bold text-base" : "font-medium"}`}
       >
         {value}
       </div>

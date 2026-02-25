@@ -19,6 +19,7 @@ type ProductItem = {
   // Admin Response Fields per item
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
+  catatanAdminItem?: string; // ✅ new per-item admin note
 };
 
 type AssignedTo = {
@@ -58,8 +59,15 @@ type EProcDoc = {
   takenAt: Date | null;
 
   perusahaan?: string;
-  catatanAdmin?: string;
+  catatanAdmin?: string; // TBD: will be obsoleted, kept for old data compat
   statusAkhir?: string;
+
+  // ✅ New Finance / Contract tracking
+  tanggalKontrak?: string;
+  nominalKontrak?: number;
+
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number;
 };
 
 type TeamDoc = { leaderId: string; memberIds: string[] };
@@ -147,8 +155,15 @@ export async function GET(req: Request) {
       { "assignedTo.userId": auth.session.userId },
     ];
   } else if (mode === "all") {
-    // untuk halaman rekapitulasi: tampilkan semua untuk Admin/Superadmin
-    if (auth.session.role !== "ADMIN" && auth.session.role !== "SUPERADMIN") {
+    // untuk halaman rekapitulasi & dashboard response
+    if (auth.session.role === "ADMIN") {
+      // ✅ Admin only sees items they have taken + untaken items (incoming queue)
+      filter.$or = [
+        { takenByAdminId: null },
+        { takenByAdminId: auth.session.userId },
+      ];
+    } else if (auth.session.role !== "SUPERADMIN") {
+      // ✅ Sales/Leader sees only their own or assigned
       filter.$or = [
         { "createdBy.userId": auth.session.userId },
         { "assignedTo.userId": auth.session.userId },
