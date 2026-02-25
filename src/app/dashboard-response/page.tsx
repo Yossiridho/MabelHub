@@ -56,6 +56,11 @@ type EProcRow = {
   perusahaan?: string;
   statusUsulan?: string;
   statusAkhir?: string;
+
+  tanggalKontrak?: string;
+  nominalKontrak?: number | string;
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number | string;
 };
 
 type ChartFilter = {
@@ -406,8 +411,10 @@ export default function DashboardResponsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      <div className="flex">
+    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
+      <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
+
+      <div className="flex relative z-10">
         {/* Sidebar */}
         <Sidebar />
 
@@ -416,8 +423,13 @@ export default function DashboardResponsePage() {
           <div className="w-full px-6 py-6">
             {/* Header row (mirip dashboard-request) */}
             <div className="flex items-center justify-between gap-4">
-              <div className="text-2xl pl-4 font-extrabold text-black">
-                RESPONSE DASHBOARD
+              <div>
+                <div className="text-3xl pl-4 font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
+                  RESPONSE DASHBOARD
+                </div>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Analisis data E-Procurement dan ambil request dengan cepat.
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -427,9 +439,9 @@ export default function DashboardResponsePage() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search..."
-                    className="w-[360px] rounded-full border border-neutral-200 bg-white px-4 py-2 pr-10 text-sm shadow-sm outline-none focus:ring-2 focus:ring-sky-200"
+                    className="w-[360px] rounded-full border border-slate-200 bg-white/80 px-4 py-2 pr-10 text-sm shadow-sm outline-none transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/20"
                   />
-                  <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                  <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
 
                 {/* Bell */}
@@ -479,20 +491,26 @@ export default function DashboardResponsePage() {
             </div>
 
             {/* Takeable orders (putih, rounded, shadow) */}
-            <div className="mt-6 rounded-xl bg-white p-4 shadow-md">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-neutral-900">
-                    Request yang bisa diambil
+            <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm border border-slate-200 transition-shadow">
+              <div className="flex items-end justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-500">
+                    <ClipboardList strokeWidth={2.5} className="w-5 h-5" />
                   </div>
-                  <div className="text-xs text-neutral-500">
-                    Request order dari e-procurement yang bisa di-claim admin.
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-800">
+                      Request yang bisa diambil
+                    </h3>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Segera klaim permohonan E-Procurement ini.
+                    </div>
                   </div>
                 </div>
 
-                <div className="hidden md:block text-xs text-neutral-600">
-                  Queue:{" "}
-                  <span className="font-semibold">{filtered.length}</span>
+                <div className="hidden md:flex flex-col items-end">
+                  <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
+                    {filtered.length} Tersedia
+                  </span>
                 </div>
               </div>
 
@@ -894,29 +912,59 @@ function TakeCard({
   taking: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-indigo-200">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
+          <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
             REQUEST ID
           </div>
-          <div className="mt-1 text-sm font-semibold text-neutral-900">
+          <div className="mt-1 text-lg font-bold text-neutral-900">
             {row.requestId}
           </div>
         </div>
 
         <button
-          className="h-9 rounded-full bg-neutral-900 px-4 text-xs font-semibold text-white hover:bg-neutral-800 active:scale-[0.98]"
+          className={[
+            "h-9 rounded-full px-5 text-xs font-bold transition-all flex items-center justify-center shadow-sm",
+            taking
+              ? "bg-slate-300 text-slate-500 shadow-none cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 active:scale-95",
+          ].join(" ")}
           onClick={onTake}
           disabled={taking}
         >
-          {taking ? "TAKING..." : "TAKE"}
+          {taking ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-1.5 h-3 w-3 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              TAKING...
+            </>
+          ) : (
+            "TAKE"
+          )}
         </button>
       </div>
 
-      <div className="mt-3 h-px w-full bg-neutral-200" />
+      <div className="mt-4 h-px w-full bg-slate-100" />
 
-      <div className="mt-3 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-2 gap-y-5 gap-x-4">
         <Info label="REQUESTOR" value={row.requestor} />
         <Info label="DEADLINE USULAN" value={fmtDate(row.deadlineUsulan)} />
 
@@ -926,10 +974,10 @@ function TakeCard({
 
         <Info label="SEGMEN" value={row.segmen} />
         <div>
-          <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
+          <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
             KOTA/LOKASI
           </div>
-          <div className="mt-1 inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-800">
+          <div className="mt-1.5 inline-flex rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-sm font-bold text-neutral-800">
             {row.lokasi}
           </div>
         </div>
@@ -949,11 +997,11 @@ function Info({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold tracking-wider text-neutral-500">
+      <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
         {label}
       </div>
       <div
-        className={`mt-1 text-[13px] text-neutral-800 ${bold ? "font-semibold" : ""}`}
+        className={`mt-1.5 text-sm text-neutral-800 ${bold ? "font-bold text-base" : "font-medium"}`}
       >
         {value}
       </div>

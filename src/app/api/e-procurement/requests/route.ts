@@ -19,6 +19,7 @@ type ProductItem = {
   // Admin Response Fields per item
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
+  catatanAdminItem?: string; // ✅ new per-item admin note
 };
 
 type AssignedTo = {
@@ -58,8 +59,15 @@ type EProcDoc = {
   takenAt: Date | null;
 
   perusahaan?: string;
-  catatanAdmin?: string;
+  catatanAdmin?: string; // TBD: will be obsoleted, kept for old data compat
   statusAkhir?: string;
+
+  // ✅ New Finance / Contract tracking
+  tanggalKontrak?: string;
+  nominalKontrak?: number;
+
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number;
 };
 
 type TeamDoc = { leaderId: string; memberIds: string[] };
