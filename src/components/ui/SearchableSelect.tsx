@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import Select, { Props as SelectProps } from "react-select";
 
 export interface SearchableSelectProps extends Omit<
@@ -26,9 +26,11 @@ export default function SearchableSelect({
 }: SearchableSelectProps) {
   // Finding the object that matches the current string value
   const selectedOption = options.find((o) => o.value === value) || null;
+  const reactId = useId();
 
   return (
     <Select
+      instanceId={rest.instanceId || reactId}
       className={`text-sm ${className}`}
       options={options}
       value={selectedOption}

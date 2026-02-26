@@ -96,6 +96,8 @@ export async function GET(req: Request) {
   const startStr = searchParams.get("start");
   const endStr = searchParams.get("end");
   const statusGroup = searchParams.get("statusGroup");
+  const klpd = searchParams.get("klpd");
+  const dateStr = searchParams.get("date"); // specific date e.g. "01 Feb"
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
@@ -152,6 +154,16 @@ export async function GET(req: Request) {
   if (ring) match.status_ring = ring.toUpperCase(); // Ensure ring filter from dashboard is uppercase
   if (city) match.city = city;
   if (satker) match.satuan_kerja = satker;
+  if (klpd) match.klpd = klpd;
+
+  // Partial date matching from clicked trend chart (e.g. "15 Jan")
+  if (dateStr) {
+    const parts = dateStr.split(" ");
+    if (parts.length >= 2) {
+      const regexStr = `${parts[0]}-${parts[1]}`;
+      match.visit_date = { $regex: new RegExp(regexStr, "i") };
+    }
+  }
 
   // =========================
   // STATUS GROUP FILTER

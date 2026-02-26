@@ -26,6 +26,11 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const ring = searchParams.get("ring");
   const statusGroup = searchParams.get("statusGroup");
+  const city = searchParams.get("city");
+  const satker = searchParams.get("satker");
+  const sales = searchParams.get("sales");
+  const klpd = searchParams.get("klpd");
+  const dateStr = searchParams.get("date"); // The formatted string e.g. "01 Feb"
 
   const client = await clientPromise;
   const db = client.db("MabelHub");
@@ -77,13 +82,100 @@ export async function GET(req: Request) {
     }
   }
 
+  if (city) {
+    matchQuery.city = city;
+  }
+  if (satker) {
+    matchQuery.satuan_kerja = satker;
+  }
+  if (sales) {
+    matchQuery.nama_sales = sales;
+  }
+  if (klpd) {
+    matchQuery.klpd = klpd;
+  }
+
+  // To support Date filtering (e.g., from Trend chart clicking: "15 Jan")
+  // Since original dates are stored as e.g., "15-Jan-2026", we can use regex to match the day and month prefix
+  if (dateStr) {
+    // Convert "15 Jan" back to a regex that roughly matches the start or middle of the date string
+    const parts = dateStr.split(" ");
+    if (parts.length >= 2) {
+      const regexStr = `${parts[0]}-${parts[1]}`;
+      matchQuery.visit_date = { $regex: new RegExp(regexStr, "i") };
+    }
+  }
+
   // Ambil beberapa distinct dulu untuk coverage (lebih simpel & akurat)
-  const [salesDistinct, satkerDistinct, cityDistinct] = await Promise.all([
+  const [
+    salesDistinct,
+    satkerDistinct,
+    cityDistinct,
+    trendAgg,
+    topSalesAgg,
+    klpdAgg,
+  ] = await Promise.all([
     col.distinct("nama_sales", matchQuery),
     col.distinct("satuan_kerja", matchQuery),
     // sesuaikan: kalau field city kamu namanya "city" pakai ini,
     // kalau "kota_kab" ganti jadi "kota_kab"
     col.distinct("city", matchQuery),
+
+    // Trend Visits
+    col
+      .aggregate([
+        { $match: matchQuery },
+        {
+          $addFields: {
+            parsedDate: {
+              $dateFromString: {
+                dateString: "$visit_date",
+                format: "%d-%b-%Y",
+                onError: null,
+                onNull: null,
+              },
+            },
+          },
+        },
+        { $match: { parsedDate: { $ne: null } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%d %b", date: "$parsedDate" } },
+            fullDate: { $first: "$parsedDate" },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { fullDate: -1 } },
+        { $limit: 14 },
+      ])
+      .toArray(),
+
+    // Top Sales
+    col
+      .aggregate([
+        { $match: matchQuery },
+        { $group: { _id: "$nama_sales", count: { $sum: 1 } } },
+        { $match: { _id: { $nin: [null, ""] }, count: { $gt: 0 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+      ])
+      .toArray(),
+
+    // KLPD Distribution
+    col
+      .aggregate([
+        { $match: matchQuery },
+        { $group: { _id: "$klpd", count: { $sum: 1 } } },
+        {
+          $match: {
+            _id: { $nin: [null, "", "-"] },
+            count: { $gt: 0 },
+          },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+      ])
+      .toArray(),
   ]);
 
   // AGGREGATE utama untuk status + ring
@@ -222,6 +314,12 @@ export async function GET(req: Request) {
   const satkerCount = new Set(clean(satkerDistinct)).size;
   const cityCount = new Set(clean(cityDistinct)).size;
 
+  const trend = trendAgg
+    .map((x) => ({ date: x._id, count: x.count }))
+    .reverse();
+  const topSales = topSalesAgg.map((x) => ({ name: x._id, count: x.count }));
+  const klpdMapped = klpdAgg.map((x) => ({ name: x._id, count: x.count }));
+
   return NextResponse.json({
     totalVisits: base.totalVisits,
     visited: base.visited,
@@ -238,5 +336,9 @@ export async function GET(req: Request) {
       ring3: base.ring3,
       ring4: base.ring4,
     },
+
+    trend,
+    topSales,
+    klpd: klpdMapped,
   });
 }

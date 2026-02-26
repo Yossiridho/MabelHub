@@ -57,6 +57,44 @@ function pickAllowedPatch(body: any) {
   return patch;
 }
 
+// Helper to calculate Market Status based on kegiatan_status keywords
+function calculateMarketStatus(
+  kegiatan: string | undefined,
+): "Hot" | "Warm" | "Cold" | null {
+  if (!kegiatan) return null;
+  const kw = kegiatan.toLowerCase();
+
+  // Keyword Hot
+  if (
+    kw.includes("dealing") ||
+    kw.includes("closing") ||
+    kw.includes("negosiasi") ||
+    kw.includes("po") ||
+    kw.includes("kontrak") ||
+    kw.includes("spk") ||
+    kw.includes("approval") ||
+    kw.includes("presentasi bod")
+  ) {
+    return "Hot";
+  }
+
+  // Keyword Warm
+  if (
+    kw.includes("prospek") ||
+    kw.includes("follow up") ||
+    kw.includes("penawaran") ||
+    kw.includes("quotation") ||
+    kw.includes("presentasi") ||
+    kw.includes("demo") ||
+    kw.includes("pertemuan lanjutan")
+  ) {
+    return "Warm";
+  }
+
+  // Keyword Cold
+  return "Cold";
+}
+
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
@@ -163,6 +201,15 @@ export async function PUT(
   // PATCH SANITIZE
   // =========================
   const patch = pickAllowedPatch(body);
+
+  // Otomatis kalkulasi status_market berdasarkan kegiatan_status yang dikirim,
+  // atau jika tidak dikirim (tapi field lain mungkin diisi) kita abaikan jika tdk ada di patch
+  if (patch.kegiatan_status !== undefined) {
+    const calculated = calculateMarketStatus(patch.kegiatan_status);
+    if (calculated) {
+      patch.status_market = calculated;
+    }
+  }
 
   // Kalau tidak ada field yang valid untuk diupdate
   if (Object.keys(patch).length === 0) {
