@@ -312,10 +312,10 @@ export default function RekapitulasiResponsePage() {
           <div className="px-8 pt-4 space-y-1">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-extrabold text-black drop-shadow-sm">
+                <h1 className="text-3xl font-extrabold pl-4 text-black drop-shadow-sm">
                   REKAPITULASI RESPONSE
                 </h1>
-                <div className="text-sm text-neutral-600">
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
                   Menampilkan request e-procurement yang sudah diambil admin.
                 </div>
               </div>

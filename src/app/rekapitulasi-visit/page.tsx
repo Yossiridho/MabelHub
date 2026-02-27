@@ -353,17 +353,18 @@ export default function RekapitulasiVisitPage() {
     <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
         <Sidebar />
-
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <div className="px-3 pt-2 pb-2">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
-                REKAPITULASI VISIT
-              </h1>
-              <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
-                Rekapitulasi seluruh kunjungan sales ke pelanggan
+        <div className="flex-1 h-screen overflow-y-auto p-6">
+          <main className="mx-auto">
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 pt-2 pb-4">
+              <div>
+                <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                  REKAPITULASI VISIT
+                </h1>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Rekapitulasi seluruh kunjungan sales ke pelanggan
+                </div>
               </div>
-              <div className="px-6 pb-4">
+              <div className="px-4">
                 <button
                   onClick={() => setIsExportModalOpen(true)}
                   className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-green-700 hover:bg-green-700 transition"
@@ -372,458 +373,463 @@ export default function RekapitulasiVisitPage() {
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* FILTER CARD */}
-          <section className="rounded-2xl bg-white p-7 shadow-sm">
-            {/* Mobile Filter Toggle Button */}
-            <div
-              className="md:hidden flex items-center justify-between cursor-pointer mb-2 bg-blue-50 p-4 rounded-xl border border-blue-100"
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-            >
-              <div className="flex items-center gap-2 font-extrabold text-[#0B6AA9]">
-                <span>{isFilterOpen ? "🔽" : "▶️"}</span>
-                <span>FILTER PENCARIAN</span>
+            {/* FILTER CARD */}
+            <section className="rounded-2xl bg-white p-7 shadow-sm">
+              {/* Mobile Filter Toggle Button */}
+              <div
+                className="md:hidden flex items-center justify-between cursor-pointer mb-2 bg-blue-50 p-4 rounded-xl border border-blue-100"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
+                <div className="flex items-center gap-2 font-extrabold text-[#0B6AA9]">
+                  <span>{isFilterOpen ? "🔽" : "▶️"}</span>
+                  <span>FILTER PENCARIAN</span>
+                </div>
+                <span className="text-sm font-bold text-[#0B6AA9] bg-white px-3 py-1 rounded-full shadow-sm">
+                  {isFilterOpen ? "Tutup" : "Buka"}
+                </span>
               </div>
-              <span className="text-sm font-bold text-[#0B6AA9] bg-white px-3 py-1 rounded-full shadow-sm">
-                {isFilterOpen ? "Tutup" : "Buka"}
-              </span>
-            </div>
 
-            <div
-              className={cn(
-                "grid grid-cols-1 gap-6 md:grid-cols-6 mt-4 md:mt-0",
-                !isFilterOpen ? "hidden md:grid" : "grid",
-              )}
-            >
-              <FilterSelect
-                label="SALES PERSON"
-                value={fSales}
-                onChange={(v) => onChangeFilter(setFSales, v)}
-                options={[{ label: "Semua Sales", value: "ALL" }].concat(
-                  salesOptions.map((s) => ({ label: s, value: s })),
+              <div
+                className={cn(
+                  "grid grid-cols-1 gap-6 md:grid-cols-6 mt-4 md:mt-0",
+                  !isFilterOpen ? "hidden md:grid" : "grid",
                 )}
-              />
-
-              <FilterDate
-                label="TANGGAL MULAI"
-                value={fStart}
-                onChange={(v) => onChangeFilter(setFStart, v)}
-              />
-              <FilterDate
-                label="TANGGAL AKHIR"
-                value={fEnd}
-                onChange={(v) => onChangeFilter(setFEnd, v)}
-              />
-
-              <FilterSelect
-                label="STATUS VISIT"
-                value={fStatus}
-                onChange={(v) => onChangeFilter(setFStatus, v)}
-                options={[{ label: "Semua Status", value: "ALL" }].concat(
-                  paramStatus.map((s) => ({ label: s, value: s })),
-                )}
-              />
-
-              <FilterSelect
-                label="RING"
-                value={fRing}
-                onChange={(v) => onChangeFilter(setFRing, v)}
-                options={[{ label: "Semua Ring", value: "ALL" }].concat(
-                  paramRing.map((r) => ({ label: r, value: r })),
-                )}
-              />
-
-              <FilterSelect
-                label="CITY"
-                value={fCity}
-                onChange={(v) => onChangeFilter(setFCity, v)}
-                options={[{ label: "Semua City", value: "ALL" }].concat(
-                  cityOptions.map((c) => ({ label: c, value: c })),
-                )}
-              />
-
-              <div className="md:col-span-6">
+              >
                 <FilterSelect
-                  label="SATUAN KERJA"
-                  value={fSatker}
-                  onChange={(v) => onChangeFilter(setFSatker, v)}
-                  options={[{ label: "Semua Satker", value: "ALL" }].concat(
-                    satkerOptions.map((s) => ({ label: s, value: s })),
+                  label="SALES PERSON"
+                  value={fSales}
+                  onChange={(v) => onChangeFilter(setFSales, v)}
+                  options={[{ label: "Semua Sales", value: "ALL" }].concat(
+                    salesOptions.map((s) => ({ label: s, value: s })),
                   )}
-                  full
                 />
+
+                <FilterDate
+                  label="TANGGAL MULAI"
+                  value={fStart}
+                  onChange={(v) => onChangeFilter(setFStart, v)}
+                />
+                <FilterDate
+                  label="TANGGAL AKHIR"
+                  value={fEnd}
+                  onChange={(v) => onChangeFilter(setFEnd, v)}
+                />
+
+                <FilterSelect
+                  label="STATUS VISIT"
+                  value={fStatus}
+                  onChange={(v) => onChangeFilter(setFStatus, v)}
+                  options={[{ label: "Semua Status", value: "ALL" }].concat(
+                    paramStatus.map((s) => ({ label: s, value: s })),
+                  )}
+                />
+
+                <FilterSelect
+                  label="RING"
+                  value={fRing}
+                  onChange={(v) => onChangeFilter(setFRing, v)}
+                  options={[{ label: "Semua Ring", value: "ALL" }].concat(
+                    paramRing.map((r) => ({ label: r, value: r })),
+                  )}
+                />
+
+                <FilterSelect
+                  label="CITY"
+                  value={fCity}
+                  onChange={(v) => onChangeFilter(setFCity, v)}
+                  options={[{ label: "Semua City", value: "ALL" }].concat(
+                    cityOptions.map((c) => ({ label: c, value: c })),
+                  )}
+                />
+
+                <div className="md:col-span-6">
+                  <FilterSelect
+                    label="SATUAN KERJA"
+                    value={fSatker}
+                    onChange={(v) => onChangeFilter(setFSatker, v)}
+                    options={[{ label: "Semua Satker", value: "ALL" }].concat(
+                      satkerOptions.map((s) => ({ label: s, value: s })),
+                    )}
+                    full
+                  />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* TABLE */}
-          <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-            {/* Desktop View */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-blue-200">
-                  <tr className="text-left">
-                    {[
-                      "NAMA SALES",
-                      "VISIT DATE",
-                      "STATUS",
-                      "SATUAN KERJA",
-                      "CITY",
-                      "PIC NAME",
-                      "PIC PHONE",
-                      "RING",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-black"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+            {/* TABLE */}
+            <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-blue-200">
+                    <tr className="text-left">
+                      {[
+                        "NAMA SALES",
+                        "VISIT DATE",
+                        "STATUS",
+                        "SATUAN KERJA",
+                        "CITY",
+                        "PIC NAME",
+                        "PIC PHONE",
+                        "RING",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="whitespace-nowrap px-6 py-5 text-xs font-extrabold tracking-wider text-black"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
 
-                <tbody>
-                  {loadingRows ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
-                        Loading...
-                      </td>
-                    </tr>
-                  ) : rows.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
-                        Tidak ada data.
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map((r) => {
-                      const active = selected?._id === r._id;
-                      return (
-                        <React.Fragment key={r._id}>
-                          <tr
-                            onClick={() => setSelected(active ? null : r)}
-                            className={cn(
-                              "cursor-pointer border-t border-blue-50 transition-colors",
-                              active ? "bg-blue-50/60" : "hover:bg-blue-50/30",
-                            )}
-                          >
-                            <td
+                  <tbody>
+                    {loadingRows ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-6 py-12 text-center text-gray-500"
+                        >
+                          Loading...
+                        </td>
+                      </tr>
+                    ) : rows.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-6 py-12 text-center text-gray-500"
+                        >
+                          Tidak ada data.
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((r) => {
+                        const active = selected?._id === r._id;
+                        return (
+                          <React.Fragment key={r._id}>
+                            <tr
+                              onClick={() => setSelected(active ? null : r)}
                               className={cn(
-                                "px-6 py-6 font-extrabold text-[#0B6AA9]",
+                                "cursor-pointer border-t border-blue-50 transition-colors",
                                 active
-                                  ? "border-l-4 border-l-blue-600"
-                                  : "border-l-4 border-l-transparent",
+                                  ? "bg-blue-50/60"
+                                  : "hover:bg-blue-50/30",
                               )}
                             >
-                              {r.nama_sales}
-                            </td>
-                            <td className="px-6 py-6 text-gray-800">
-                              {formatDateID(r.visit_date)}
-                            </td>
-                            <td className="px-6 py-6">
-                              <StatusPill value={r.status_visit} />
-                            </td>
-                            <td className="px-6 py-6 text-gray-900">
-                              {r.satuan_kerja}
-                            </td>
-                            <td className="px-6 py-6 text-gray-900">
-                              {r.city}
-                            </td>
-                            <td className="px-6 py-6 text-gray-900">
-                              {r.pic_name}
-                            </td>
-                            <td className="px-6 py-6 text-gray-900">
-                              {r.pic_phone}
-                            </td>
-                            <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
-                              {r.status_ring}
-                            </td>
-                          </tr>
-                          {active && (
-                            <tr className="bg-blue-50/30">
                               <td
-                                colSpan={8}
-                                className="px-6 py-6 border-l-4 border-l-blue-600 border-b border-b-blue-100"
+                                className={cn(
+                                  "px-6 py-6 font-extrabold text-[#0B6AA9]",
+                                  active
+                                    ? "border-l-4 border-l-blue-600"
+                                    : "border-l-4 border-l-transparent",
+                                )}
                               >
-                                <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
-                                  <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
-                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
-                                      📖
-                                    </span>
-                                    Detail Kunjungan
-                                  </div>
-                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-6 border-t border-gray-100 pt-4">
-                                    <DetailItem
-                                      label="Created At"
-                                      value={formatDateID(r.created_at)}
-                                    />
-                                    <DetailItem
-                                      label="Market Status"
-                                      value={r.status_market}
-                                    />
-                                    <DetailItem label="KLPD" value={r.klpd} />
-                                    <DetailItem
-                                      label="Reschedule"
-                                      value={
-                                        r.reschedule && r.reschedule !== "-"
-                                          ? formatDateID(r.reschedule)
-                                          : "-"
-                                      }
-                                    />
-                                    <DetailItem
-                                      label="Institusi Kerja"
-                                      value={r.institusi_kerja}
-                                    />
-                                    <DetailItem
-                                      label="PIC Position"
-                                      value={r.pic_position}
-                                    />
-                                    <DetailItem
-                                      label="PIC Role"
-                                      value={r.pic_role}
-                                    />
-                                    <DetailItem
-                                      label="Tindak Lanjut"
-                                      value={r.tindak_lanjut}
-                                    />
-                                    <DetailItem
-                                      label="Kegiatan Status"
-                                      value={r.kegiatan_status}
-                                    />
-                                  </div>
-
-                                  <div className="mt-6 border-t border-gray-100 pt-4">
-                                    <div className="text-xs font-extrabold tracking-wider text-gray-500">
-                                      DESKRIPSI
-                                    </div>
-                                    <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
-                                      {r.descriptions || "-"}
-                                    </div>
-                                  </div>
-                                </div>
+                                {r.nama_sales}
+                              </td>
+                              <td className="px-6 py-6 text-gray-800">
+                                {formatDateID(r.visit_date)}
+                              </td>
+                              <td className="px-6 py-6">
+                                <StatusPill value={r.status_visit} />
+                              </td>
+                              <td className="px-6 py-6 text-gray-900">
+                                {r.satuan_kerja}
+                              </td>
+                              <td className="px-6 py-6 text-gray-900">
+                                {r.city}
+                              </td>
+                              <td className="px-6 py-6 text-gray-900">
+                                {r.pic_name}
+                              </td>
+                              <td className="px-6 py-6 text-gray-900">
+                                {r.pic_phone}
+                              </td>
+                              <td className="px-6 py-6 font-extrabold text-[#0B6AA9]">
+                                {r.status_ring}
                               </td>
                             </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                            {active && (
+                              <tr className="bg-blue-50/30">
+                                <td
+                                  colSpan={8}
+                                  className="px-6 py-6 border-l-4 border-l-blue-600 border-b border-b-blue-100"
+                                >
+                                  <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
+                                    <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
+                                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
+                                        📖
+                                      </span>
+                                      Detail Kunjungan
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-6 border-t border-gray-100 pt-4">
+                                      <DetailItem
+                                        label="Created At"
+                                        value={formatDateID(r.created_at)}
+                                      />
+                                      <DetailItem
+                                        label="Market Status"
+                                        value={r.status_market}
+                                      />
+                                      <DetailItem label="KLPD" value={r.klpd} />
+                                      <DetailItem
+                                        label="Reschedule"
+                                        value={
+                                          r.reschedule && r.reschedule !== "-"
+                                            ? formatDateID(r.reschedule)
+                                            : "-"
+                                        }
+                                      />
+                                      <DetailItem
+                                        label="Institusi Kerja"
+                                        value={r.institusi_kerja}
+                                      />
+                                      <DetailItem
+                                        label="PIC Position"
+                                        value={r.pic_position}
+                                      />
+                                      <DetailItem
+                                        label="PIC Role"
+                                        value={r.pic_role}
+                                      />
+                                      <DetailItem
+                                        label="Tindak Lanjut"
+                                        value={r.tindak_lanjut}
+                                      />
+                                      <DetailItem
+                                        label="Kegiatan Status"
+                                        value={r.kegiatan_status}
+                                      />
+                                    </div>
 
-            {/* Mobile View */}
-            <div className="md:hidden flex flex-col p-4 bg-gray-50/50 gap-4">
-              {loadingRows ? (
-                <div className="py-10 text-center text-gray-500">
-                  Loading...
-                </div>
-              ) : rows.length === 0 ? (
-                <div className="py-10 text-center text-gray-500">
-                  Tidak ada data.
-                </div>
-              ) : (
-                rows.map((r) => {
-                  const active = selected?._id === r._id;
-                  return (
-                    <div
-                      key={r._id}
-                      onClick={() => setSelected(active ? null : r)}
+                                    <div className="mt-6 border-t border-gray-100 pt-4">
+                                      <div className="text-xs font-extrabold tracking-wider text-gray-500">
+                                        DESKRIPSI
+                                      </div>
+                                      <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
+                                        {r.descriptions || "-"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden flex flex-col p-4 bg-gray-50/50 gap-4">
+                {loadingRows ? (
+                  <div className="py-10 text-center text-gray-500">
+                    Loading...
+                  </div>
+                ) : rows.length === 0 ? (
+                  <div className="py-10 text-center text-gray-500">
+                    Tidak ada data.
+                  </div>
+                ) : (
+                  rows.map((r) => {
+                    const active = selected?._id === r._id;
+                    return (
+                      <div
+                        key={r._id}
+                        onClick={() => setSelected(active ? null : r)}
+                        className={cn(
+                          "bg-white border flex flex-col rounded-2xl shadow-sm transition-colors cursor-pointer overflow-hidden",
+                          active
+                            ? "border-[#0B6AA9] bg-blue-50/10 ring-1 ring-[#0B6AA9]"
+                            : "border-blue-100 hover:bg-black/5",
+                        )}
+                      >
+                        <div className="p-4 flex flex-col gap-3">
+                          <div className="flex items-start justify-between border-b border-blue-50 pb-3">
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 mb-0.5">
+                                Nama Sales
+                              </div>
+                              <div className="text-base font-extrabold text-[#0B6AA9]">
+                                {r.nama_sales}
+                              </div>
+                            </div>
+                            <div className="shrink-0 ml-2">
+                              <StatusPill value={r.status_visit} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 mb-0.5">
+                                Ring
+                              </div>
+                              <div className="font-extrabold text-[#0B6AA9]">
+                                {r.status_ring}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 mb-0.5">
+                                City
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {r.city}
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="text-xs font-medium text-gray-500 mb-0.5">
+                                Satuan Kerja
+                              </div>
+                              <div className="font-semibold text-gray-900 leading-tight">
+                                {r.satuan_kerja}
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="text-xs font-medium text-gray-500 mb-0.5">
+                                PIC Name
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {r.pic_name}
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="text-xs font-medium text-gray-500 mb-0.5">
+                                Visit Date
+                              </div>
+                              <div className="font-semibold text-gray-800">
+                                {formatDateID(r.visit_date)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {active && (
+                          <div className="border-t border-blue-100 bg-blue-50/30 p-4">
+                            <div className="mb-4 flex items-center gap-2 text-base font-extrabold text-gray-900">
+                              <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-100 text-blue-600 text-sm">
+                                📖
+                              </span>
+                              Detail Kunjungan
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
+                              <DetailItem
+                                label="Created At"
+                                value={formatDateID(r.created_at)}
+                              />
+                              <DetailItem
+                                label="Market Status"
+                                value={r.status_market}
+                              />
+                              <DetailItem label="KLPD" value={r.klpd} />
+                              <DetailItem
+                                label="Reschedule"
+                                value={
+                                  r.reschedule && r.reschedule !== "-"
+                                    ? formatDateID(r.reschedule)
+                                    : "-"
+                                }
+                              />
+                              <DetailItem
+                                label="Institusi Kerja"
+                                value={r.institusi_kerja}
+                              />
+                              <DetailItem
+                                label="PIC Position"
+                                value={r.pic_position}
+                              />
+                              <DetailItem label="PIC Role" value={r.pic_role} />
+                              <DetailItem
+                                label="Tindak Lanjut"
+                                value={r.tindak_lanjut}
+                              />
+                              <DetailItem
+                                label="Kegiatan Status"
+                                value={r.kegiatan_status}
+                              />
+                            </div>
+
+                            <div className="mt-4 border-t border-blue-100 pt-3">
+                              <div className="text-xs font-extrabold tracking-wider text-gray-500 mb-1">
+                                DESKRIPSI
+                              </div>
+                              <div className="whitespace-pre-line text-sm text-gray-700 bg-white p-3 rounded-lg border border-blue-50 shadow-sm leading-relaxed">
+                                {r.descriptions || "-"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+
+            {/* PAGINATION */}
+            <section className="mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-gray-600">
+                Menampilkan {showingFrom} - {showingTo} dari {total} data
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="h-10 rounded-xl border border-blue-100 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                >
+                  <option value={10}>10 / Halaman</option>
+                  <option value={25}>25 / Halaman</option>
+                  <option value={50}>50 / Halaman</option>
+                  <option value={100}>100 / Halaman</option>
+                </select>
+
+                <div className="flex items-center gap-2">
+                  <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
+                    ⏮
+                  </PageBtn>
+                  <PageBtn
+                    onClick={() => gotoPage(safePage - 1)}
+                    ariaLabel="Prev"
+                  >
+                    ◀
+                  </PageBtn>
+
+                  {getPageWindow(safePage, totalPages, 5).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => gotoPage(p)}
                       className={cn(
-                        "bg-white border flex flex-col rounded-2xl shadow-sm transition-colors cursor-pointer overflow-hidden",
-                        active
-                          ? "border-[#0B6AA9] bg-blue-50/10 ring-1 ring-[#0B6AA9]"
-                          : "border-blue-100 hover:bg-black/5",
+                        "grid h-10 w-10 place-items-center rounded-xl border text-sm font-semibold",
+                        p === safePage
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40",
                       )}
                     >
-                      <div className="p-4 flex flex-col gap-3">
-                        <div className="flex items-start justify-between border-b border-blue-50 pb-3">
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 mb-0.5">
-                              Nama Sales
-                            </div>
-                            <div className="text-base font-extrabold text-[#0B6AA9]">
-                              {r.nama_sales}
-                            </div>
-                          </div>
-                          <div className="shrink-0 ml-2">
-                            <StatusPill value={r.status_visit} />
-                          </div>
-                        </div>
+                      {p}
+                    </button>
+                  ))}
 
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 mb-0.5">
-                              Ring
-                            </div>
-                            <div className="font-extrabold text-[#0B6AA9]">
-                              {r.status_ring}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 mb-0.5">
-                              City
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {r.city}
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="text-xs font-medium text-gray-500 mb-0.5">
-                              Satuan Kerja
-                            </div>
-                            <div className="font-semibold text-gray-900 leading-tight">
-                              {r.satuan_kerja}
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="text-xs font-medium text-gray-500 mb-0.5">
-                              PIC Name
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {r.pic_name}
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="text-xs font-medium text-gray-500 mb-0.5">
-                              Visit Date
-                            </div>
-                            <div className="font-semibold text-gray-800">
-                              {formatDateID(r.visit_date)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {active && (
-                        <div className="border-t border-blue-100 bg-blue-50/30 p-4">
-                          <div className="mb-4 flex items-center gap-2 text-base font-extrabold text-gray-900">
-                            <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-100 text-blue-600 text-sm">
-                              📖
-                            </span>
-                            Detail Kunjungan
-                          </div>
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
-                            <DetailItem
-                              label="Created At"
-                              value={formatDateID(r.created_at)}
-                            />
-                            <DetailItem
-                              label="Market Status"
-                              value={r.status_market}
-                            />
-                            <DetailItem label="KLPD" value={r.klpd} />
-                            <DetailItem
-                              label="Reschedule"
-                              value={
-                                r.reschedule && r.reschedule !== "-"
-                                  ? formatDateID(r.reschedule)
-                                  : "-"
-                              }
-                            />
-                            <DetailItem
-                              label="Institusi Kerja"
-                              value={r.institusi_kerja}
-                            />
-                            <DetailItem
-                              label="PIC Position"
-                              value={r.pic_position}
-                            />
-                            <DetailItem label="PIC Role" value={r.pic_role} />
-                            <DetailItem
-                              label="Tindak Lanjut"
-                              value={r.tindak_lanjut}
-                            />
-                            <DetailItem
-                              label="Kegiatan Status"
-                              value={r.kegiatan_status}
-                            />
-                          </div>
-
-                          <div className="mt-4 border-t border-blue-100 pt-3">
-                            <div className="text-xs font-extrabold tracking-wider text-gray-500 mb-1">
-                              DESKRIPSI
-                            </div>
-                            <div className="whitespace-pre-line text-sm text-gray-700 bg-white p-3 rounded-lg border border-blue-50 shadow-sm leading-relaxed">
-                              {r.descriptions || "-"}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
-          {/* PAGINATION */}
-          <section className="mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm text-gray-600">
-              Menampilkan {showingFrom} - {showingTo} dari {total} data
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="h-10 rounded-xl border border-blue-100 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                <option value={10}>10 / Halaman</option>
-                <option value={25}>25 / Halaman</option>
-                <option value={50}>50 / Halaman</option>
-                <option value={100}>100 / Halaman</option>
-              </select>
-
-              <div className="flex items-center gap-2">
-                <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
-                  ⏮
-                </PageBtn>
-                <PageBtn
-                  onClick={() => gotoPage(safePage - 1)}
-                  ariaLabel="Prev"
-                >
-                  ◀
-                </PageBtn>
-
-                {getPageWindow(safePage, totalPages, 5).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => gotoPage(p)}
-                    className={cn(
-                      "grid h-10 w-10 place-items-center rounded-xl border text-sm font-semibold",
-                      p === safePage
-                        ? "border-blue-200 bg-blue-50 text-blue-700"
-                        : "border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40",
-                    )}
+                  <PageBtn
+                    onClick={() => gotoPage(safePage + 1)}
+                    ariaLabel="Next"
                   >
-                    {p}
-                  </button>
-                ))}
-
-                <PageBtn
-                  onClick={() => gotoPage(safePage + 1)}
-                  ariaLabel="Next"
-                >
-                  ▶
-                </PageBtn>
-                <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">
-                  ⏭
-                </PageBtn>
+                    ▶
+                  </PageBtn>
+                  <PageBtn
+                    onClick={() => gotoPage(totalPages)}
+                    ariaLabel="Last"
+                  >
+                    ⏭
+                  </PageBtn>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </main>
         </div>
       </div>
 
