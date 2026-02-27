@@ -86,7 +86,7 @@ export default function EProcurementResponsePage() {
   const [confirmTakeId, setConfirmTakeId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
-  const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
 
   // ✅ Guard: hanya ADMIN / SUPERADMIN
   useEffect(() => {
@@ -114,7 +114,18 @@ export default function EProcurementResponsePage() {
     };
   }, [sessionLoading, user]);
 
-  const isEmpty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const timeA = new Date(a.tanggalSubmit).getTime();
+      const timeB = new Date(b.tanggalSubmit).getTime();
+      return timeA - timeB; // Oldest first
+    });
+  }, [rows]);
+
+  const isEmpty = useMemo(
+    () => !loading && sortedRows.length === 0,
+    [loading, sortedRows],
+  );
 
   async function handleConfirmTake() {
     if (!confirmTakeId) return;
@@ -162,7 +173,7 @@ export default function EProcurementResponsePage() {
                   Request List
                 </h3>
                 <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
-                  {rows.length} requests
+                  {sortedRows.length} requests
                 </span>
               </div>
 
@@ -193,6 +204,9 @@ export default function EProcurementResponsePage() {
                           Segmen
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Tanggal Masuk
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
                           Deadline
                         </th>
                         <th className="px-5 py-4 text-center whitespace-nowrap">
@@ -202,8 +216,8 @@ export default function EProcurementResponsePage() {
                     </thead>
 
                     <tbody>
-                      {rows.map((r) => {
-                        const isOpen = !!openDetail[r.requestId];
+                      {sortedRows.map((r) => {
+                        const isOpen = openDetail === r.requestId;
                         const isTaking = takingId === r.requestId;
 
                         return (
@@ -213,10 +227,7 @@ export default function EProcurementResponsePage() {
                             isOpen={isOpen}
                             isTaking={isTaking}
                             onToggle={() =>
-                              setOpenDetail((prev) => ({
-                                ...prev,
-                                [r.requestId]: !prev[r.requestId],
-                              }))
+                              setOpenDetail(isOpen ? null : r.requestId)
                             }
                             onTake={() => setConfirmTakeId(r.requestId)}
                           />
@@ -265,17 +276,32 @@ function FragmentRow({
   onToggle: () => void;
   onTake: () => void;
 }) {
+  const isDelayed =
+    Date.now() - new Date(r.tanggalSubmit).getTime() > 3 * 24 * 60 * 60 * 1000;
+
   return (
     <>
       <tr
-        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${isOpen ? "bg-indigo-50/20" : ""}`}
+        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${
+          isOpen ? "bg-indigo-50/20" : isDelayed ? "bg-rose-50/40" : ""
+        }`}
         onClick={onToggle}
         title="Klik untuk lihat detail"
       >
         <td className="px-5 py-4 font-semibold text-slate-800">
-          {r.requestId}
+          <div className="flex items-center gap-2">
+            {r.requestId}
+            {isDelayed && (
+              <span
+                title="Mendesak (>3 hari)"
+                className="inline-flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"
+              />
+            )}
+          </div>
         </td>
-        <td className="px-5 py-4 text-slate-600">{r.requestor}</td>
+        <td className="px-5 py-4 text-slate-600">
+          <span>{r.requestor}</span>
+        </td>
         <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
         <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
         <td className="px-5 py-4">
@@ -283,7 +309,10 @@ function FragmentRow({
             {r.segmen}
           </span>
         </td>
-        <td className="px-5 py-4 text-slate-600">
+        <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>
+        <td
+          className={`px-5 py-4 font-medium ${isDelayed ? "text-rose-600" : "text-slate-600"}`}
+        >
           {fmtDate(r.deadlineUsulan)}
         </td>
 
@@ -298,7 +327,9 @@ function FragmentRow({
               "h-8 rounded-full px-5 text-xs font-bold transition-all flex items-center justify-center mx-auto shadow-sm",
               isTaking
                 ? "bg-slate-300 text-slate-500 shadow-none cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 active:scale-95",
+                : isDelayed
+                  ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 active:scale-95"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 active:scale-95",
             ].join(" ")}
           >
             {isTaking ? (
@@ -324,6 +355,8 @@ function FragmentRow({
                 </svg>
                 TAKING...
               </>
+            ) : isDelayed ? (
+              "TAKE NOW"
             ) : (
               "TAKE"
             )}

@@ -105,7 +105,7 @@ export default function RekapitulasiResponsePage() {
 
   const [statusKeputusanOpts, setStatusKeputusanOpts] = useState<string[]>([]);
 
-  const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
 
   // modal export excel
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -388,6 +388,9 @@ export default function RekapitulasiResponsePage() {
                           Segmen
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Tanggal Masuk
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
                           Deadline
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
@@ -403,17 +406,14 @@ export default function RekapitulasiResponsePage() {
                     </thead>
                     <tbody>
                       {filtered.map((r) => {
-                        const isOpen = !!openDetail[r.requestId];
+                        const isOpen = openDetail === r.requestId;
                         return (
                           <FragmentRow
                             key={r.requestId}
                             r={r}
                             isOpen={isOpen}
                             onToggle={() =>
-                              setOpenDetail((prev) => ({
-                                ...prev,
-                                [r.requestId]: !prev[r.requestId],
-                              }))
+                              setOpenDetail(isOpen ? null : r.requestId)
                             }
                             isAdmin={isAdmin}
                             isSuperAdmin={isSuperAdmin}
@@ -585,17 +585,36 @@ function FragmentRow({
     }
   };
 
+  const isFinalStatus = ["Done", "Cancel", "Hold"].includes(
+    computedStatusUsulan,
+  );
+  const isDelayed =
+    !isFinalStatus &&
+    Date.now() - new Date(r.tanggalSubmit).getTime() > 3 * 24 * 60 * 60 * 1000;
+
   return (
     <>
       <tr
-        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${isOpen ? "bg-indigo-50/20" : ""}`}
+        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${
+          isOpen ? "bg-indigo-50/20" : isDelayed ? "bg-rose-50/40" : ""
+        }`}
         onClick={onToggle}
         title="Klik untuk lihat detail"
       >
         <td className="px-5 py-4 font-semibold text-slate-800">
-          {r.requestId}
+          <div className="flex items-center gap-2">
+            {r.requestId}
+            {isDelayed && (
+              <span
+                title="Mendesak (>3 hari belum Done)"
+                className="inline-flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"
+              />
+            )}
+          </div>
         </td>
-        <td className="px-5 py-4 text-slate-600">{r.requestor}</td>
+        <td className="px-5 py-4 text-slate-600">
+          <span>{r.requestor}</span>
+        </td>
         <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
         <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
         <td className="px-5 py-4">
@@ -603,10 +622,14 @@ function FragmentRow({
             {r.segmen}
           </span>
         </td>
-        <td className="px-5 py-4 text-slate-600">
+        <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>
+        <td
+          className={`px-5 py-4 font-medium ${isDelayed ? "text-rose-600" : "text-slate-600"}`}
+        >
           {fmtDate(r.deadlineUsulan)}
         </td>
         <td className="px-5 py-4">
+          {/* ... status logic ... */}
           {(() => {
             const st = computedStatusUsulan;
             if (st === "Done")

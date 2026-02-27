@@ -1147,10 +1147,10 @@ function TakeCard({
 
   return (
     <div
-      className={`group relative rounded-2xl border bg-white p-5 shadow-sm transition-all hover:shadow-md ${
+      className={`group relative rounded-2xl border p-5 shadow-sm transition-all hover:shadow-md ${
         isDelayed
-          ? "border-rose-300 ring-2 ring-rose-500/50 hover:border-rose-400"
-          : "border-slate-200 hover:border-indigo-200"
+          ? "border-rose-300 ring-2 ring-rose-500/50 hover:border-rose-400 bg-rose-50/30"
+          : "border-slate-200 hover:border-indigo-200 bg-white"
       }`}
     >
       {isDelayed && (
