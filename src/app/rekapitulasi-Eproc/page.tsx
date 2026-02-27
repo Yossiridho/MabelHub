@@ -252,11 +252,17 @@ export default function RekapitulasiEProcurementPage() {
     if (r.tindakLanjut === "Lanjut" || r.tindakLanjut === "Cancel") {
       return r.tindakLanjut;
     }
+
+    const isUsulanDone =
+      r.statusUsulan === "Done" ||
+      r.statusAkhir === "Done" ||
+      r.statusAkhir === "Selesai";
+
     const hasItems = Array.isArray(r.items) && r.items.length > 0;
     const allDone =
       hasItems && r.items.every((it) => it.statusBarangAdmin === "Done");
 
-    if (allDone) {
+    if (allDone || isUsulanDone) {
       return "Lapor";
     }
     return "Proses";
@@ -420,8 +426,6 @@ export default function RekapitulasiEProcurementPage() {
     { id: "perusahaan", label: "Perusahaan" },
     { id: "tindakLanjut", label: "Tindak Lanjut" },
     { id: "catatanPemohon", label: "Catatan Pemohon" },
-    { id: "tanggalKontrak", label: "Tgl Kontrak" },
-    { id: "nominalKontrak", label: "Nominal Kontrak" },
     { id: "picAdmin", label: "PIC Admin" },
     // List Barang
     { id: "itemMerek", label: "Merek Product" },

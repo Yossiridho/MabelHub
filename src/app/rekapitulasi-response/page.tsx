@@ -221,6 +221,8 @@ export default function RekapitulasiResponsePage() {
       // but let's keep scope conceptually correct if pagination is added later.
 
       const flattenedData: any[] = [];
+      const merges: any[] = [];
+      let currentRowIndex = 1; // 0 is header row
 
       dataToProcess.forEach((r) => {
         const baseRow: any = {};
@@ -255,6 +257,10 @@ export default function RekapitulasiResponsePage() {
           baseRow["Nominal Pembayaran"] = r.nominalPembayaran ?? "-";
 
         const hasItemCols = selectedCols.some((c) => c.startsWith("item"));
+        const itemCount =
+          hasItemCols && Array.isArray(r.items) && r.items.length > 0
+            ? r.items.length
+            : 1;
 
         if (hasItemCols && Array.isArray(r.items) && r.items.length > 0) {
           r.items.forEach((item) => {
@@ -284,9 +290,36 @@ export default function RekapitulasiResponsePage() {
         } else {
           flattenedData.push(baseRow);
         }
+
+        // Cell Merging Logic for Request Data spanning multiple items
+        if (itemCount > 1) {
+          const finalCols = exportColumns.filter((c) =>
+            selectedCols.includes(c.id),
+          );
+          finalCols.forEach((c, cIdx) => {
+            if (!c.id.startsWith("item")) {
+              merges.push({
+                s: { r: currentRowIndex, c: cIdx },
+                e: { r: currentRowIndex + itemCount - 1, c: cIdx },
+              });
+            }
+          });
+        }
+
+        currentRowIndex += itemCount;
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(flattenedData);
+      const finalColLabels = exportColumns
+        .filter((c) => selectedCols.includes(c.id))
+        .map((c) => c.label);
+      const worksheet = XLSX.utils.json_to_sheet(flattenedData, {
+        header: finalColLabels,
+      });
+
+      if (merges.length > 0) {
+        worksheet["!merges"] = merges;
+      }
+
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_Response");
       XLSX.writeFile(

@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/modals/ConfirmModal";
+import * as XLSX from "xlsx";
+import { Download, Upload } from "lucide-react";
 
 type ParamKey =
   | "kota_kabupaten"
@@ -87,6 +89,75 @@ export default function ParameterPage() {
   } | null>(null); // Untuk Segmen
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = () => {
+    // URL to the template file in public/templates folder
+    const templatePath = "/templates/Template_Parameter.xlsx";
+
+    // Create an invisible link to trigger the download
+    const link = document.createElement("a");
+    link.href = templatePath;
+    link.download = "Template_Parameter.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleUploadExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSaving(true);
+    setErr("");
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json<Record<string, string>>(ws);
+
+        const bulkData: Record<string, string[]> = {};
+        ALL_KEYS.forEach((k) => (bulkData[k] = []));
+
+        data.forEach((row) => {
+          Object.keys(row).forEach((header) => {
+            const keyByLabel = Object.keys(KEY_LABEL).find(
+              (k) => KEY_LABEL[k as ParamKey] === header,
+            ) as ParamKey;
+            const val = row[header];
+
+            if (keyByLabel && val) {
+              bulkData[keyByLabel].push(String(val).trim());
+            } else if (ALL_KEYS.includes(header as ParamKey) && val) {
+              bulkData[header as ParamKey].push(String(val).trim());
+            }
+          });
+        });
+
+        const res = await fetch("/api/parameters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bulk: bulkData }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error ?? "Gagal upload parameter");
+
+        setDoc(json?.data ?? null);
+        alert("Berhasil upload parameter!");
+      } catch (error: any) {
+        setErr(error?.message ?? "Gagal memproses file Excel");
+        alert(error?.message ?? "Gagal memproses file Excel");
+      } finally {
+        setSaving(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
 
   async function fetchDoc() {
     setLoading(true);
@@ -202,16 +273,35 @@ export default function ParameterPage() {
         <Sidebar />
 
         <div className="flex-1 p-6">
-          {/* Top bar */}
-          <div className="mb-6 px-3 pt-2 pb-2 flex-col items-center gap-4">
-            <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-xl font-extrabold pl-3 tracking-wide text-gray-900">
               PARAMETER
             </h1>
-            <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
-              Kelola parameter untuk dropdown pada sistem
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleUploadExcel}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:focus:ring-2 hover:bg-green-700 disabled:opacity-50"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Excel
+              </button>
+              <button
+                onClick={downloadTemplate}
+                className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:focus:ring-2 hover:bg-orange-600"
+              >
+                <Download className="h-4 w-4" />
+                Download Template
+              </button>
             </div>
-            </div>
-          
+          </div>
 
           {/* Add box */}
           <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/10">

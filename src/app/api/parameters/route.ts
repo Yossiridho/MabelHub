@@ -77,12 +77,6 @@ export async function POST(req: Request) {
   if (!gate.ok) return bad(gate.error, gate.status);
 
   const body = await req.json().catch(() => ({}));
-  const key = norm(body?.key) as ParamKey;
-  const value = norm(body?.value).toUpperCase();
-
-  if (!key) return bad("key wajib");
-  if (!value) return bad("value wajib");
-
   const allowed: ParamKey[] = [
     "kota_kabupaten",
     "klpd",
@@ -95,6 +89,37 @@ export async function POST(req: Request) {
     "status_akhir",
     "status_keputusan",
   ];
+
+  if (body.bulk) {
+    const { col } = await ensureDoc();
+    const updates: any = {};
+    for (const k of allowed) {
+      if (Array.isArray(body.bulk[k]) && body.bulk[k].length > 0) {
+        updates[k] = {
+          $each: body.bulk[k].map((v: string) => norm(v).toUpperCase()),
+        };
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      await col.updateOne(
+        { _id: DOC_ID as any },
+        {
+          $addToSet: updates as any,
+          $set: { updatedAt: new Date() },
+        } as any,
+        { upsert: true },
+      );
+    }
+    const doc = await col.findOne({ _id: DOC_ID as any });
+    return NextResponse.json({ ok: true, data: doc });
+  }
+
+  const key = norm(body?.key) as ParamKey;
+  const value = norm(body?.value).toUpperCase();
+
+  if (!key) return bad("key wajib");
+  if (!value) return bad("value wajib");
+
   if (!allowed.includes(key)) return bad("key tidak valid");
 
   const { col } = await ensureDoc();
