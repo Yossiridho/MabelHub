@@ -25,6 +25,7 @@ type ProductItem = {
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
   catatanAdminItem?: string;
+  perusahaanAdminItem?: string;
 };
 
 type EProcRow = {
@@ -209,6 +210,7 @@ export default function RekapitulasiResponsePage() {
     { id: "itemStatusAdmin", label: "Item: Status Barang (Admin)" },
     { id: "itemTayangInaproc", label: "Item: Tayang Inaproc (Admin)" },
     { id: "itemCatatan", label: "Item: Catatan Admin" },
+    { id: "itemPerusahaan", label: "Item: Perusahaan Admin" },
   ];
 
   const handleExport = async (selectedCols: string[], scope: ExportScope) => {
@@ -285,6 +287,9 @@ export default function RekapitulasiResponsePage() {
                 item.tayangInaprocAdmin || "-";
             if (selectedCols.includes("itemCatatan"))
               rowWithItem["Item: Catatan Admin"] = item.catatanAdminItem || "-";
+            if (selectedCols.includes("itemPerusahaan"))
+              rowWithItem["Item: Perusahaan Admin"] =
+                item.perusahaanAdminItem || "-";
             flattenedData.push(rowWithItem);
           });
         } else {
@@ -339,7 +344,7 @@ export default function RekapitulasiResponsePage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
-<Sidebar />
+        <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-8 pt-4 space-y-1">
@@ -362,7 +367,7 @@ export default function RekapitulasiResponsePage() {
               </div>
             </div>
 
-  {/* Filter bar */}
+            {/* Filter bar */}
             <div className="mt-6 rounded-2xl bg-white/70 backdrop-blur-xl p-5 shadow-sm border border-slate-200/60 transition-shadow hover:shadow-md">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
@@ -511,12 +516,10 @@ function FragmentRow({
   const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState<{
-    perusahaan: string;
     catatanAdmin: string;
     statusAkhir: string;
     items: ProductItem[];
   }>({
-    perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
     statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
@@ -525,8 +528,13 @@ function FragmentRow({
   const [companies, setCompanies] = useState<string[]>([]);
   const [statusAkhirOptions, setStatusAkhirOptions] = useState<string[]>([]);
 
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+    new Set(),
+  );
+
   useEffect(() => {
     if (isOpen) {
+      setSelectedIndices(new Set()); // reset on open
       fetch("/api/parameters")
         .then((res) => res.json())
         .then((json) => {
@@ -540,6 +548,51 @@ function FragmentRow({
         .catch(() => {});
     }
   }, [isOpen]);
+
+  const toggleSelectAll = () => {
+    if (selectedIndices.size === form.items.length) {
+      setSelectedIndices(new Set());
+    } else {
+      setSelectedIndices(new Set(form.items.map((_, i) => i)));
+    }
+  };
+
+  const toggleSelect = (idx: number) => {
+    const newSelected = new Set(selectedIndices);
+    if (newSelected.has(idx)) {
+      newSelected.delete(idx);
+    } else {
+      newSelected.add(idx);
+    }
+    setSelectedIndices(newSelected);
+  };
+
+  const applyBulkStatus = (val: string) => {
+    if (selectedIndices.size === 0) return;
+    const newItems = [...form.items];
+    selectedIndices.forEach((idx) => {
+      newItems[idx] = { ...newItems[idx], statusBarangAdmin: val };
+    });
+    setForm({ ...form, items: newItems });
+  };
+
+  const applyBulkPerusahaan = (val: string) => {
+    if (selectedIndices.size === 0) return;
+    const newItems = [...form.items];
+    selectedIndices.forEach((idx) => {
+      newItems[idx] = { ...newItems[idx], perusahaanAdminItem: val };
+    });
+    setForm({ ...form, items: newItems });
+  };
+
+  const applyBulkInaproc = (val: string) => {
+    if (selectedIndices.size === 0) return;
+    const newItems = [...form.items];
+    selectedIndices.forEach((idx) => {
+      newItems[idx] = { ...newItems[idx], tayangInaprocAdmin: val };
+    });
+    setForm({ ...form, items: newItems });
+  };
 
   const computedStatusUsulan = useMemo(() => {
     const total = form.items.length;
@@ -596,7 +649,6 @@ function FragmentRow({
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            perusahaan: form.perusahaan,
             catatanAdmin: form.catatanAdmin,
             statusAkhir: isDone ? form.statusAkhir : "",
             items: form.items,
@@ -706,233 +758,14 @@ function FragmentRow({
 
       {isOpen && (
         <tr className="border-b border-neutral-100 bg-slate-50/50">
-          <td colSpan={9} className="px-5 py-5 text-sm">
+          <td colSpan={10} className="px-5 py-5 text-sm">
             {/* Rincian Barang */}
             <div className="mb-6">
-              <h4 className="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 text-indigo-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
-                Rincian Items ({r.items?.length || 0})
-              </h4>
-              {r.items && r.items.length > 0 ? (
-                <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
-                      <tr className="text-slate-500 uppercase tracking-wider font-semibold">
-                        <th className="px-3 py-3">Merek</th>
-                        <th className="px-3 py-3">Sub Kategori</th>
-                        <th className="px-3 py-3">Spesifikasi</th>
-                        <th className="px-3 py-3">Qty</th>
-                        <th className="px-3 py-3">Pagu</th>
-                        <th className="px-3 py-3">Harga Tayang</th>
-                        <th className="px-3 py-3">Link Inaproc</th>
-                        <th className="px-3 py-3">Link ECom</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {r.items.map((it, idx) => (
-                        <React.Fragment key={it.id || idx}>
-                          <tr className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-3 font-medium text-slate-800">
-                              {it.merek || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-slate-600">
-                              {it.subKategori || "-"}
-                            </td>
-                            <td
-                              className="px-3 py-3 text-slate-600 line-clamp-2"
-                              title={it.spesifikasi}
-                            >
-                              {it.spesifikasi || "-"}
-                            </td>
-                            <td className="px-3 py-3 font-semibold text-slate-700">
-                              {it.qty ?? "-"}
-                            </td>
-                            <td className="px-3 py-3 text-slate-600">
-                              {it.paguPerItem || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-slate-600">
-                              {it.hargaTayang || "-"}
-                            </td>
-                            <td className="px-3 py-3">
-                              {it.linkInaproc ? (
-                                <a
-                                  href={it.linkInaproc}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
-                                >
-                                  Link{" "}
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                    />
-                                  </svg>
-                                </a>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3">
-                              {it.linkEcom ? (
-                                <a
-                                  href={it.linkEcom}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
-                                >
-                                  Link{" "}
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                    />
-                                  </svg>
-                                </a>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
-                            </td>
-                          </tr>
-                          {/* Baris khusus untuk input admin per-item */}
-                          <tr className="bg-indigo-50/40">
-                            <td
-                              colSpan={4}
-                              className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
-                            >
-                              Status Keputusan ({it.merek}):
-                            </td>
-                            <td
-                              colSpan={2}
-                              className="px-3 py-2 border-r border-indigo-100"
-                            >
-                              <select
-                                className="w-full border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
-                                value={form.items[idx]?.statusBarangAdmin || ""}
-                                onChange={(e) => {
-                                  const newItems = [...form.items];
-                                  newItems[idx] = {
-                                    ...newItems[idx],
-                                    statusBarangAdmin: e.target.value,
-                                  };
-                                  setForm({ ...form, items: newItems });
-                                }}
-                                disabled={!canEdit || loading}
-                              >
-                                <option value="">Masuk</option>
-                                {statusKeputusanOpts.map((opt) => {
-                                  const o = opt.toLowerCase();
-                                  const isEndState =
-                                    o.includes("done") ||
-                                    o.includes("cancel") ||
-                                    o.includes("hold");
-
-                                  const savedStatus = (
-                                    r.items?.[idx]?.statusBarangAdmin || ""
-                                  ).toLowerCase();
-                                  const hasProgressed =
-                                    savedStatus !== "" &&
-                                    savedStatus !== "masuk";
-
-                                  // Sembunyikan end-state jika belum progress
-                                  if (isEndState && !hasProgressed) {
-                                    return null;
-                                  }
-
-                                  return (
-                                    <option key={opt} value={opt}>
-                                      {opt}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                            </td>
-                            <td colSpan={2} className="px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-500 text-xs font-semibold whitespace-nowrap">
-                                  Tayang Inaproc:
-                                </span>
-                                <select
-                                  className="flex-1 border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
-                                  value={
-                                    form.items[idx]?.tayangInaprocAdmin || ""
-                                  }
-                                  onChange={(e) => {
-                                    const newItems = [...form.items];
-                                    newItems[idx] = {
-                                      ...newItems[idx],
-                                      tayangInaprocAdmin: e.target.value,
-                                    };
-                                    setForm({ ...form, items: newItems });
-                                  }}
-                                  disabled={!canEdit || loading}
-                                >
-                                  <option value="">Pilih</option>
-                                  <option value="Ya">Ya</option>
-                                  <option value="Tidak">Tidak</option>
-                                </select>
-                              </div>
-                            </td>
-                          </tr>
-                          <tr className="bg-indigo-50/20">
-                            <td
-                              colSpan={4}
-                              className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
-                            >
-                              Catatan Admin ({it.merek}):
-                            </td>
-                            <td colSpan={4} className="px-3 py-2">
-                              <textarea
-                                className="w-full border border-indigo-200 rounded-md px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white min-h-[40px] max-h-[120px]"
-                                value={form.items[idx]?.catatanAdminItem || ""}
-                                onChange={(e) => {
-                                  const newItems = [...form.items];
-                                  newItems[idx] = {
-                                    ...newItems[idx],
-                                    catatanAdminItem: e.target.value,
-                                  };
-                                  setForm({ ...form, items: newItems });
-                                }}
-                                disabled={!canEdit || loading}
-                                placeholder="Tambahkan catatan khusus item ini (opsional)..."
-                              />
-                            </td>
-                          </tr>
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-slate-500 text-xs flex items-center gap-2 p-4 border border-dashed border-slate-200 rounded-lg bg-white">
+              {/* Rincian Barang Card */}
+              <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full mb-6">
+                <h4 className="font-semibold text-slate-800 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
                   <svg
-                    className="w-4 h-4 text-slate-400"
+                    className="w-4 h-4 text-indigo-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -941,12 +774,394 @@ function FragmentRow({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                     />
                   </svg>
-                  Tidak ada item rincian
-                </div>
-              )}
+                  Rincian Items ({r.items?.length || 0})
+                </h4>
+
+                {/* Bulk Action Bar */}
+                {selectedIndices.size > 0 && canEdit && (
+                  <div className="mb-4 flex flex-wrap items-center gap-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 pr-4 border-r border-indigo-200">
+                      <span className="text-xs font-bold text-indigo-700">
+                        {selectedIndices.size} item terpilih
+                      </span>
+                      <button
+                        onClick={() => setSelectedIndices(new Set())}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-700 font-semibold underline"
+                      >
+                        Batal
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Set Status:
+                        </span>
+                        <select
+                          className="text-xs border border-indigo-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          onChange={(e) => applyBulkStatus(e.target.value)}
+                          value=""
+                        >
+                          <option value="" disabled>
+                            Pilih...
+                          </option>
+                          {statusKeputusanOpts.map((opt) => {
+                            const o = opt.toLowerCase();
+                            const isEndState =
+                              o.includes("done") ||
+                              o.includes("cancel") ||
+                              o.includes("hold");
+
+                            // Cek apakah SEMUA yang terpilih sudah progress
+                            let allProgressed = true;
+                            selectedIndices.forEach((idx) => {
+                              const savedStatus = (
+                                r.items?.[idx]?.statusBarangAdmin || ""
+                              ).toLowerCase();
+                              if (
+                                savedStatus === "" ||
+                                savedStatus === "masuk"
+                              ) {
+                                allProgressed = false;
+                              }
+                            });
+
+                            if (isEndState && !allProgressed) return null;
+
+                            return (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Set Penyedia:
+                        </span>
+                        <select
+                          className="text-xs border border-indigo-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 max-w-[150px]"
+                          onChange={(e) => applyBulkPerusahaan(e.target.value)}
+                          value=""
+                        >
+                          <option value="" disabled>
+                            Pilih Vendor...
+                          </option>
+                          {companies.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Set Inaproc:
+                        </span>
+                        <select
+                          className="text-xs border border-indigo-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          onChange={(e) => applyBulkInaproc(e.target.value)}
+                          value=""
+                        >
+                          <option value="" disabled>
+                            Pilih...
+                          </option>
+                          <option value="Ya">Ya</option>
+                          <option value="Tidak">Tidak</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {r.items && r.items.length > 0 ? (
+                  <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr className="text-slate-500 uppercase tracking-wider font-semibold">
+                          <th className="px-3 py-3 w-10">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={
+                                form.items.length > 0 &&
+                                selectedIndices.size === form.items.length
+                              }
+                              onChange={toggleSelectAll}
+                              disabled={!canEdit || loading}
+                            />
+                          </th>
+                          <th className="px-3 py-3">Merek</th>
+                          <th className="px-3 py-3">Sub Kategori</th>
+                          <th className="px-3 py-3">Spesifikasi</th>
+                          <th className="px-3 py-3">Qty</th>
+                          <th className="px-3 py-3">Pagu</th>
+                          <th className="px-3 py-3">Harga Tayang</th>
+                          <th className="px-3 py-3">Link Inaproc</th>
+                          <th className="px-3 py-3">Link ECom</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {r.items.map((it, idx) => (
+                          <React.Fragment key={it.id || idx}>
+                            <tr
+                              className={`transition-colors hover:bg-slate-50 ${
+                                selectedIndices.has(idx)
+                                  ? "bg-indigo-50/30"
+                                  : ""
+                              }`}
+                            >
+                              <td className="px-3 py-3">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                  checked={selectedIndices.has(idx)}
+                                  onChange={() => toggleSelect(idx)}
+                                  disabled={!canEdit || loading}
+                                />
+                              </td>
+                              <td className="px-3 py-3 font-medium text-slate-800">
+                                {it.merek || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {it.subKategori || "-"}
+                              </td>
+                              <td
+                                className="px-3 py-3 text-slate-600 line-clamp-2"
+                                title={it.spesifikasi}
+                              >
+                                {it.spesifikasi || "-"}
+                              </td>
+                              <td className="px-3 py-3 font-semibold text-slate-700">
+                                {it.qty ?? "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {it.paguPerItem || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {it.hargaTayang || "-"}
+                              </td>
+                              <td className="px-3 py-3">
+                                {it.linkInaproc ? (
+                                  <a
+                                    href={it.linkInaproc}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
+                                  >
+                                    Link{" "}
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-3">
+                                {it.linkEcom ? (
+                                  <a
+                                    href={it.linkEcom}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
+                                  >
+                                    Link{" "}
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                            {/* Baris khusus untuk input admin per-item */}
+                            {/* Baris khusus untuk input admin per-item */}
+                            <tr className="bg-indigo-50/40 border-b border-indigo-100/50">
+                              <td colSpan={9} className="px-5 py-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                                  {/* Status Keputusan */}
+                                  <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Status Barang ({it.merek})
+                                    </label>
+                                    <select
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm"
+                                      value={
+                                        form.items[idx]?.statusBarangAdmin || ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          statusBarangAdmin: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                    >
+                                      <option value="">Masuk</option>
+                                      {statusKeputusanOpts.map((opt) => {
+                                        const o = opt.toLowerCase();
+                                        const isEndState =
+                                          o.includes("done") ||
+                                          o.includes("cancel") ||
+                                          o.includes("hold");
+
+                                        const savedStatus = (
+                                          r.items?.[idx]?.statusBarangAdmin ||
+                                          ""
+                                        ).toLowerCase();
+                                        const hasProgressed =
+                                          savedStatus !== "" &&
+                                          savedStatus !== "masuk";
+
+                                        // Sembunyikan end-state jika belum progress
+                                        if (isEndState && !hasProgressed) {
+                                          return null;
+                                        }
+
+                                        return (
+                                          <option key={opt} value={opt}>
+                                            {opt}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </div>
+
+                                  {/* Penyedia */}
+                                  <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Penyedia / Vendor
+                                    </label>
+                                    <select
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm"
+                                      value={
+                                        form.items[idx]?.perusahaanAdminItem ||
+                                        ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          perusahaanAdminItem: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                    >
+                                      <option value="">Pilih Vendor...</option>
+                                      {companies.map((c) => (
+                                        <option key={c} value={c}>
+                                          {c}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  {/* Inaproc */}
+                                  <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Tayang Inaproc
+                                    </label>
+                                    <select
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm"
+                                      value={
+                                        form.items[idx]?.tayangInaprocAdmin ||
+                                        ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          tayangInaprocAdmin: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                    >
+                                      <option value="">Pilih...</option>
+                                      <option value="Ya">Ya</option>
+                                      <option value="Tidak">Tidak</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Catatan Area */}
+                                  <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Catatan Admin
+                                    </label>
+                                    <textarea
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm min-h-[38px] max-h-[120px]"
+                                      value={
+                                        form.items[idx]?.catatanAdminItem || ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          catatanAdminItem: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                      placeholder="Catatan..."
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-slate-500 text-xs flex items-center gap-2 p-4 border border-dashed border-slate-200 rounded-lg bg-white">
+                    <svg
+                      className="w-4 h-4 text-slate-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Tidak ada item rincian
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Form Admin Response */}
@@ -968,26 +1183,7 @@ function FragmentRow({
                 Keputusan Status Akhir (Approval)
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Perusahaan (Penyedia)
-                  </label>
-                  <SearchableSelect
-                    className="mt-1"
-                    value={form.perusahaan}
-                    onChange={(val: string) =>
-                      setForm({ ...form, perusahaan: val })
-                    }
-                    isDisabled={!canEdit || loading}
-                    options={companies.map((c) => ({
-                      value: c,
-                      label: c,
-                    }))}
-                    placeholder="Pilih Perusahaan..."
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 gap-5">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
                     Status Usulan (Otomatis)

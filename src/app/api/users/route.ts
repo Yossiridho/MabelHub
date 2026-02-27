@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { hashPassword } from "@/lib/password";
-import { assertSuperadmin } from "@/lib/auth-server";
+import { assertSuperadmin, assertAdminOrSuperadmin } from "@/lib/auth-server";
 
 type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -45,7 +45,7 @@ function normalizeRole(role: string): UserRole | null {
 }
 
 export async function GET(req: Request) {
-  const gate = assertSuperadmin(req);
+  const gate = assertAdminOrSuperadmin(req);
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
   }

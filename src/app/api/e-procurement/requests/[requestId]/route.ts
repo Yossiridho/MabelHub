@@ -62,10 +62,34 @@ async function getParams<T>(ctx: { params: T | Promise<T> }) {
 }
 
 function canAccess(session: any, doc: EProcDoc) {
-  if (session.role === "SUPERADMIN") return true;
+  if (session.role === "SUPERADMIN" || session.role === "ADMIN") return true;
   if (doc.createdBy?.userId === session.userId) return true;
   if (doc.assignedTo?.userId === session.userId) return true;
   return false;
+}
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = await db.collection("teams").findOne({ leaderId });
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+async function getUserLite(db: any, userId: string) {
+  const { ObjectId } = require("mongodb");
+  if (!ObjectId.isValid(userId)) return null;
+  const u = await db
+    .collection("users")
+    .findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { role: 1, username: 1, fullName: 1 } },
+    );
+  if (!u) return null;
+  return {
+    userId,
+    role: String(u.role || ""),
+    username: String(u.username || ""),
+    fullName: String(u.fullName || ""),
+  };
 }
 
 export async function GET(
@@ -177,6 +201,48 @@ export async function PUT(
 
   const now = new Date();
 
+  // =========================
+  // Resolve target assignment
+  // =========================
+  const assignedToUserIdRaw = String(header.assignedToUserId ?? "").trim();
+  let assignedTo = existing.assignedTo;
+
+  if (assignedToUserIdRaw) {
+    if (auth.session.role === "LEADER") {
+      const allowed = await getLeaderAllowedUserIds(db, auth.session.userId);
+      if (!allowed.includes(assignedToUserIdRaw)) {
+        return NextResponse.json(
+          { error: "FORBIDDEN: target bukan anggota team leader" },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (auth.session.role === "SUPERADMIN" || auth.session.role === "ADMIN") {
+      if (assignedToUserIdRaw !== auth.session.userId) {
+        const u = await getUserLite(db, assignedToUserIdRaw);
+        if (!u)
+          return NextResponse.json(
+            { error: "Target user tidak ditemukan" },
+            { status: 404 },
+          );
+        if (u.role !== "SALES" && u.role !== "LEADER") {
+          return NextResponse.json(
+            {
+              error: `FORBIDDEN: ${auth.session.role} hanya boleh assign ke SALES/LEADER`,
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+
+    const u = await getUserLite(db, assignedToUserIdRaw);
+    if (u) {
+      assignedTo = u;
+    }
+  }
+
   const rawResult = await col.findOneAndUpdate(
     {
       requestId: rid,
@@ -191,6 +257,7 @@ export async function PUT(
         lokasi,
         catatan,
         items,
+        assignedTo,
         updatedAt: now,
       },
     },

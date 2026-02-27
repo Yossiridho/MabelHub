@@ -365,7 +365,7 @@ function FragmentRow({
 
       {isOpen ? (
         <tr className="border-b border-slate-100 bg-slate-50/50">
-          <td colSpan={7} className="px-5 py-5 text-sm">
+          <td colSpan={8} className="px-5 py-5 text-sm">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
               <div>
                 <span className="font-semibold text-slate-700">
@@ -383,8 +383,8 @@ function FragmentRow({
               </div>
             </div>
 
-            <div className="mb-2">
-              <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full mb-6">
+              <h4 className="font-semibold text-slate-800 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
                 <svg
                   className="w-4 h-4 text-indigo-500"
                   fill="none"
@@ -405,14 +405,20 @@ function FragmentRow({
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 border-b border-slate-100">
                       <tr className="text-slate-500 uppercase tracking-wider font-semibold">
-                        <th className="px-3 py-3">Merek</th>
-                        <th className="px-3 py-3">Sub Kategori</th>
-                        <th className="px-3 py-3">Spesifikasi</th>
-                        <th className="px-3 py-3">Qty</th>
-                        <th className="px-3 py-3 pl-4">Pagu</th>
-                        <th className="px-3 py-3">Harga Tayang</th>
-                        <th className="px-3 py-3">Link Inaproc</th>
-                        <th className="px-3 py-3">Link ECom</th>
+                        <th className="px-3 py-3 font-semibold">Merek</th>
+                        <th className="px-3 py-3 font-semibold">
+                          Sub Kategori
+                        </th>
+                        <th className="px-3 py-3 font-semibold">Spesifikasi</th>
+                        <th className="px-3 py-3 font-semibold">Qty</th>
+                        <th className="px-3 py-3 font-semibold pl-4">Pagu</th>
+                        <th className="px-3 py-3 font-semibold">
+                          Harga Tayang
+                        </th>
+                        <th className="px-3 py-3 font-semibold">
+                          Link Inaproc
+                        </th>
+                        <th className="px-3 py-3 font-semibold">Link ECom</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
