@@ -251,10 +251,13 @@ export default function EProcurementRequestPage() {
   }, [assignedToUserId, assigneeOptions, user, canPickAssignee]);
 
   const addItem = () => {
+    const defaultId = String(
+      Date.now() + Math.random().toString(36).substr(2, 5),
+    );
     setItems((prev) => [
       ...prev,
       {
-        id: String(prev.length + 1),
+        id: defaultId,
         merek: "",
         subKategori: "",
         qty: 1,
@@ -268,7 +271,7 @@ export default function EProcurementRequestPage() {
   };
 
   const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((x) => x.id !== id));
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, qty: 0 } : x)));
   };
 
   const updateItem = <K extends keyof ProductItem>(
@@ -294,18 +297,23 @@ export default function EProcurementRequestPage() {
       if (!revisiId.trim()) return alert("Masukkan Request ID");
       const data = await apiLoadEProc(revisiId.trim());
 
-      setRequestor(data.requestor ?? "");
-      setPemohon(data.pemohon ?? "");
-      setSegmen((data.segmen ?? "") as string);
-      setDeadline(data.deadlineUsulan ?? "");
-      setLokasi(data.lokasi ?? "");
-      setCatatanHeader(data.catatan ?? "");
+      setRequestor(data.header?.requestor ?? data.requestor ?? "");
+      setPemohon(data.header?.pemohon ?? data.pemohon ?? "");
+      setSegmen((data.header?.segmen ?? data.segmen ?? "") as string);
+      setDeadline(
+        data.header?.deadlineUsulan ??
+          data.deadlineUsulan ??
+          data.header?.deadline ??
+          "",
+      );
+      setLokasi(data.header?.lokasi ?? data.lokasi ?? "");
+      setCatatanHeader(data.header?.catatanHeader ?? data.catatan ?? "");
 
       setItems(
         Array.isArray(data.items) && data.items.length ? data.items : items,
       );
 
-      setInfoId(data.requestId ?? "REQ-");
+      setInfoId(data.infoId ?? data.requestId ?? "REQ-");
       setOpenRevisi(false);
     } catch (e: any) {
       alert(e?.message ?? "Gagal load");
@@ -579,20 +587,32 @@ export default function EProcurementRequestPage() {
                 key={it.id}
                 className="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
               >
-                <div className="absolute inset-y-0 left-0 w-2 bg-blue-600" />
+                <div
+                  className={`absolute inset-y-0 left-0 w-2 ${it.qty === 0 ? "bg-red-500" : "bg-blue-600"}`}
+                />
 
-                <div className="absolute left-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                <div
+                  className={`absolute left-5 top-5 grid h-10 w-10 place-items-center rounded-full text-sm font-bold text-white ${it.qty === 0 ? "bg-red-500" : "bg-blue-600"}`}
+                >
                   {idx + 1}
                 </div>
 
-                <button
-                  onClick={() => removeItem(it.id)}
-                  className="absolute right-6 top-4 rounded-full px-3 py-2 ring-1 ring-gray-300 bg-white text-black font-extrabold hover:bg-gray-100"
-                  aria-label="Remove item"
-                  title="Remove item"
-                >
-                  X
-                </button>
+                {it.qty > 0 && (
+                  <button
+                    onClick={() => removeItem(it.id)}
+                    className="absolute right-6 top-4 rounded-full px-3 py-2 ring-1 ring-gray-300 bg-white text-black font-extrabold hover:bg-gray-100"
+                    aria-label="Remove item"
+                    title="Remove item"
+                  >
+                    X
+                  </button>
+                )}
+
+                {it.qty === 0 && (
+                  <div className="absolute right-6 top-4 rounded-md px-3 py-1 bg-red-100 text-red-700 text-xs font-bold ring-1 ring-red-200">
+                    DIHAPUS
+                  </div>
+                )}
 
                 <div className="mb-6 p-8 pl-20">
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
@@ -601,6 +621,7 @@ export default function EProcurementRequestPage() {
                         MEREK PRODUK
                       </label>
                       <input
+                        disabled={it.qty === 0}
                         value={it.merek}
                         onChange={(e) =>
                           updateItem(it.id, "merek", e.target.value)
@@ -614,6 +635,7 @@ export default function EProcurementRequestPage() {
                         SUB-KATEGORI
                       </label>
                       <input
+                        disabled={it.qty === 0}
                         value={it.subKategori}
                         onChange={(e) =>
                           updateItem(it.id, "subKategori", e.target.value)
@@ -628,15 +650,13 @@ export default function EProcurementRequestPage() {
                       </label>
                       <input
                         type="number"
-                        min={1}
+                        min={0}
+                        disabled={it.qty === 0}
                         value={it.qty}
-                        onChange={(e) =>
-                          updateItem(
-                            it.id,
-                            "qty",
-                            Math.max(1, Number(e.target.value)),
-                          )
-                        }
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          updateItem(it.id, "qty", val < 0 ? 0 : val);
+                        }}
                         className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>
@@ -647,6 +667,7 @@ export default function EProcurementRequestPage() {
                       SPESIFIKASI DETAIL
                     </label>
                     <textarea
+                      disabled={it.qty === 0}
                       value={it.spesifikasi}
                       onChange={(e) =>
                         updateItem(it.id, "spesifikasi", e.target.value)
@@ -662,6 +683,7 @@ export default function EProcurementRequestPage() {
                         PAGU PER ITEM
                       </label>
                       <input
+                        disabled={it.qty === 0}
                         type="number"
                         value={it.paguPerItem}
                         onChange={(e) =>
@@ -680,6 +702,7 @@ export default function EProcurementRequestPage() {
                         HARGA TAYANG
                       </label>
                       <input
+                        disabled={it.qty === 0}
                         type="number"
                         min={0}
                         value={it.hargaTayang}
@@ -699,6 +722,7 @@ export default function EProcurementRequestPage() {
                         LINK INAPROC
                       </label>
                       <input
+                        disabled={it.qty === 0}
                         value={it.linkInaproc}
                         onChange={(e) =>
                           updateItem(it.id, "linkInaproc", e.target.value)
@@ -712,6 +736,7 @@ export default function EProcurementRequestPage() {
                         LINK E-COM
                       </label>
                       <input
+                        disabled={it.qty === 0}
                         value={it.linkEcom}
                         onChange={(e) =>
                           updateItem(it.id, "linkEcom", e.target.value)

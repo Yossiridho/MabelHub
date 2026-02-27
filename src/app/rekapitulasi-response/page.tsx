@@ -56,6 +56,13 @@ type EProcRow = {
 
   tanggalPembayaran?: string;
   nominalPembayaran?: number;
+
+  history?: {
+    action: string;
+    actor: string;
+    timestamp: string | Date;
+    details: string[];
+  }[];
 };
 
 function fmtDate(d: string | Date) {
@@ -515,11 +522,13 @@ function FragmentRow({
     catatanAdmin: string;
     statusAkhir: string;
     items: ProductItem[];
+    activeTab?: "items" | "history";
   }>({
     perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
     statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
+    activeTab: "items",
   });
 
   const [companies, setCompanies] = useState<string[]>([]);
@@ -684,247 +693,304 @@ function FragmentRow({
       {isOpen && (
         <tr className="border-b border-neutral-100 bg-slate-50/50">
           <td colSpan={9} className="px-5 py-5 text-sm">
-            {/* Rincian Barang */}
-            <div className="mb-6">
-              <h4 className="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 text-indigo-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
+            {/* TABS untuk Rincian Barang vs History */}
+            <div className="mb-6 flex gap-4 border-b border-slate-200">
+              <button
+                type="button"
+                className={`pb-2 text-sm font-semibold transition-colors ${
+                  !form.activeTab || form.activeTab === "items"
+                    ? "border-b-2 border-indigo-600 text-indigo-700"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setForm((prev) => ({ ...prev, activeTab: "items" }));
+                }}
+              >
                 Rincian Items ({r.items?.length || 0})
-              </h4>
-              {r.items && r.items.length > 0 ? (
-                <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
-                      <tr className="text-slate-500 uppercase tracking-wider font-semibold">
-                        <th className="px-3 py-3">Merek</th>
-                        <th className="px-3 py-3">Sub Kategori</th>
-                        <th className="px-3 py-3">Spesifikasi</th>
-                        <th className="px-3 py-3">Qty</th>
-                        <th className="px-3 py-3">Pagu</th>
-                        <th className="px-3 py-3">Harga Tayang</th>
-                        <th className="px-3 py-3">Link Inaproc</th>
-                        <th className="px-3 py-3">Link ECom</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {r.items.map((it, idx) => (
-                        <React.Fragment key={it.id || idx}>
-                          <tr className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-3 font-medium text-slate-800">
-                              {it.merek || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-slate-600">
-                              {it.subKategori || "-"}
-                            </td>
-                            <td
-                              className="px-3 py-3 text-slate-600 line-clamp-2"
-                              title={it.spesifikasi}
-                            >
-                              {it.spesifikasi || "-"}
-                            </td>
-                            <td className="px-3 py-3 font-semibold text-slate-700">
-                              {it.qty ?? "-"}
-                            </td>
-                            <td className="px-3 py-3 text-slate-600">
-                              {it.paguPerItem || "-"}
-                            </td>
-                            <td className="px-3 py-3 text-slate-600">
-                              {it.hargaTayang || "-"}
-                            </td>
-                            <td className="px-3 py-3">
-                              {it.linkInaproc ? (
-                                <a
-                                  href={it.linkInaproc}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
-                                >
-                                  Link{" "}
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                    />
-                                  </svg>
-                                </a>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3">
-                              {it.linkEcom ? (
-                                <a
-                                  href={it.linkEcom}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
-                                >
-                                  Link{" "}
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                    />
-                                  </svg>
-                                </a>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
-                            </td>
-                          </tr>
-                          {/* Baris khusus untuk input admin per-item */}
-                          <tr className="bg-indigo-50/40">
-                            <td
-                              colSpan={4}
-                              className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
-                            >
-                              Status Keputusan ({it.merek}):
-                            </td>
-                            <td
-                              colSpan={2}
-                              className="px-3 py-2 border-r border-indigo-100"
-                            >
-                              <select
-                                className="w-full border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
-                                value={form.items[idx]?.statusBarangAdmin || ""}
-                                onChange={(e) => {
-                                  const newItems = [...form.items];
-                                  newItems[idx] = {
-                                    ...newItems[idx],
-                                    statusBarangAdmin: e.target.value,
-                                  };
-                                  setForm({ ...form, items: newItems });
-                                }}
-                                disabled={!canEdit || loading}
+              </button>
+              {r.history && r.history.length > 0 && (
+                <button
+                  type="button"
+                  className={`pb-2 text-sm font-semibold transition-colors ${
+                    form.activeTab === "history"
+                      ? "border-b-2 border-indigo-600 text-indigo-700"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setForm((prev) => ({ ...prev, activeTab: "history" }));
+                  }}
+                >
+                  History Perubahan ({r.history.length})
+                </button>
+              )}
+            </div>
+
+            {/* Rincian Barang */}
+            {(!form.activeTab || form.activeTab === "items") && (
+              <div className="mb-6">
+                {r.items && r.items.length > 0 ? (
+                  <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr className="text-slate-500 uppercase tracking-wider font-semibold">
+                          <th className="px-3 py-3">Merek</th>
+                          <th className="px-3 py-3">Sub Kategori</th>
+                          <th className="px-3 py-3">Spesifikasi</th>
+                          <th className="px-3 py-3">Qty</th>
+                          <th className="px-3 py-3">Pagu</th>
+                          <th className="px-3 py-3">Harga Tayang</th>
+                          <th className="px-3 py-3">Link Inaproc</th>
+                          <th className="px-3 py-3">Link ECom</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {r.items.map((it, idx) => (
+                          <React.Fragment key={it.id || idx}>
+                            <tr className="hover:bg-slate-50 transition-colors">
+                              <td className="px-3 py-3 font-medium text-slate-800">
+                                {it.merek || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {it.subKategori || "-"}
+                              </td>
+                              <td
+                                className="px-3 py-3 text-slate-600 line-clamp-2"
+                                title={it.spesifikasi}
                               >
-                                <option value="">Masuk</option>
-                                {statusKeputusanOpts.map((opt) => {
-                                  const o = opt.toLowerCase();
-                                  const isEndState =
-                                    o.includes("done") ||
-                                    o.includes("cancel") ||
-                                    o.includes("hold");
-
-                                  const savedStatus = (
-                                    r.items?.[idx]?.statusBarangAdmin || ""
-                                  ).toLowerCase();
-                                  const hasProgressed =
-                                    savedStatus !== "" &&
-                                    savedStatus !== "masuk";
-
-                                  // Sembunyikan end-state jika belum progress
-                                  if (isEndState && !hasProgressed) {
-                                    return null;
-                                  }
-
-                                  return (
-                                    <option key={opt} value={opt}>
-                                      {opt}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                            </td>
-                            <td colSpan={2} className="px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-500 text-xs font-semibold whitespace-nowrap">
-                                  Tayang Inaproc:
-                                </span>
+                                {it.spesifikasi || "-"}
+                              </td>
+                              <td className="px-3 py-3 font-semibold text-slate-700">
+                                {it.qty ?? "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {it.paguPerItem || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {it.hargaTayang || "-"}
+                              </td>
+                              <td className="px-3 py-3">
+                                {it.linkInaproc ? (
+                                  <a
+                                    href={it.linkInaproc}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
+                                  >
+                                    Link{" "}
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-3">
+                                {it.linkEcom ? (
+                                  <a
+                                    href={it.linkEcom}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
+                                  >
+                                    Link{" "}
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                            {/* Baris khusus untuk input admin per-item */}
+                            <tr className="bg-indigo-50/40">
+                              <td
+                                colSpan={4}
+                                className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
+                              >
+                                Status Keputusan ({it.merek}):
+                              </td>
+                              <td
+                                colSpan={2}
+                                className="px-3 py-2 border-r border-indigo-100"
+                              >
                                 <select
-                                  className="flex-1 border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
+                                  className="w-full border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
                                   value={
-                                    form.items[idx]?.tayangInaprocAdmin || ""
+                                    form.items[idx]?.statusBarangAdmin || ""
                                   }
                                   onChange={(e) => {
                                     const newItems = [...form.items];
                                     newItems[idx] = {
                                       ...newItems[idx],
-                                      tayangInaprocAdmin: e.target.value,
+                                      statusBarangAdmin: e.target.value,
                                     };
                                     setForm({ ...form, items: newItems });
                                   }}
                                   disabled={!canEdit || loading}
                                 >
-                                  <option value="">Pilih</option>
-                                  <option value="Ya">Ya</option>
-                                  <option value="Tidak">Tidak</option>
+                                  <option value="">Masuk</option>
+                                  {statusKeputusanOpts.map((opt) => {
+                                    const o = opt.toLowerCase();
+                                    const isEndState =
+                                      o.includes("done") ||
+                                      o.includes("cancel") ||
+                                      o.includes("hold");
+
+                                    const savedStatus = (
+                                      r.items?.[idx]?.statusBarangAdmin || ""
+                                    ).toLowerCase();
+                                    const hasProgressed =
+                                      savedStatus !== "" &&
+                                      savedStatus !== "masuk";
+
+                                    // Sembunyikan end-state jika belum progress
+                                    if (isEndState && !hasProgressed) {
+                                      return null;
+                                    }
+
+                                    return (
+                                      <option key={opt} value={opt}>
+                                        {opt}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
-                              </div>
-                            </td>
-                          </tr>
-                          <tr className="bg-indigo-50/20">
-                            <td
-                              colSpan={4}
-                              className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
-                            >
-                              Catatan Admin ({it.merek}):
-                            </td>
-                            <td colSpan={4} className="px-3 py-2">
-                              <textarea
-                                className="w-full border border-indigo-200 rounded-md px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white min-h-[40px] max-h-[120px]"
-                                value={form.items[idx]?.catatanAdminItem || ""}
-                                onChange={(e) => {
-                                  const newItems = [...form.items];
-                                  newItems[idx] = {
-                                    ...newItems[idx],
-                                    catatanAdminItem: e.target.value,
-                                  };
-                                  setForm({ ...form, items: newItems });
-                                }}
-                                disabled={!canEdit || loading}
-                                placeholder="Tambahkan catatan khusus item ini (opsional)..."
-                              />
-                            </td>
-                          </tr>
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-slate-500 text-xs flex items-center gap-2 p-4 border border-dashed border-slate-200 rounded-lg bg-white">
-                  <svg
-                    className="w-4 h-4 text-slate-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Tidak ada item rincian
-                </div>
-              )}
-            </div>
+                              </td>
+                              <td colSpan={2} className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500 text-xs font-semibold whitespace-nowrap">
+                                    Tayang Inaproc:
+                                  </span>
+                                  <select
+                                    className="flex-1 border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
+                                    value={
+                                      form.items[idx]?.tayangInaprocAdmin || ""
+                                    }
+                                    onChange={(e) => {
+                                      const newItems = [...form.items];
+                                      newItems[idx] = {
+                                        ...newItems[idx],
+                                        tayangInaprocAdmin: e.target.value,
+                                      };
+                                      setForm({ ...form, items: newItems });
+                                    }}
+                                    disabled={!canEdit || loading}
+                                  >
+                                    <option value="">Pilih</option>
+                                    <option value="Ya">Ya</option>
+                                    <option value="Tidak">Tidak</option>
+                                  </select>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr className="bg-indigo-50/20">
+                              <td
+                                colSpan={4}
+                                className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
+                              >
+                                Catatan Admin ({it.merek}):
+                              </td>
+                              <td colSpan={4} className="px-3 py-2">
+                                <textarea
+                                  className="w-full border border-indigo-200 rounded-md px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white min-h-[40px] max-h-[120px]"
+                                  value={
+                                    form.items[idx]?.catatanAdminItem || ""
+                                  }
+                                  onChange={(e) => {
+                                    const newItems = [...form.items];
+                                    newItems[idx] = {
+                                      ...newItems[idx],
+                                      catatanAdminItem: e.target.value,
+                                    };
+                                    setForm({ ...form, items: newItems });
+                                  }}
+                                  disabled={!canEdit || loading}
+                                  placeholder="Tambahkan catatan khusus item ini (opsional)..."
+                                />
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-slate-500 text-xs flex items-center gap-2 p-4 border border-dashed border-slate-200 rounded-lg bg-white">
+                    <svg
+                      className="w-4 h-4 text-slate-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Tidak ada item rincian
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* History Perubahan */}
+            {form.activeTab === "history" && r.history && (
+              <div className="mb-6 space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {r.history
+                  .slice()
+                  .reverse()
+                  .map((h, i) => (
+                    <div
+                      key={i}
+                      className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm relative pl-6"
+                    >
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-400 rounded-l-xl"></div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-slate-800">
+                          {h.action} -{" "}
+                          <span className="text-indigo-600">{h.actor}</span>
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded-md">
+                          {fmtDateTime(h.timestamp)}
+                        </span>
+                      </div>
+                      <ul className="list-disc pl-5 mt-2 space-y-1">
+                        {h.details.map((det, di) => (
+                          <li key={di} className="text-sm text-slate-600">
+                            {det}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            )}
 
             {/* Form Admin Response */}
             <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full">
