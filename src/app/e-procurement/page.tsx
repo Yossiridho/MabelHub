@@ -379,14 +379,10 @@ export default function EProcurementRequestPage() {
           deadline,
           lokasi,
           catatanHeader,
-          // ✅ allow self (""), leader/team, superadmin/global
           assignedToUserId: canPickAssignee ? assignedToUserId : "",
         },
         items,
       };
-
-      // ❌ hapus rule lama: leader wajib pilih sales
-      // Karena sekarang leader boleh assign ke diri sendiri.
 
       if (infoId && infoId !== "REQ-") {
         await apiUpdateEProc(infoId, payload);
