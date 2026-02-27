@@ -41,11 +41,28 @@ type TeamDoc = {
 
 async function getLeaderAllowedUserIds(db: any, leaderId: string) {
   const team = (await db
-    .collection<TeamDoc>("teams")
+    .collection("teams")
     .findOne({ leaderId })) as TeamDoc | null;
 
   const ids = [leaderId, ...(team?.memberIds ?? [])];
   return Array.from(new Set(ids));
+}
+
+async function getUserLiteById(db: any, userId: string) {
+  if (!ObjectId.isValid(userId)) return null;
+  const u = await db
+    .collection("users")
+    .findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { _id: 1, role: 1, username: 1, fullName: 1 } },
+    );
+  if (!u) return null;
+  return {
+    userId: String((u as any)._id),
+    role: String((u as any).role || ""),
+    username: String((u as any).username || ""),
+    fullName: String((u as any).fullName || ""),
+  };
 }
 
 /**
@@ -68,7 +85,19 @@ export async function GET(req: Request) {
   const skip = (page - 1) * limit;
 
   const q = String(searchParams.get("q") || "").trim();
-  const assignedTo = String(searchParams.get("assignedTo") || "").trim(); // optional
+  const assignedTo = String(searchParams.get("assignedTo") || "").trim();
+
+  // ====== FILTER PARAMS ======
+  const sales = searchParams.get("sales");
+  const status = searchParams.get("status");
+  const ring = searchParams.get("ring");
+  const city = searchParams.get("city");
+  const satker = searchParams.get("satker");
+  const startStr = searchParams.get("start");
+  const endStr = searchParams.get("end");
+  const statusGroup = searchParams.get("statusGroup");
+  const klpd = searchParams.get("klpd");
+  const dateStr = searchParams.get("date"); // specific date e.g. "01 Feb"
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
@@ -79,7 +108,6 @@ export async function GET(req: Request) {
   // =========================
   const match: any = {};
 
-  // user_id di dokumen kamu saat ini berisi string userId
   if (session.role === "SALES") {
     match.user_id = session.userId;
   } else if (session.role === "LEADER") {
@@ -107,7 +135,7 @@ export async function GET(req: Request) {
   if (q) {
     const rx = new RegExp(escapeRegex(q), "i");
     match.$or = [
-      { visit_date: rx }, // string "3-Dec-2025"
+      { visit_date: rx },
       { city: rx },
       { klpd: rx },
       { institusi_kerja: rx },
@@ -119,7 +147,58 @@ export async function GET(req: Request) {
   }
 
   // =========================
-  // SORT SAFE: parse date strings
+  // EXACT FILTERS
+  // =========================
+  if (sales) match.nama_sales = sales;
+  if (status) match.status_visit = status;
+  if (ring) match.status_ring = ring.toUpperCase(); // Ensure ring filter from dashboard is uppercase
+  if (city) match.city = city;
+  if (satker) match.satuan_kerja = satker;
+  if (klpd) match.klpd = klpd;
+
+  // Partial date matching from clicked trend chart (e.g. "15 Jan")
+  if (dateStr) {
+    const parts = dateStr.split(" ");
+    if (parts.length >= 2) {
+      const regexStr = `${parts[0]}-${parts[1]}`;
+      match.visit_date = { $regex: new RegExp(regexStr, "i") };
+    }
+  }
+
+  // =========================
+  // STATUS GROUP FILTER
+  // =========================
+  if (statusGroup) {
+    if (statusGroup === "Visits") {
+      if (!match.$and) match.$and = [];
+      match.$and.push({ status_visit: { $regex: /visit/i } });
+      match.$and.push({ status_visit: { $not: /not|belum/i } });
+    } else if (statusGroup === "Stay Office") {
+      match.status_visit = { $regex: /stay[\s_]*office/i };
+    } else if (statusGroup === "Not Visited") {
+      match.status_visit = {
+        $regex:
+          /not[\s_]*visited|not[\s_]*visit|belum[\s_]*visit|belum[\s_]*visited/i,
+      };
+    }
+  }
+
+  // =========================
+  // DATE RANGE FILTER (Post-Match)
+  // =========================
+  const postMatch: any = {};
+  if (startStr || endStr) {
+    postMatch.__visitDate = {};
+    if (startStr) postMatch.__visitDate.$gte = new Date(startStr);
+    if (endStr) {
+      const endDt = new Date(endStr);
+      endDt.setHours(23, 59, 59, 999);
+      postMatch.__visitDate.$lte = endDt;
+    }
+  }
+
+  // =========================
+  // PIPELINE
   // =========================
   const pipeline: any[] = [
     { $match: match },
@@ -143,18 +222,23 @@ export async function GET(req: Request) {
         },
       },
     },
-    { $sort: { __visitDate: -1, __createdAt: -1, _id: -1 } },
-    {
-      $facet: {
-        items: [
-          { $skip: skip },
-          { $limit: limit },
-          { $project: { __visitDate: 0, __createdAt: 0 } },
-        ],
-        total: [{ $count: "count" }],
-      },
-    },
   ];
+
+  if (Object.keys(postMatch).length > 0) {
+    pipeline.push({ $match: postMatch });
+  }
+
+  pipeline.push({ $sort: { __visitDate: -1, __createdAt: -1, _id: -1 } });
+  pipeline.push({
+    $facet: {
+      items: [
+        { $skip: skip },
+        { $limit: limit },
+        { $project: { __visitDate: 0, __createdAt: 0 } },
+      ],
+      total: [{ $count: "count" }],
+    },
+  });
 
   const agg = await col.aggregate(pipeline).toArray();
   const first = agg?.[0] || { items: [], total: [] };
@@ -193,45 +277,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // input dari add plans
-    const tanggal = String(body?.tanggal || "").trim(); // yyyy-mm-dd
+    const tanggal = String(body?.tanggal || "").trim();
     const status_ring = String(body?.status_ring || "").trim();
     const institusi_kerja = String(body?.institusi_kerja || "").trim();
     const kota_kab = String(body?.kota_kab || "").trim();
     const klpd = String(body?.klpd || "").trim();
     const satuan_kerja = String(body?.satuan_kerja || "").trim();
 
-    // target assignment
     const assignedToUserIdRaw = String(body?.assignedToUserId || "").trim();
-    let assignedToUserId = session.userId;
-
-    // role rules:
-    // - SALES: hanya boleh untuk dirinya
-    // - LEADER: boleh untuk dirinya & member tim
-    // - ADMIN/SUPERADMIN: bebas
-    if (assignedToUserIdRaw) {
-      if (session.role === "SALES") {
-        return NextResponse.json(
-          { error: "FORBIDDEN: sales tidak boleh assign ke user lain" },
-          { status: 403 },
-        );
-      }
-
-      if (session.role === "LEADER") {
-        // cek member tim
-        const client = await clientPromise;
-        const db = client.db(process.env.MONGODB_DB || "MabelHub");
-        const allowed = await getLeaderAllowedUserIds(db, session.userId);
-        if (!allowed.includes(assignedToUserIdRaw)) {
-          return NextResponse.json(
-            { error: "FORBIDDEN: bukan anggota tim" },
-            { status: 403 },
-          );
-        }
-      }
-
-      assignedToUserId = assignedToUserIdRaw;
-    }
 
     if (
       !tanggal ||
@@ -252,20 +305,69 @@ export async function POST(req: Request) {
 
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB || "MabelHub");
-    const visits = db.collection("VisitActivity");
-    const users = db.collection("users");
 
-    // ambil nama_sales dari users.fullName (berdasarkan assignedToUserId)
-    let nama_sales: string | null = null;
-    if (assignedToUserId && ObjectId.isValid(assignedToUserId)) {
-      const u = await users.findOne(
-        { _id: new ObjectId(assignedToUserId) },
-        { projection: { fullName: 1, username: 1 } },
-      );
-      nama_sales = (u as any)?.fullName ?? (u as any)?.username ?? null;
+    // =========================
+    // TARGET ASSIGNMENT RULES
+    // =========================
+    let targetUserId = session.userId;
+
+    if (assignedToUserIdRaw) {
+      // SALES tidak boleh assign
+      if (session.role === "SALES") {
+        return NextResponse.json(
+          { error: "FORBIDDEN: sales tidak boleh assign ke user lain" },
+          { status: 403 },
+        );
+      }
+
+      // LEADER: hanya self atau anggota team
+      if (session.role === "LEADER") {
+        const allowed = await getLeaderAllowedUserIds(db, session.userId);
+        if (!allowed.includes(assignedToUserIdRaw)) {
+          return NextResponse.json(
+            { error: "FORBIDDEN: bukan anggota tim" },
+            { status: 403 },
+          );
+        }
+      }
+
+      // SUPERADMIN/ADMIN: hanya boleh ke SALES/LEADER (atau self)
+      if (session.role === "SUPERADMIN" || session.role === "ADMIN") {
+        if (assignedToUserIdRaw !== session.userId) {
+          const u = await getUserLiteById(db, assignedToUserIdRaw);
+          if (!u) {
+            return NextResponse.json(
+              { error: "Target user tidak ditemukan" },
+              { status: 404 },
+            );
+          }
+          if (u.role !== "SALES" && u.role !== "LEADER") {
+            return NextResponse.json(
+              {
+                error:
+                  "FORBIDDEN: SUPERADMIN hanya boleh assign ke SALES/LEADER",
+              },
+              { status: 403 },
+            );
+          }
+        }
+      }
+
+      targetUserId = assignedToUserIdRaw;
     }
 
-    // generate incremental field `id` (angka)
+    // lookup assigned user info untuk nama_sales + assignedTo
+    const targetUser = await getUserLiteById(db, targetUserId);
+    const nama_sales =
+      targetUser?.fullName?.trim() ||
+      targetUser?.username?.trim() ||
+      session.fullName ||
+      session.username ||
+      null;
+
+    const visits = db.collection("VisitActivity");
+
+    // incremental numeric id
     const last = await visits
       .find({}, { projection: { id: 1 } })
       .sort({ id: -1 })
@@ -277,27 +379,41 @@ export async function POST(req: Request) {
 
     const doc = {
       id: nextId,
-      user_id: assignedToUserId, // string userId
+
+      // legacy field (dipakai query existing)
+      user_id: targetUserId,
+
+      // new field (biar stats/team bisa pakai assignedTo.userId)
+      assignedTo: targetUser
+        ? {
+            userId: targetUser.userId,
+            role: targetUser.role,
+            username: targetUser.username,
+            fullName: targetUser.fullName,
+          }
+        : {
+            userId: targetUserId,
+            role: "",
+            username: "",
+            fullName: "",
+          },
+
       visit_date: toVisitDateStr(tanggal),
       city: kota_kab,
       klpd,
       institusi_kerja,
       satuan_kerja,
 
-      // PIC default (kalau ada)
       pic_name: body?.pic_default?.nama ?? null,
       pic_phone: body?.pic_default?.no_telp ?? null,
       pic_position: body?.pic_default?.jabatan ?? null,
       pic_role: body?.pic_default?.role ?? null,
 
-      // meta
       created_at: toCreatedAtStr(now),
 
-      // tracking siapa yang membuat plan (berguna audit)
       created_by_user_id: session.userId,
       created_by_name: session.fullName || session.username,
 
-      // field lain kosong dulu
       visit_image: null,
       status_visit: null,
       status_market: null,
@@ -307,7 +423,7 @@ export async function POST(req: Request) {
       no_visit_per_month: null,
 
       status_ring,
-      nama_sales: nama_sales ?? null,
+      nama_sales,
     };
 
     const ins = await visits.insertOne(doc as any);

@@ -46,7 +46,15 @@ export async function GET(
   return NextResponse.json({ data: toStringId(company) });
 }
 
-export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  const gate = assertLoggedIn(req);
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+
   const { id } = await ctx.params;
 
   if (!ObjectId.isValid(id)) {
@@ -59,6 +67,15 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
   const col = db.collection("companies");
 
   const _id = new ObjectId(id);
+
+  const oldDoc = await col.findOne({ _id, approval_status: "APPROVED" });
+  if (!oldDoc) {
+    return NextResponse.json(
+      { error: "Company tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
   const $set = {
     institusi_kerja: body.institusi_kerja,
     kota_kab: body.kota_kab,
@@ -73,19 +90,47 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
   const updatedDoc = await col.findOneAndUpdate(
     { _id, approval_status: "APPROVED" },
     { $set },
-    { returnDocument: "after" }
+    { returnDocument: "after" },
   );
 
-  // ✅ updatedDoc itu dokumen langsung
   if (!updatedDoc) {
-    return NextResponse.json({ error: "Company tidak ditemukan" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Company tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  // Determine what changed for history logging
+  const changes: string[] = [];
+  if (oldDoc.institusi_kerja !== body.institusi_kerja)
+    changes.push("Institusi Kerja");
+  if (oldDoc.kota_kab !== body.kota_kab) changes.push("Kota/Kab");
+  if (oldDoc.klpd !== body.klpd) changes.push("KLPD");
+  if (oldDoc.satuan_kerja !== body.satuan_kerja) changes.push("Satuan Kerja");
+  if (oldDoc.status_ring !== body.status_ring) changes.push("Status Segmen");
+  if (oldDoc.kode_dinas !== body.kode_dinas) changes.push("Kode Dinas");
+  if (JSON.stringify(oldDoc.pic_default) !== JSON.stringify(body.pic_default)) {
+    changes.push("PIC Default");
+  }
+
+  if (changes.length > 0) {
+    const userFullName =
+      gate.session.fullName || gate.session.username || "Unknown";
+    const note = `Mengubah: ${changes.join(", ")}`;
+
+    await db.collection("company_history").insertOne({
+      companyId: _id,
+      at: new Date(),
+      action: "EDIT",
+      by: userFullName,
+      note,
+    });
   }
 
   return NextResponse.json({
     data: { ...updatedDoc, _id: String((updatedDoc as any)._id) },
   });
 }
-
 
 export async function DELETE(
   req: Request,

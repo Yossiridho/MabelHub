@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import EditVisitModal from "@/components/modals/EditVisitModal";
+import {Pen, ChevronRight} from "lucide-react";
 
 type VisitRow = {
   _id: string;
@@ -15,6 +16,7 @@ type VisitRow = {
   institusi_kerja?: string;
   satuan_kerja?: string;
   status_visit?: string; // "Visited"
+  visit_image?: string;
 };
 
 type PlanRow = {
@@ -25,7 +27,8 @@ type PlanRow = {
   institusi_kerja: string;
   satuan_kerja: string;
   status: string;
-  _sortTs: number; // sorting helper
+  visit_image: string;
+  _sortTs: number; // untuk sorting (baru -> besar)
 };
 
 function monthIndex(mon: string) {
@@ -51,7 +54,7 @@ function monthIndex(mon: string) {
   return map[m] ?? -1;
 }
 
-// "3-Dec-2025" -> timestamp
+// parse "3-Dec-2025" -> timestamp
 function parseVisitDateToTs(v?: string) {
   if (!v) return 0;
   const parts = v.split("-");
@@ -62,13 +65,14 @@ function parseVisitDateToTs(v?: string) {
   const year = Number(parts[2]);
   if (!day || mon < 0 || !year) return 0;
 
-  const d = new Date(year, mon, day, 12, 0, 0); // noon avoid timezone shift
+  const d = new Date(year, mon, day, 12, 0, 0); // jam 12 biar aman timezone
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-// "2025-12-03 16:15:30" -> timestamp
+// parse "2025-12-03 16:15:30" -> timestamp
 function parseCreatedAtToTs(v?: string) {
   if (!v) return 0;
+  // ubah "YYYY-MM-DD HH:mm:ss" jadi ISO "YYYY-MM-DDTHH:mm:ss"
   const iso = v.includes("T") ? v : v.replace(" ", "T");
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
@@ -102,13 +106,10 @@ export default function PlanActivityPage() {
   const [totalRows, setTotalRows] = useState(0);
 
   // parameter options
-  const [posisiOptions, setPosisiOptions] = useState<string[]>([
-    "Kepala",
-    "Staff",
-  ]);
+  const [posisiOptions, setPosisiOptions] = useState<string[]>([]);
   const [statusKunjunganOptions, setStatusKunjunganOptions] = useState<
     string[]
-  >(["Visited", "Negosiasi", "Fup Lead", "Reschedule", "Stay Office"]);
+  >([]);
   const [kegiatanOptions, setKegiatanOptions] = useState<string[]>([]);
 
   // edit modal state
@@ -121,7 +122,8 @@ export default function PlanActivityPage() {
       .then((r) => r.json())
       .then((res) => {
         const data = res?.data || {};
-        // posisi and statusKunjungan are now static
+        setPosisiOptions(data.posisi || []);
+        setStatusKunjunganOptions(data.status_kunjungan || []);
         setKegiatanOptions(data.kegiatan || []);
       })
       .catch(console.error);
@@ -137,6 +139,15 @@ export default function PlanActivityPage() {
     fetchPlans(page, search);
   }
 
+  function openImageBase64(base64: string) {
+    const w = window.open("");
+    if (w) {
+      w.document.write(
+        `<iframe src="${base64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`,
+      );
+    }
+  }
+
   // Guard role
   useEffect(() => {
     if (!sessionLoading && user) {
@@ -145,7 +156,6 @@ export default function PlanActivityPage() {
         user.role === "LEADER" ||
         user.role === "ADMIN" ||
         user.role === "SUPERADMIN";
-
       if (!ok) router.replace("/");
     }
   }, [sessionLoading, user, router]);
@@ -170,7 +180,6 @@ export default function PlanActivityPage() {
 
       if (q.trim()) qs.set("q", q.trim());
 
-      // ✅ server yang memfilter berdasarkan session role/team
       const res = await fetch(`/api/visits?${qs.toString()}`, {
         cache: "no-store",
       });
@@ -186,6 +195,7 @@ export default function PlanActivityPage() {
 
       const items: VisitRow[] = Array.isArray(json?.items) ? json.items : [];
 
+      // map + hitung sortTs (visit_date utama, fallback created_at)
       const mapped: PlanRow[] = items.map((v) => {
         const visitTs = parseVisitDateToTs(v.visit_date);
         const createdTs = parseCreatedAtToTs(v.created_at);
@@ -199,21 +209,23 @@ export default function PlanActivityPage() {
           institusi_kerja: v.institusi_kerja || "",
           satuan_kerja: v.satuan_kerja || "",
           status: v.status_visit || "",
+          visit_image: v.visit_image || "",
           _sortTs: sortTs,
         };
       });
 
-      // sort newest first (within page)
+      // pastikan urutan terbaru di page ini
       mapped.sort((a, b) => b._sortTs - a._sortTs);
+
       setPlans(mapped);
 
       const tp = Number(json?.pagination?.totalPages || 1);
       setTotalPages(tp > 0 ? tp : 1);
 
       const total = Number(json?.pagination?.total || 0);
-      setTotalRows(total >= 0 ? total : 0);
+      setTotalRows(total > 0 ? total : 0);
 
-      // open newest group date
+      // buka group tanggal paling baru
       const grouped = groupByTanggal(mapped);
       const firstKey = Object.keys(grouped).sort((a, b) => {
         if (a === "UNKNOWN") return 1;
@@ -228,7 +240,7 @@ export default function PlanActivityPage() {
     }
   }
 
-  // fetch when page changes
+  // fetch awal & saat page berubah
   useEffect(() => {
     if (sessionLoading) return;
     if (!user) return;
@@ -236,7 +248,7 @@ export default function PlanActivityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, sessionLoading, user]);
 
-  // debounce search (reset page)
+  // debounce search + reset page
   useEffect(() => {
     if (sessionLoading) return;
     if (!user) return;
@@ -251,6 +263,7 @@ export default function PlanActivityPage() {
   }, [search]);
 
   const grouped = useMemo(() => {
+    // plans sudah di-sort terbaru, groupnya ikutin
     const g = groupByTanggal(plans);
     const keys = Object.keys(g).sort((a, b) => {
       if (a === "UNKNOWN") return 1;
@@ -271,67 +284,95 @@ export default function PlanActivityPage() {
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
-            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
-                PLAN ACTIVITY
-              </h2>
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-              <div className="relative w-full md:w-105">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search..."
-                  className="h-11 w-full rounded-full bg-white px-5 pr-11 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
-                />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M16.5 16.5 21 21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-            </div>
+  <div className="ml-4 px-4 pt-2 pb-4 space-y-1">
+    <h2 className="text-3xl font-extrabold text-black drop-shadow-sm">
+      PLAN ACTIVITY
+    </h2>
+    <p className="text-sm text-neutral-600">
+      Monitoring dan Pengelolaan Rencana Kunjungan Lapangan
+    </p>
+  </div>
+
+  <div className="relative w-full md:w-80">
+    <input
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Search..."
+      className="h-11 w-full rounded-full bg-white px-5 pr-11 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
+    />
+    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M16.5 16.5 21 21"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  </div>
+</div>
+            
 
             {/* ACTIONS */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div className="mb-6 flex items-center justify-between bg-white p-4 rounded-xl shadow-sm ring-1 ring-black/5">
+              <div className="text-sm font-medium text-gray-500">
                 {loading
                   ? "Loading..."
-                  : `Total ${totalRows} • Page ${page} / ${totalPages}`}
+                  : `Total ${totalRows || "-"} Data • Page ${page} of ${totalPages}`}
               </div>
 
               <button
                 onClick={() => router.push("/plan-activity/add")}
-                className="h-10 rounded-full bg-white px-6 text-sm font-extrabold shadow ring-1 ring-black/10 hover:bg-gray-50"
+                className="flex items-center gap-2 h-10 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-blue-700 hover:bg-blue-700 hover:shadow transition-all"
               >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
                 ADD PLANS
               </button>
             </div>
 
             {/* TABLE */}
-            <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-              <div className="grid grid-cols-7 bg-blue-200 px-4 py-3 text-sm font-semibold text-black">
+            <div className="w-full overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-black/5">
+              <div className="grid grid-cols-8 bg-blue-100 px-4 py-3 text-sm font-semibold text-black uppercase tracking-wider border-b border-gray-200">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
                 <div>Institusi Kerja</div>
                 <div>Satuan Kerja</div>
+                <div className="text-center">Bukti</div>
                 <div className="text-center">Status</div>
                 <div className="text-center">Aksi</div>
               </div>
 
               {grouped.keys.length === 0 ? (
-                <div className="px-4 py-12 text-center text-gray-600">
-                  {loading ? "Loading..." : "Belum ada data."}
+                <div className="px-4 py-16 text-center text-gray-600 bg-gray-50/30">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                      <span>Memuat data...</span>
+                    </div>
+                  ) : (
+                    "Belum ada data plan activity."
+                  )}
                 </div>
               ) : (
                 grouped.keys.map((dateKey) => {
@@ -339,58 +380,122 @@ export default function PlanActivityPage() {
                   const isOpen = !!openDates[dateKey];
 
                   return (
-                    <div key={dateKey} className="border-t border-black/20">
+                    <div
+                      key={dateKey}
+                      className="group border-b border-gray-100 last:border-none"
+                    >
                       <button
                         type="button"
                         onClick={() => toggleDate(dateKey)}
-                        className="flex w-full items-center justify-between bg-white px-2 py-3 pl-6 text-m font-semibold text-black"
+                        className={`flex w-full items-center justify-between px-4 py-3 text-sm font-semibold transition-colors ${
+                          isOpen
+                            ? "bg-blue-50/50 text-blue-800"
+                            : "bg-white text-gray-800 hover:bg-gray-50"
+                        }`}
                       >
-                        <span>
+                        <span className="flex items-center gap-2">
+                          <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? "rotate-90 text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                          />
                           {dateKey === "UNKNOWN"
                             ? "-"
                             : formatTanggalHeader(dateKey)}
                         </span>
-                        <span className="text-xl font-black">
-                          {isOpen ? "▾" : "▸"}
+                        <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                          {rows.length} {rows.length > 1 ? "Plans" : "Plan"}
                         </span>
                       </button>
 
-                      {isOpen && (
-                        <div>
-                          {rows.map((r) => (
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ${
+                          isOpen
+                            ? "max-h-[5000px] opacity-100"
+                            : "max-h-0 opacity-0"
+                        }`}
+                      >
+                        <div className="bg-gray-50/30">
+                          {rows.map((r, index) => (
                             <div
                               key={r.id}
-                              className="grid grid-cols-7 items-center bg-white px-4 py-4 text-sm text-black border-t border-black/10"
+                              className={`grid grid-cols-8 items-center px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-blue-50/50 ${
+                                index !== rows.length - 1
+                                  ? "border-b border-gray-100"
+                                  : ""
+                              }`}
                             >
                               <div className="opacity-0 select-none">
                                 {r.tanggal}
                               </div>
 
-                              <div className="uppercase">{r.kota || "-"}</div>
-                              <div className="uppercase">{r.klpd || "-"}</div>
-                              <div className="uppercase">
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.kota || "-"}
+                              >
+                                {r.kota || "-"}
+                              </div>
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.klpd || "-"}
+                              >
+                                {r.klpd || "-"}
+                              </div>
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.institusi_kerja || "-"}
+                              >
                                 {r.institusi_kerja || "-"}
                               </div>
-                              <div className="uppercase">
+                              <div
+                                className="uppercase text-xs font-medium truncate pr-2"
+                                title={r.satuan_kerja || "-"}
+                              >
                                 {r.satuan_kerja || "-"}
                               </div>
-                              <div className="text-center font-semibold">
-                                {(r.status || "-").toUpperCase()}
+                              <div className="flex justify-center items-center">
+                                {r.visit_image ? (
+                                  <div
+                                    className="w-10 h-10 rounded-lg cursor-pointer ring-1 ring-gray-200 hover:ring-blue-400 hover:shadow-md transition-all flex-shrink-0 bg-cover bg-center"
+                                    style={{
+                                      backgroundImage: `url(${r.visit_image})`,
+                                    }}
+                                    onClick={() =>
+                                      openImageBase64(r.visit_image!)
+                                    }
+                                    title="Lihat foto bukti"
+                                  />
+                                ) : (
+                                  <span className="text-gray-300 text-xs font-medium bg-gray-100 px-2 py-1 rounded">
+                                    N/A
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-center">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                    r.status?.toLowerCase() === "visited"
+                                      ? "bg-green-100 text-green-700"
+                                      : r.status?.toLowerCase() === "planned"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  {r.status || "-"}
+                                </span>
                               </div>
 
                               <div className="text-center">
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEdit(r.id)}
-                                  className="font-semibold hover:underline"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                                  title="Edit Plan"
                                 >
-                                  EDIT
+                                  <Pen className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
                           ))}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })
@@ -398,24 +503,55 @@ export default function PlanActivityPage() {
             </div>
 
             {/* PAGINATION */}
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={loading || page <= 1}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
-              >
-                Prev
-              </button>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Menampilkan halaman {page} dari {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || page <= 1}
+                  className="flex items-center gap-1 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  Prev
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={loading || page >= totalPages}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-100"
-              >
-                Next
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={loading || page >= totalPages}
+                  className="flex items-center gap-1 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </main>
         </div>
@@ -428,6 +564,8 @@ export default function PlanActivityPage() {
           posisiOptions={posisiOptions}
           statusKunjunganOptions={statusKunjunganOptions}
           kegiatanOptions={kegiatanOptions}
+          currentUserId={user?.userId}
+          currentUserRole={user?.role}
         />
       </div>
     </div>

@@ -5,9 +5,12 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
 import type { Role } from "@/lib/menu";
 import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
-import DeleteInstansiModal from "@/components/modals/DeleteInstansiModal";
 import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
+import { Search, Clock, Building2, Pen, Trash2, 
+ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight} from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type Company = {
   _id: string;
@@ -73,7 +76,7 @@ function Modal({
       />
       <div
         className={clsx(
-          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          "relative mt-16 w-[94%] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10",
           widthClass,
         )}
       >
@@ -111,7 +114,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[11px] font-bold tracking-wide text-black/70">
+      <label className="text-sm font-bold tracking-wide text-blue-500 uppercase">
         {label}
       </label>
       {children}
@@ -124,8 +127,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-white px-4 text-md text-black outline-none",
-        "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
+        "block w-full rounded-lg border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all",
         props.className || "",
       )}
     />
@@ -137,8 +139,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={clsx(
-        "h-11 w-full rounded-xl bg-white px-4 text-sm text-gray-500 outline-none",
-        "ring-1 ring-black/10 focus:ring-2 focus:ring-black/20",
+        "w-full rounded-lg px-4 py-2 text-black text-sm shadow-sm border border-gray-300 focus:ring-1 focus:ring-blue-300 focus:outline-none ",
         props.className || "",
       )}
     />
@@ -161,9 +162,8 @@ function PrimaryButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
-        "ring-1 ring-black/15 shadow-sm hover:bg-black/5",
-        "disabled:opacity-50 disabled:hover:bg-white",
+        "flex h-11 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors",
+        "disabled:opacity-50 disabled:hover:bg-white disabled:cursor-not-allowed",
         className || "",
       )}
     >
@@ -188,9 +188,8 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide",
-        "bg-black hover:bg-black/90",
-        "disabled:opacity-50",
+        "flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 hover:shadow transition-all",
+        "disabled:opacity-60 disabled:cursor-not-allowed",
         className || "",
       )}
     >
@@ -221,7 +220,7 @@ function StatusPill({ value }: { value?: string }) {
 
 export default function InstansiPage() {
   const router = useRouter();
-  const role: Role = "SUPERADMIN"; 
+  const role: Role = "SUPERADMIN";
   const [pendingCount, setPendingCount] = useState(0);
 
   // filters
@@ -245,6 +244,7 @@ export default function InstansiPage() {
   const [openHistory, setOpenHistory] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
 
   // add form
@@ -292,7 +292,9 @@ export default function InstansiPage() {
       limit: String(limit),
     });
 
-    const res = await fetch(`/api/instansi?${qs.toString()}`);
+    const res = await fetch(`/api/instansi?${qs.toString()}`, {
+      cache: "no-store",
+    });
     const data = (await res.json()) as ApiResp;
     setResp(data);
     setLoading(false);
@@ -379,9 +381,34 @@ export default function InstansiPage() {
     await loadApproved();
   }
 
+  async function confirmDelete() {
+    if (!activeCompany?._id) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/companies/${activeCompany._id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        alert("Gagal menghapus instansi.");
+        return;
+      }
+
+      await loadApproved();
+      setOpenDelete(false);
+    } catch (e: any) {
+      alert("Gagal menghapus instansi.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function loadPending() {
     setPendingLoading(true);
-    const res = await fetch("/api/company-requests?status=PENDING");
+    const res = await fetch("/api/company-requests?status=PENDING", {
+      cache: "no-store",
+    });
     const data = await res.json();
     setPending(Array.isArray(data) ? data : []);
     setPendingLoading(false);
@@ -397,7 +424,19 @@ export default function InstansiPage() {
     if (!confirm("Approve instansi ini?")) return;
     setBusyId(id);
 
-    await fetch(`/api/company-requests/${id}/approve`, { method: "POST" });
+    try {
+      const res = await fetch(`/api/company-requests/${id}/approve`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(
+          `Gagal approve: ${errorData.message || "Terjadi kesalahan pada server"}`,
+        );
+      }
+    } catch (e: any) {
+      alert(`Terjadi kesalahan jaringan: ${e.message}`);
+    }
 
     setBusyId(null);
     await loadPending();
@@ -410,11 +449,21 @@ export default function InstansiPage() {
     if (!reason) return;
 
     setBusyId(id);
-    await fetch(`/api/company-requests/${id}/reject`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reject_reason: reason }),
-    });
+    try {
+      const res = await fetch(`/api/company-requests/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reject_reason: reason }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(
+          `Gagal reject: ${errorData.message || "Terjadi kesalahan pada server"}`,
+        );
+      }
+    } catch (e: any) {
+      alert(`Terjadi kesalahan jaringan: ${e.message}`);
+    }
 
     setBusyId(null);
     await loadPending();
@@ -422,112 +471,120 @@ export default function InstansiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <main className="mx-auto pt-4 max-w-9xl">
+          <main className="mx-auto pt-4 max-w-none">
+
             {/* Top */}
-            <div className="mb-6 flex items-center gap-4">
-              <div className="flex-1">
-                <h1 className="text-2xl font-extrabold text-black">INSTANSI</h1>
-                <p className="text-xs text-black">
-                  Rekap instansi yang sudah <b>APPROVED</b>
-                </p>
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                  DAFTAR INSTANSI
+                </h1>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Rekap data instansi yang sudah <b>APPROVED</b>
+                </div>
               </div>
 
               {role === "SUPERADMIN" ? (
-                <div className="flex gap-3">
-                  <PrimaryButton onClick={() => router.push("/tambah-instansi")}>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => router.push("/tambah-instansi")}
+                    className="flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 hover:shadow transition-all"
+                  >
+                    <Building2 className="w-5 h-4" />
                     TAMBAH INSTANSI
-                  </PrimaryButton>
-                  <PrimaryButton onClick={openPendingModal}>
-                    <span className="relative inline-flex items-center">
-                      REQUEST PENDING
-                      {pendingCount > 0 && (
-                        <span className="absolute -right-4 -top-3 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-extrabold text-white ring-2 ring-white">
-                          {pendingCount > 99 ? "99+" : pendingCount}
-                        </span>
-                      )}
-                    </span>
-                  </PrimaryButton>
+                  </button>
+                  <button
+                    onClick={openPendingModal}
+                    className="flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-bold text-orange-600 shadow-sm ring-1 ring-gray-300 hover:bg-gray-100"
+                  >
+                    <Clock className="w-5 h-4" />
+                    REQUEST PENDING
+                    {pendingCount > 0 && (
+                      <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-white shadow-sm">
+                        {pendingCount > 99 ? "99+" : pendingCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
               ) : null}
             </div>
 
             {/* Filters */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-blue-200">
-              <div className="grid gap-4 md:grid-cols-4 md:items-end">
-                <Field label="SEARCH">
+            <div className="rounded-2xl bg-white p-10 shadow-sm ring-1 ring-gray-200 mb-6">
+              <div className="grid gap-6 md:grid-cols-4 md:items-end">
+                <Field label="PENCARIAN">
                   <div className="relative">
-                    <Input
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Search className="h-4 w-4 text-gray-600" />
+                    </div>
+
+                    <input
+                      type="text"
+                      className="w-full rounded-lg px-4 py-2 pl-10 text-black text-sm shadow-sm border border-gray-300 focus:ring-1 focus:ring-blue-300 focus:outline-none "
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Cari institusi / satuan kerja / PIC..."
-                      className="pr-10"
                     />
                   </div>
                 </Field>
 
                 <Field label="KOTA/KABUPATEN">
-                  <Select
+                  <SearchableSelect
                     value={kota}
-                    onChange={(e) => {
-                      setKota(e.target.value);
+                    onChange={(val: string) => {
+                      setKota(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua Kota</option>
-                    {kotaOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua Kota" },
+                      ...kotaOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
 
                 <Field label="KLPD">
-                  <Select
+                  <SearchableSelect
                     value={klpd}
-                    onChange={(e) => {
-                      setKlpd(e.target.value);
+                    onChange={(val: string) => {
+                      setKlpd(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua KLPD</option>
-                    {klpdOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua KLPD" },
+                      ...klpdOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
 
-                <Field label="SEGMEN">
-                  <Select
+                <Field label="RING">
+                  <SearchableSelect
                     value={segmen}
-                    onChange={(e) => {
-                      setSegmen(e.target.value);
+                    onChange={(val: string) => {
+                      setSegmen(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua Segmen</option>
-                    {segmenOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua Ring" },
+                      ...segmenOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
               </div>
             </div>
 
             {/* Table */}
-            <div className="mt-6 overflow-hidden rounded-2xl bg-white ring-1 ring-blue-200 ">
+            <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
               <div className="overflow-x-auto">
-                <table className="min-w-full text-md">
-                  <thead className="bg-blue-200 text-black ring-2 ring-blue-300">
+                <table className="min-w-full text-sm text-left">
+                  <thead className="bg-blue-100 border-b border-gray-200">
                     <tr>
                       {[
                         "Kota/Kab",
@@ -539,13 +596,12 @@ export default function InstansiPage() {
                         "No. HP PIC",
                         "Jabatan PIC",
                         "Role PIC",
-                        "Status Segmen",
-                        "History",
+                        "Status Ring",
                         "Aksi",
                       ].map((h) => (
                         <th
                           key={h}
-                          className="whitespace-nowrap border-b border-gray-300 px-4 py-3 text-left text-xs font-extrabold tracking-wide text-black"
+                          className="whitespace-nowrap px-6 py-4 text-sm font-bold text-black uppercase"
                         >
                           {h}
                         </th>
@@ -553,74 +609,87 @@ export default function InstansiPage() {
                     </tr>
                   </thead>
 
-                  <tbody className="bg-white ring-1 ring-blue-200">
+                  <tbody className="divide-y divide-gray-300">
                     {loading ? (
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-md"
+                          className="px-6 py-12 text-center text-sm text-gray-700"
                         >
-                          Loading...
+                          <div className="flex justify-center items-center gap-2">
+                            <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                            Loading data instansi...
+                          </div>
                         </td>
                       </tr>
                     ) : resp?.items?.length ? (
                       resp.items.map((c) => (
-                        <tr key={c._id} className="border-t border-gray-300">
-                          <td className="px-4 py-4">{c.kota_kab ?? "-"}</td>
-                          <td className="px-4 py-4">{c.klpd ?? "-"}</td>
-                          <td className="px-4 py-4 ">
+                        <tr
+                          key={c._id}
+                          className="hover:bg-gray-50/50 transition-colors group"
+                        >
+                          <td className="whitespace-nowrap px-6 py-4">
+                            {c.kota_kab ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            {c.klpd ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 font-bold">
                             {c.institusi_kerja ?? "-"}
                           </td>
-                          <td className="px-4 py-4">{c.satuan_kerja ?? "-"}</td>
-                          <td className="px-4 py-4">{c.kode_dinas ?? "-"}</td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4">
+                            {c.satuan_kerja ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            {c.kode_dinas ?? "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.nama ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.no_telp ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.jabatan ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4">
                             {c.pic_default?.role ?? "-"}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="whitespace-nowrap px-6 py-4 text-center">
                             <StatusPill value={c.status_ring} />
                           </td>
-                          <td className="px-4 py-4 text-center">
+
+                          <td className="whitespace-nowrap px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
                             <button
-                              className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-black/70 hover:text-blue-600 hover:bg-blue-50 transition-all mx-auto"
                               title="History"
                               onClick={() => {
                                 setActiveCompany(c);
                                 setOpenHistory(true);
                               }}
                             >
-                              ⟲
+                            <Clock className="w-5 h-4" />
                             </button>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
                               <button
-                                className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 ring-1 ring-inset ring-transparent hover:ring-blue-100"
                                 title="Edit"
                                 onClick={() => {
                                   setActiveCompany(c);
                                   setOpenEdit(true);
                                 }}
                               >
-                                ✎
+                                <Pen className="w-4 h-4" />
                               </button>
                               <button
-                                className="rounded-lg bg-white px-3 py-2 text-xs font-bold ring-1 ring-black/10 hover:bg-black/5"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 ring-1 ring-inset ring-transparent hover:ring-red-100"
                                 title="Delete"
                                 onClick={() => {
                                   setActiveCompany(c);
                                   setOpenDelete(true);
                                 }}
                               >
-                                🗑
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -630,9 +699,9 @@ export default function InstansiPage() {
                       <tr>
                         <td
                           colSpan={12}
-                          className="px-4 py-12 text-center text-md text-black/60"
+                          className="px-6 py-12 text-center text-sm text-gray-500"
                         >
-                          Tidak ada data.
+                          Tidak ada data instansi yang sesuai.
                         </td>
                       </tr>
                     )}
@@ -641,52 +710,64 @@ export default function InstansiPage() {
               </div>
 
               {/* Pagination Bar */}
-              <div className="flex flex-col gap-3 border-t border-black/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-md text-gray-500">
+              <div className="flex flex-col gap-4 border-t border-gray-100 bg-gray-50/50 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                <div className="text-sm text-gray-500">
                   Menampilkan{" "}
-                  <b className="text-black">
-                    {(page - 1) * limit + 1} -{" "}
+                  <b className="text-gray-900">{(page - 1) * limit + 1}</b> -{" "}
+                  <b className="text-gray-900">
                     {Math.min(page * limit, resp?.total ?? 0)}
                   </b>{" "}
-                  dari <b className="text-black">{resp?.total ?? 0}</b> data
+                  dari <b className="text-gray-900">{resp?.total ?? 0}</b> data
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Select
-                    value={String(limit)}
-                    onChange={(e) => {
-                      setLimit(Number(e.target.value));
-                      setPage(1);
-                    }}
-                    className="h-10 rounded-xl"
-                  >
-                    {[10, 25, 50, 100].map((n) => (
-                      <option key={n} value={n}>
-                        {n} / Halaman
-                      </option>
-                    ))}
-                  </Select>
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Tampilkan
+                    </span>
+                    <Select
+                      value={String(limit)}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="py-1.5! h-auto text-sm"
+                    >
+                      {[10, 25, 50, 100].map((n) => (
+                        <option key={n} value={n}>
+                          {n} / halaman
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setPage(1)}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="First"
                     >
-                      ⏮
+                    <ChevronsLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Prev"
                     >
-                      ◀
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
 
-                    <div className="px-8 py-8 text-md font-extrabold text-gray-500 whitespace-nowrap">
-                      {page} / {totalPages}
+                    <div className="px-3 text-sm text-gray-800 whitespace-nowrap">
+                      Hal 
+                      <b className="text-black"> {page}{" "}
+                      </b>
+                      <span className="text-gray-600 ">
+                        dari 
+                        <b className="text-black"> {totalPages}
+                        </b>
+                      </span>
                     </div>
 
                     <button
@@ -694,18 +775,18 @@ export default function InstansiPage() {
                         setPage((p) => Math.min(totalPages, p + 1))
                       }
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Next"
                     >
-                      ▶
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
-                      className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-black/30 hover:bg-black/5"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       title="Last"
                     >
-                      ⏭
+                      <ChevronsRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -738,12 +819,23 @@ export default function InstansiPage() {
         onSaved={loadApproved}
       />
 
-      <DeleteInstansiModal
+      <ConfirmModal
         open={openDelete}
-        onClose={() => setOpenDelete(false)}
-        companyId={activeCompany?._id ?? null}
-        companyName={activeCompany?.institusi_kerja ?? "-"}
-        onDeleted={loadApproved}
+        loading={deleting}
+        title="Hapus Instansi"
+        message={
+          <>
+            Anda yakin ingin menghapus:
+            <br />
+            <span className="font-bold">
+              {activeCompany?.institusi_kerja ?? "-"}
+            </span>
+            ?
+          </>
+        }
+        confirmText="HAPUS"
+        onConfirm={confirmDelete}
+        onCancel={() => setOpenDelete(false)}
       />
     </div>
   );

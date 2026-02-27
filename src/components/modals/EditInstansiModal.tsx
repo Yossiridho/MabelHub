@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 function clsx(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
@@ -32,7 +33,7 @@ function Modal({
       />
       <div
         className={clsx(
-          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          "relative mt-16 w-[94%] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10",
           widthClass,
         )}
       >
@@ -48,10 +49,10 @@ function Modal({
 
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-xl font-black text-black hover:bg-black/10"
+            className="grid h-9 w-9 place-items-center rounded-lg bg-white text-xl font-bold text-black hover:bg-red-500"
             aria-label="Close"
           >
-            ×
+            X
           </button>
         </div>
 
@@ -61,7 +62,13 @@ function Modal({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
       <label className="text-[11px] font-bold tracking-wide text-black/70">
@@ -112,9 +119,8 @@ function PrimaryButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide",
         "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
-        "disabled:opacity-50 disabled:hover:bg-white",
       )}
     >
       {children}
@@ -136,8 +142,8 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
-        "bg-black hover:bg-black/90",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white/95",
+        "bg-blue-500 hover:bg-blue-600",
         "disabled:opacity-50",
       )}
     >
@@ -175,6 +181,27 @@ export default function EditInstansiModal({
 }) {
   const [saving, setSaving] = useState(false);
 
+  // parameter master list
+  const [paramKotaKab, setParamKotaKab] = useState<string[]>([]);
+  const [paramKlpd, setParamKlpd] = useState<string[]>([]);
+  const [paramRing, setParamRing] = useState<string[]>([]);
+  const [paramPosisi, setParamPosisi] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then((res) => res.json())
+      .then((json) => {
+        const d = json?.data;
+        if (d) {
+          setParamKotaKab(d.kota_kabupaten || []);
+          setParamKlpd(d.klpd || []);
+          setParamRing(d.ring || []);
+          setParamPosisi(d.posisi || []);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     institusi_kerja: "",
     kota_kab: "",
@@ -206,51 +233,51 @@ export default function EditInstansiModal({
   }, [open, company]);
 
   async function submit() {
-  if (!company?._id) return;
+    if (!company?._id) return;
 
-  setSaving(true);
-  try {
-    const payload = {
-      institusi_kerja: form.institusi_kerja,
-      kota_kab: form.kota_kab,
-      klpd: form.klpd,
-      satuan_kerja: form.satuan_kerja,
-      status_ring: form.status_ring,
-      kode_dinas: form.kode_dinas,
-      pic_default: {
-        nama: form.pic_nama,
-        no_telp: form.pic_telp,
-        jabatan: form.pic_jabatan,
-        role: form.pic_role,
-      },
-    };
+    setSaving(true);
+    try {
+      const payload = {
+        institusi_kerja: form.institusi_kerja,
+        kota_kab: form.kota_kab,
+        klpd: form.klpd,
+        satuan_kerja: form.satuan_kerja,
+        status_ring: form.status_ring,
+        kode_dinas: form.kode_dinas,
+        pic_default: {
+          nama: form.pic_nama,
+          no_telp: form.pic_telp,
+          jabatan: form.pic_jabatan,
+          role: form.pic_role,
+        },
+      };
 
-    const url = `/api/companies/${encodeURIComponent(company._id)}`;
+      const url = `/api/companies/${encodeURIComponent(company._id)}`;
 
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const text = await res.text(); // ambil body mentah dulu
-    if (!res.ok) {
-      console.log("EDIT COMPANY ERROR", {
-        url,
-        status: res.status,
-        statusText: res.statusText,
-        body: text,
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      alert(`Gagal update instansi. (${res.status})\n${text}`);
-      return;
-    }
 
-    await onSaved();
-    onClose();
-  } finally {
-    setSaving(false);
+      const text = await res.text(); // ambil body mentah dulu
+      if (!res.ok) {
+        console.log("EDIT COMPANY ERROR", {
+          url,
+          status: res.status,
+          statusText: res.statusText,
+          body: text,
+        });
+        alert(`Gagal update instansi. (${res.status})\n${text}`);
+        return;
+      }
+
+      await onSaved();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
-}
 
   return (
     <Modal
@@ -265,25 +292,41 @@ export default function EditInstansiModal({
           <Field label="NAMA INSTITUSI">
             <Input
               value={form.institusi_kerja}
-              onChange={(e) => setForm((p) => ({ ...p, institusi_kerja: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, institusi_kerja: e.target.value }))
+              }
               placeholder="Contoh: PLN / RSUD / Dinkes..."
             />
           </Field>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="KOTA/KABUPATEN">
-              <Input
+              <SearchableSelect
                 value={form.kota_kab}
-                onChange={(e) => setForm((p) => ({ ...p, kota_kab: e.target.value }))}
-                placeholder="Contoh: Kota Bandung"
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, kota_kab: val }))
+                }
+                options={paramKotaKab.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih Kota/Kabupaten..."
+                className="h-11 border-0"
               />
             </Field>
 
             <Field label="KLPD">
-              <Input
+              <SearchableSelect
                 value={form.klpd}
-                onChange={(e) => setForm((p) => ({ ...p, klpd: e.target.value }))}
-                placeholder="Contoh: BUMN / B2B / Kementerian..."
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, klpd: val }))
+                }
+                options={paramKlpd.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih KLPD..."
+                className="h-11 border-0"
               />
             </Field>
           </div>
@@ -292,22 +335,26 @@ export default function EditInstansiModal({
             <Field label="SATUAN KERJA">
               <Input
                 value={form.satuan_kerja}
-                onChange={(e) => setForm((p) => ({ ...p, satuan_kerja: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, satuan_kerja: e.target.value }))
+                }
                 placeholder="Contoh: Dinas / Office / Unit kerja..."
               />
             </Field>
 
             <Field label="STATUS SEGMEN (RING)">
-              <Select
+              <SearchableSelect
                 value={form.status_ring}
-                onChange={(e) => setForm((p) => ({ ...p, status_ring: e.target.value }))}
-              >
-                <option value="">Pilih...</option>
-                <option value="RING 1">RING 1</option>
-                <option value="RING 2">RING 2</option>
-                <option value="RING 3">RING 3</option>
-                <option value="RING 4">RING 4</option>
-              </Select>
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, status_ring: val }))
+                }
+                options={paramRing.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih Status Ring..."
+                className="h-11 border-0"
+              />
             </Field>
           </div>
 
@@ -315,22 +362,26 @@ export default function EditInstansiModal({
             <Field label="KODE DINAS (OPSIONAL)">
               <Input
                 value={form.kode_dinas}
-                onChange={(e) => setForm((p) => ({ ...p, kode_dinas: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, kode_dinas: e.target.value }))
+                }
                 placeholder="Contoh: B2-CSMS"
               />
             </Field>
 
             <Field label="ROLE PIC (OPSIONAL)">
-              <Select
+              <SearchableSelect
                 value={form.pic_role}
-                onChange={(e) => setForm((p) => ({ ...p, pic_role: e.target.value }))}
-              >
-                <option value="">Pilih...</option>
-                <option value="Kepala">Kepala</option>
-                <option value="Staff">Staff</option>
-                <option value="Pengadaan">Pengadaan</option>
-                <option value="IT">IT</option>
-              </Select>
+                onChange={(val: string) =>
+                  setForm((p) => ({ ...p, pic_role: val }))
+                }
+                options={paramPosisi.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                }))}
+                placeholder="Pilih Jabatan PIC..."
+                className="h-11 border-0"
+              />
             </Field>
           </div>
 
@@ -338,7 +389,9 @@ export default function EditInstansiModal({
             <Field label="NAMA PIC (OPSIONAL)">
               <Input
                 value={form.pic_nama}
-                onChange={(e) => setForm((p) => ({ ...p, pic_nama: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, pic_nama: e.target.value }))
+                }
                 placeholder="Contoh: Pak Rama"
               />
             </Field>
@@ -346,7 +399,9 @@ export default function EditInstansiModal({
             <Field label="NO. TELEPON PIC (OPSIONAL)">
               <Input
                 value={form.pic_telp}
-                onChange={(e) => setForm((p) => ({ ...p, pic_telp: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, pic_telp: e.target.value }))
+                }
                 placeholder="Contoh: 62812xxxx"
               />
             </Field>
@@ -355,14 +410,15 @@ export default function EditInstansiModal({
           <Field label="JABATAN PIC (OPSIONAL)">
             <Input
               value={form.pic_jabatan}
-              onChange={(e) => setForm((p) => ({ ...p, pic_jabatan: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, pic_jabatan: e.target.value }))
+              }
               placeholder="Contoh: Pengadaan / IT / Kepala Bagian..."
             />
           </Field>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <PrimaryButton onClick={onClose}>BATAL</PrimaryButton>
+        <div className="mt-6 flex justify-end">
           <SolidButton onClick={submit} disabled={saving}>
             {saving ? "MENYIMPAN..." : "SUBMIT"}
           </SolidButton>

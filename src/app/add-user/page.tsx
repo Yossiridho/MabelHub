@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -297,20 +299,21 @@ export default function AddUserPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex">
         <Sidebar />
 
-        <div className="flex-1 h-screen overflow-y-auto">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center">
-              <div className="text-xl font-extrabold pl-3 text-black">
+        <div className="flex-1 h-screen overflow-y-auto w-full p-6">
+          <div className="px-7 pt-2 pb-2">
+              <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                 ADD USER
               </div>
+            <div className="mt-2 ml-4 text-sm text-neutral-600">
+              Kelola Users by (SUPERADMIN)
             </div>
 
             {/* Form Card */}
+
             <div className="mt-8 rounded-lg bg-white p-6 ring-1 ring-blue-200 shadow-md">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field label="Nama Lengkap">
@@ -347,16 +350,18 @@ export default function AddUserPage() {
                 </Field>
 
                 <Field label="Role">
-                  <select
+                  <SearchableSelect
                     value={userRole}
-                    onChange={(e) => setUserRole(e.target.value as UserRole)}
-                    className="h-10 w-full rounded bg-white px-3 text-md outline-blue-200 ring-1 ring-gray-300 shadow-md"
-                  >
-                    <option value="SUPERADMIN">Superadmin</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="LEADER">Leader</option>
-                    <option value="SALES">Sales</option>
-                  </select>
+                    onChange={(val: string) => setUserRole(val as UserRole)}
+                    options={[
+                      { value: "SUPERADMIN", label: "Superadmin" },
+                      { value: "ADMIN", label: "Admin" },
+                      { value: "LEADER", label: "Leader" },
+                      { value: "SALES", label: "Sales" },
+                    ]}
+                    className="h-10 border-0"
+                    placeholder="Pilih Role..."
+                  />
                 </Field>
 
                 <div className="flex items-end justify-end">
@@ -468,7 +473,7 @@ export default function AddUserPage() {
 
       {/* ===== Edit Modal ===== */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)}>
-          <div className="w-full max-w-6xl rounded-xl bg-white p-10 shadow-lg">
+        <div className="w-full max-w-6xl rounded-xl bg-white p-10 shadow-lg">
           <div className="text-lg font-extrabold text-gray-900">EDIT USER</div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -507,16 +512,18 @@ export default function AddUserPage() {
             </Field>
 
             <Field label="Role">
-              <select
+              <SearchableSelect
                 value={eRole}
-                onChange={(e) => setERole(e.target.value as UserRole)}
-                className="h-10 w-full rounded bg-white px-3 text-sm ring-1 ring-gray-300"
-              >
-                <option value="SUPERADMIN">Superadmin</option>
-                <option value="ADMIN">Admin</option>
-                <option value="LEADER">Leader</option>
-                <option value="SALES">Sales</option>
-              </select>
+                onChange={(val: string) => setERole(val as UserRole)}
+                options={[
+                  { value: "SUPERADMIN", label: "Superadmin" },
+                  { value: "ADMIN", label: "Admin" },
+                  { value: "LEADER", label: "Leader" },
+                  { value: "SALES", label: "Sales" },
+                ]}
+                className="h-10 border-0"
+                placeholder="Pilih Role..."
+              />
             </Field>
 
             <div className="flex items-end justify-end gap-3">
@@ -546,38 +553,21 @@ export default function AddUserPage() {
       </Modal>
 
       {/* ===== Delete Confirm Modal ===== */}
-      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <div className="w-full max-w-xl rounded-lg bg-white p-12 shadow-lg">
-          <div className="text-lg font-bold text-black">
-            Konfirmasi Hapus
-          </div>
-          <div className="mt-3 text-sm text-gray-700">
-            Apakah anda yakin ingin menghapus user{" "}
+      {/* ===== Delete Confirm Modal ===== */}
+      <ConfirmModal
+        open={deleteOpen}
+        loading={saving}
+        title="Konfirmasi Hapus User"
+        message={
+          <>
+            Apakah Anda yakin ingin menghapus user{" "}
             <span className="font-bold">{selected?.username}</span>?
-          </div>
-
-          <div className="mt-8 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setDeleteOpen(false)}
-              className="h-10 rounded-lg bg-blue-400 px-5 text-sm font-extrabold text-white"
-            >
-              BATAL
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={onConfirmDelete}
-              className={cn(
-                "h-10 rounded-lg px-5 text-sm font-extrabold text-white",
-                saving ? "bg-red-300" : "bg-red-500 hover:bg-red-600",
-              )}
-            >
-              {saving ? "DELETING..." : "HAPUS"}
-            </button>
-          </div>
-        </div>
-      </Modal>
+          </>
+        }
+        confirmText="HAPUS"
+        onConfirm={onConfirmDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </div>
   );
 }

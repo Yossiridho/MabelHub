@@ -88,6 +88,11 @@ export default function LoginPage() {
             <input
               value={identity}
               onChange={(e) => setIdentity(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  document.getElementById("passwordInput")?.focus();
+                }
+              }}
               placeholder="Username atau Email"
               className="h-11 w-full rounded-lg border px-3 outline-none focus:ring-2 focus:ring-blue-300"
             />
@@ -96,9 +101,13 @@ export default function LoginPage() {
           <div className="mb-8">
             <label className="mb-2 block text-sm">Password</label>
             <input
+              id="passwordInput"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onLogin();
+              }}
               placeholder="Password"
               className="h-11 w-full rounded-lg border px-3 outline-none focus:ring-2 focus:ring-blue-300"
             />

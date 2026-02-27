@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
-import { Bell } from "lucide-react";
-import { Search } from "lucide-react";
+import NotificationMenu from "@/components/modals/NotificationMenu";
+import { Search, X, Filter } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import {
@@ -18,10 +18,96 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
+  Label,
+  Sector,
 } from "recharts";
+
+const renderActiveShape = (props: any) => {
+  const {
+    cx,
+    cy,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+    midAngle,
+    percent,
+  } = props;
+
+  // Calculate text position same as renderCustomizedLabel
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 8} // Enlarged "popped out" effect
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        style={{
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          transformOrigin: `${cx}px ${cy}px`,
+        }}
+      />
+      {percent > 0 && (
+        <text
+          x={x}
+          y={y}
+          fill="white"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={12}
+          fontWeight="bold"
+        >
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      )}
+    </g>
+  );
+};
+
+const renderCustomizedLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+}: any) => {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent === 0) return null;
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={12}
+      fontWeight="bold"
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
 
 type DashboardStats = {
   totalVisits: number;
+  visited: number;
   stayOffice: number;
   notVisited: number;
   salesCount: number;
@@ -33,7 +119,64 @@ type DashboardStats = {
     ring3: number;
     ring4: number;
   };
+  trend?: { date: string; count: number }[];
+  topSales?: { name: string; count: number }[];
+  klpd?: { name: string; count: number }[];
 };
+
+function cn(...s: Array<string | false | null | undefined>) {
+  return s.filter(Boolean).join(" ");
+}
+
+function formatDateID(iso: string | Date | undefined) {
+  if (!iso || iso === "-") return "-";
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return String(iso);
+  }
+}
+
+function StatusPill({ value }: { value: string | undefined }) {
+  const upper = (value || "-").toUpperCase();
+  const isVisited = upper.includes("VISIT") && !upper.includes("NOT");
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center rounded-full px-4 py-1 text-xs font-extrabold tracking-wide",
+        isVisited
+          ? "bg-green-100 text-green-700 ring-1 ring-green-200"
+          : "bg-gray-100 text-gray-600 ring-1 ring-gray-200",
+      )}
+    >
+      {upper}
+    </span>
+  );
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | undefined;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-extrabold tracking-wider text-gray-500">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-semibold text-gray-900">
+        {value || "-"}
+      </div>
+    </div>
+  );
+}
 
 type VisitRow = {
   _id: string;
@@ -45,6 +188,16 @@ type VisitRow = {
   pic_name?: string;
   pic_phone?: string;
   status_ring?: string;
+  created_at?: string;
+  status_market?: string;
+  klpd?: string;
+  reschedule?: string;
+  institusi_kerja?: string;
+  pic_position?: string;
+  pic_role?: string;
+  tindak_lanjut?: string;
+  kegiatan_status?: string;
+  descriptions?: string;
 };
 
 export default function DashboardRequestPage() {
@@ -55,9 +208,28 @@ export default function DashboardRequestPage() {
   const [visits, setVisits] = useState<VisitRow[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingTable, setLoadingTable] = useState(true);
-
+  const [selected, setSelected] = useState<VisitRow | null>(null);
   const [search, setSearch] = useState("");
-  const [unreadNotif, setUnreadNotif] = useState(3);
+  const [klpdActiveIndex, setKlpdActiveIndex] = useState<number | undefined>();
+
+  const [activeFilters, setActiveFilters] = useState<{
+    ring: string | null;
+    statusGroup: string | null;
+    city: string | null;
+    satker: string | null;
+    sales: string | null;
+    klpd: string | null;
+    date: string | null;
+  }>({
+    ring: null,
+    statusGroup: null,
+    city: null,
+    satker: null,
+    sales: null,
+    klpd: null,
+    date: null,
+  });
+
   useEffect(() => {
     if (!sessionLoading && user) {
       if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
@@ -73,7 +245,17 @@ export default function DashboardRequestPage() {
 
       try {
         setLoadingStats(true);
-        const res = await fetch("/api/dashboard-request", {
+        const params = new URLSearchParams();
+        if (activeFilters.ring) params.set("ring", activeFilters.ring);
+        if (activeFilters.statusGroup)
+          params.set("statusGroup", activeFilters.statusGroup);
+        if (activeFilters.city) params.set("city", activeFilters.city);
+        if (activeFilters.satker) params.set("satker", activeFilters.satker);
+        if (activeFilters.sales) params.set("sales", activeFilters.sales);
+        if (activeFilters.klpd) params.set("klpd", activeFilters.klpd);
+        if (activeFilters.date) params.set("date", activeFilters.date);
+
+        const res = await fetch(`/api/dashboard-request?${params.toString()}`, {
           cache: "no-store",
         });
         const json = await res.json().catch(() => ({}));
@@ -89,7 +271,7 @@ export default function DashboardRequestPage() {
     return () => {
       mounted = false;
     };
-  }, [sessionLoading, user]);
+  }, [sessionLoading, user, activeFilters]);
 
   useEffect(() => {
     let mounted = true;
@@ -99,7 +281,17 @@ export default function DashboardRequestPage() {
 
       try {
         setLoadingTable(true);
-        const res = await fetch("/api/visits?limit=10&page=1", {
+        const params = new URLSearchParams({ limit: "5", page: "1" });
+        if (activeFilters.ring) params.set("ring", activeFilters.ring);
+        if (activeFilters.statusGroup)
+          params.set("statusGroup", activeFilters.statusGroup);
+        if (activeFilters.city) params.set("city", activeFilters.city);
+        if (activeFilters.satker) params.set("satker", activeFilters.satker);
+        if (activeFilters.sales) params.set("sales", activeFilters.sales);
+        if (activeFilters.klpd) params.set("klpd", activeFilters.klpd);
+        if (activeFilters.date) params.set("date", activeFilters.date);
+
+        const res = await fetch(`/api/visits?${params.toString()}`, {
           cache: "no-store",
         });
         const data = await res.json().catch(() => ({}));
@@ -115,7 +307,20 @@ export default function DashboardRequestPage() {
     return () => {
       mounted = false;
     };
-  }, [sessionLoading, user]);
+  }, [sessionLoading, user, activeFilters]);
+
+  const filteredVisits = visits.filter((v) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (v.nama_sales || "").toLowerCase().includes(q) ||
+      (v.satuan_kerja || "").toLowerCase().includes(q) ||
+      (v.city || "").toLowerCase().includes(q) ||
+      (v.pic_name || "").toLowerCase().includes(q) ||
+      (v.status_visit || "").toLowerCase().includes(q) ||
+      (v.status_ring || "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-blue-50">
@@ -125,8 +330,136 @@ export default function DashboardRequestPage() {
         {/* CONTENT */}
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl pl-4 font-extrabold">VISIT DASHBOARD</h2>
+          <div className="mb-4 px-4 pt-2 pb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                VISIT DASHBOARD
+              </h2>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Monitoring dan Analisis Aktivitas Visit Lapangan
+                </div>
+              {/* Active Filters Indicator */}
+              {(activeFilters.ring ||
+                activeFilters.statusGroup ||
+                activeFilters.city ||
+                activeFilters.satker ||
+                activeFilters.sales ||
+                activeFilters.klpd ||
+                activeFilters.date) && (
+                <div className="pl-4 mt-2 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500 font-semibold flex items-center gap-1">
+                    <Filter className="w-3 h-3" /> Filters:
+                  </span>
+                  {activeFilters.statusGroup && (
+                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">
+                      {activeFilters.statusGroup}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, statusGroup: null }))
+                        }
+                        className="hover:text-blue-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.ring && (
+                    <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-bold">
+                      {activeFilters.ring}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, ring: null }))
+                        }
+                        className="hover:text-orange-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.city && (
+                    <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-bold">
+                      City: {activeFilters.city}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, city: null }))
+                        }
+                        className="hover:text-emerald-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.satker && (
+                    <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-bold">
+                      Satker: {activeFilters.satker}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, satker: null }))
+                        }
+                        className="hover:text-purple-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.sales && (
+                    <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded-full text-xs font-bold">
+                      Sales: {activeFilters.sales}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, sales: null }))
+                        }
+                        className="hover:text-sky-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.klpd && (
+                    <span className="inline-flex items-center gap-1 bg-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded-full text-xs font-bold">
+                      KLPD: {activeFilters.klpd}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, klpd: null }))
+                        }
+                        className="hover:text-fuchsia-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {activeFilters.date && (
+                    <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-700 px-2 py-1 rounded-full text-xs font-bold">
+                      Date: {activeFilters.date}
+                      <button
+                        onClick={() =>
+                          setActiveFilters((p) => ({ ...p, date: null }))
+                        }
+                        className="hover:text-rose-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    onClick={() =>
+                      setActiveFilters({
+                        ring: null,
+                        statusGroup: null,
+                        city: null,
+                        satker: null,
+                        sales: null,
+                        klpd: null,
+                        date: null,
+                      })
+                    }
+                    className="text-xs text-gray-500 hover:text-red-500 underline ml-2 transition-colors"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-3">
               {/* Searchbar */}
@@ -142,21 +475,10 @@ export default function DashboardRequestPage() {
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setUnreadNotif(0)}
-                className="relative grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
-                aria-label="Notifications"
-              >
-                <Bell className="h-6 w-6 text-gray-700" />
-
-                {/* Badge unread */}
-                {unreadNotif > 0 && (
-                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-                    {unreadNotif}
-                  </span>
-                )}
-              </button>
+              {/* Bell is available on desktop, hidden on mobile to avoid duplicate */}
+              <div className="hidden lg:flex">
+                <NotificationMenu />
+              </div>
             </div>
           </div>
 
@@ -220,131 +542,696 @@ export default function DashboardRequestPage() {
           </div>
 
           {/* CHARTS SECTION */}
-            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:auto-rows-fr">
-          <div className="rounded-xl bg-white p-6 shadow lg:row-span-2 lg:col-span-1">
-             <h3 className="mb-4 text-md font-semibold text-black">
-                 VISITS OVERVIEW
-             </h3>
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:auto-rows-fr">
+            <div className="rounded-xl bg-white p-6 shadow lg:row-span-2 lg:col-span-1">
+              <h3 className="mb-4 text-md font-semibold text-black">
+                VISITS OVERVIEW
+              </h3>
 
-           <div className="h-[420px] w-full">
-           {loadingStats ? (
-         <div className="flex h-full items-center justify-center text-gray-400">
-        Loading...
-      </div>
-    ) : (
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={[
-              { name: "Visits", value: stats?.totalVisits || 0 },
-              { name: "Stay Office", value: stats?.stayOffice || 0 },
-              { name: "Not Visited", value: stats?.notVisited || 0 },
-            ]}
-            cx="50%"
-            cy="50%"
-            outerRadius={130}   // dibesarkan
-            paddingAngle={3}
-            dataKey="value"
-            label
-          >
-            <Cell fill="#3b82f6" />
-            <Cell fill="#10b981" />
-            <Cell fill="#ef4444" />
-          </Pie>
+              <div className="h-[420px] w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                  >
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Visits", value: stats?.visited || 0 }, // Changed from totalVisits
+                          {
+                            name: "Stay Office",
+                            value: stats?.stayOffice || 0,
+                          },
+                          {
+                            name: "Not Visited",
+                            value: stats?.notVisited || 0,
+                          },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={130}
+                        paddingAngle={3}
+                        dataKey="value"
+                        label
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              statusGroup: p.statusGroup === name ? null : name,
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer", transition: "all 0.3s" }}
+                      >
+                        <Cell
+                          fill="#3b82f6"
+                          className="hover:opacity-80 drop-shadow-sm"
+                        />
+                        <Cell
+                          fill="#10b981"
+                          className="hover:opacity-80 drop-shadow-sm"
+                        />
+                        <Cell
+                          fill="#ef4444"
+                          className="hover:opacity-80 drop-shadow-sm"
+                        />
+                      </Pie>
 
-          <Tooltip />
-          <Legend verticalAlign="bottom" height={50} />
-        </PieChart>
-      </ResponsiveContainer>
-    )}
-  </div>
-</div>
+                      <Tooltip
+                        cursor={{ fill: "transparent" }}
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "none",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Legend verticalAlign="bottom" height={50} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
 
-  {/* Market Coverage Chart (KANAN ATAS) */}
-  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
-    <h3 className="mb-4 text-md font-bold text-black">
-      MARKET COVERAGE
-    </h3>
-    <div className="h-64 w-full">
-      {loadingStats ? (
-        <div className="flex h-full items-center justify-center text-gray-400">
-          Loading...
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={[
-              { name: "Sales", count: stats?.salesCount || 0 },
-              { name: "Satker", count: stats?.satkerCount || 0 },
-              { name: "City", count: stats?.cityCount || 0 },
-            ]}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "black" }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "gray" }}
-            />
-            <Tooltip cursor={{ fill: "transparent" }} />
-            <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  </div>
+            {/* Market Coverage Chart (KANAN ATAS) */}
+            <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+              <h3 className="mb-4 text-md font-bold text-black">
+                MARKET COVERAGE
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                  >
+                    <BarChart
+                      data={[
+                        { name: "Sales", count: stats?.salesCount || 0 },
+                        { name: "Satker", count: stats?.satkerCount || 0 },
+                        { name: "City", count: stats?.cityCount || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "black" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "gray" }}
+                      />
+                      <Tooltip cursor={{ fill: "transparent" }} />
+                      <Bar
+                        dataKey="count"
+                        fill="#8b5cf6"
+                        radius={[4, 4, 0, 0]}
+                        barSize={40}
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            // Market Coverage bar contains Sales, Satker, City but we can't filter by those meta-categories directly.
+                            // However, we shouldn't make them clickable if they do nothing.
+                            // Since this is a summary count, clicking Sales/Satker/City text doesn't map to a specific field.
+                            // I will keep the visual without click-to-filter for this particular overview chart.
+                          }
+                        }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
 
-  {/* Ring Distribution Chart (KANAN BAWAH) */}
-  <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
-    <h3 className="mb-4 text-md font-bold text-black">
-      RING DISTRIBUTION
-    </h3>
-    <div className="h-64 w-full">
-      {loadingStats ? (
-        <div className="flex h-full items-center justify-center text-gray-400">
-          Loading...
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={[
-              { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
-              { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
-              { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
-              { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
-            ]}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            layout="vertical"
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-            <XAxis
-              type="number"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "#6B7280" }}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "black" }}
-              width={65}
-            />
-            <Tooltip cursor={{ fill: "transparent" }} />
-            <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  </div>
-</div>
+            {/* Ring Distribution Chart (KANAN BAWAH) */}
+            <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+              <h3 className="mb-4 text-md font-bold text-black">
+                RING DISTRIBUTION
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                  >
+                    <BarChart
+                      data={[
+                        { name: "Ring 1", count: stats?.ring?.ring1 || 0 },
+                        { name: "Ring 2", count: stats?.ring?.ring2 || 0 },
+                        { name: "Ring 3", count: stats?.ring?.ring3 || 0 },
+                        { name: "Ring 4", count: stats?.ring?.ring4 || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6B7280" }}
+                      />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "black" }}
+                        width={65}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "transparent" }}
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "none",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="count"
+                        fill="#f59e0b"
+                        radius={[0, 4, 4, 0]}
+                        barSize={20}
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            const upperName = name.toUpperCase();
+                            setActiveFilters((p) => ({
+                              ...p,
+                              ring: p.ring === upperName ? null : upperName,
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
+                        className="hover:opacity-80 transition-opacity"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* EXTENDED ANALYTICS SECTION */}
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Trend Visits (Area Chart) */}
+            <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+              <h3 className="mb-4 text-md font-bold text-black">
+                VISITS TREND (14 DAYS)
+              </h3>
+              <div className="h-64 w-full">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                  >
+                    <AreaChart
+                      data={stats?.trend || []}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorTrend"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3b82f6"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#3b82f6"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "gray" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "gray" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "none",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#2563eb"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorTrend)"
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                        onClick={(data: any) => {
+                          const dateVal =
+                            data?.activePayload?.[0]?.payload?.date ||
+                            data?.payload?.date ||
+                            data?.date;
+                          if (dateVal) {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              date: p.date === dateVal ? null : dateVal,
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Top Sales Performance (Horizontal Bar Chart) */}
+            <div className="rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/5 flex flex-col pt-7 pb-6 h-full">
+              <h3 className="mb-2 text-sm font-bold tracking-wider text-gray-800">
+                TOP SALES PERFORMANCE
+              </h3>
+              <p className="mb-6 text-xs text-gray-400">
+                Peringkat jumlah visit terbanyak
+              </p>
+              <div className="flex-1 w-full min-h-[250px]">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                  >
+                    <BarChart
+                      data={stats?.topSales || []}
+                      layout="vertical"
+                      margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        stroke="#f1f5f9"
+                      />
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#94a3b8" }}
+                      />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{
+                          fontSize: 13,
+                          fill: "#334155",
+                          fontWeight: 500,
+                        }}
+                        width={90}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(241, 245, 249, 0.4)" }}
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                        }}
+                        itemStyle={{ fontWeight: 600, color: "#0f172a" }}
+                        formatter={(value) => [`${value} Visits`, "Total"]}
+                      />
+                      <Bar
+                        dataKey="count"
+                        fill="#0ea5e9"
+                        radius={[0, 6, 6, 0]}
+                        barSize={24}
+                        activeBar={{ stroke: "#0284c7", strokeWidth: 2 }}
+                        className="cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              sales: p.sales === name ? null : name,
+                            }));
+                          }
+                        }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* KLPD Distribution (Donut / Pie) */}
+            <div className="rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/5 flex flex-col pt-7 pb-6 h-full">
+              <h3 className="mb-2 text-sm font-bold tracking-wider text-gray-800">
+                KLPD DISTRIBUTION
+              </h3>
+              <p className="mb-6 text-xs text-gray-400">
+                Sebaran kategori intitusi
+              </p>
+              <div className="flex-1 w-full min-h-[250px]">
+                {loadingStats ? (
+                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                    Loading...
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                  >
+                    <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                      <Pie
+                        data={stats?.klpd || []}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={105}
+                        paddingAngle={2}
+                        dataKey="count"
+                        stroke="none"
+                        {...({
+                          activeIndex: klpdActiveIndex,
+                          activeShape: renderActiveShape,
+                        } as any)}
+                        onMouseEnter={(_, index) => setKlpdActiveIndex(index)}
+                        onMouseLeave={() => setKlpdActiveIndex(undefined)}
+                        labelLine={false}
+                        label={renderCustomizedLabel}
+                        onClick={(data: any) => {
+                          const name = data?.name;
+                          if (typeof name === "string") {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              klpd: p.klpd === name ? null : name,
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {(stats?.klpd || []).map((entry, index) => {
+                          // Candy colors mimicking the user's reference image
+                          const COLORS = [
+                            "#06b6d4", // Cyan
+                            "#ec4899", // Pink
+                            "#6366f1", // Indigo
+                            "#d946ef", // Fuchsia
+                            "#8b5cf6", // Purple
+                            "#3b82f6", // Blue
+                          ];
+                          return (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                              className="outline-none"
+                              style={{
+                                transition:
+                                  "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                cursor: "pointer",
+                              }}
+                            />
+                          );
+                        })}
+                        <Label
+                          value={(stats?.klpd || []).reduce(
+                            (acc, curr) => acc + curr.count,
+                            0,
+                          )}
+                          position="center"
+                          dy={-8}
+                          className="text-4xl font-extrabold fill-gray-800"
+                        />
+                        <Label
+                          value="IN TOTAL"
+                          position="center"
+                          dy={18}
+                          className="text-[10px] font-bold tracking-widest fill-gray-400"
+                        />
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                        }}
+                        itemStyle={{ fontWeight: 600, color: "#0f172a" }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        iconType="circle"
+                        wrapperStyle={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          paddingBottom: "10px",
+                          color: "#64748b",
+                        }}
+                        onClick={(data: any) => {
+                          const name = data?.value;
+                          if (typeof name === "string") {
+                            setActiveFilters((p) => ({
+                              ...p,
+                              klpd: p.klpd === name ? null : name,
+                            }));
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RECENT VISITS TABLE */}
+          <div className="mt-6 rounded-xl bg-white p-6 shadow">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-md font-bold text-black">RECENT VISITS</h3>
+              <button
+                onClick={() => router.push("/rekapitulasi-visit")}
+                className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-100 transition-colors"
+              >
+                See All
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-white">
+                  <tr className="border-b border-black/10">
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Nama Sales
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Satuan Kerja
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      City
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Ring
+                    </th>
+                    <th className="px-3 py-2 text-left font-bold text-blue-600">
+                      Visit Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingTable ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center text-black/60"
+                      >
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : filteredVisits.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center text-black/60"
+                      >
+                        Tidak ada data visit.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredVisits.slice(0, 5).map((v) => {
+                      const active = selected?._id === v._id;
+                      return (
+                        <React.Fragment key={v._id}>
+                          <tr
+                            onClick={() => setSelected(active ? null : v)}
+                            className={cn(
+                              "cursor-pointer border-b border-black/5 transition-colors",
+                              active ? "bg-blue-50/60" : "hover:bg-gray-50",
+                            )}
+                          >
+                            <td
+                              className={cn(
+                                "px-3 py-3 text-black font-medium",
+                                active
+                                  ? "border-l-[4px] border-blue-600 pl-2"
+                                  : "border-l-[4px] border-transparent pl-2",
+                              )}
+                            >
+                              {v.nama_sales || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              {v.satuan_kerja || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              {v.city || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              <StatusPill value={v.status_visit} />
+                            </td>
+                            <td className="px-3 py-3 font-bold text-[#0B6AA9]">
+                              {v.status_ring || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-black">
+                              {formatDateID(v.visit_date)}
+                            </td>
+                          </tr>
+                          {active && (
+                            <tr className="bg-blue-50/30">
+                              <td
+                                colSpan={6}
+                                className="border-b border-blue-100 border-l-[4px] border-blue-600 px-3 py-4"
+                              >
+                                <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
+                                  <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
+                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
+                                      📖
+                                    </span>
+                                    Detail Kunjungan
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-6 border-t border-gray-100 pt-4 md:grid-cols-4 lg:grid-cols-5">
+                                    <DetailItem
+                                      label="Created At"
+                                      value={formatDateID(v.created_at)}
+                                    />
+                                    <DetailItem
+                                      label="Market Status"
+                                      value={v.status_market}
+                                    />
+                                    <DetailItem label="KLPD" value={v.klpd} />
+                                    <DetailItem
+                                      label="Reschedule"
+                                      value={
+                                        v.reschedule && v.reschedule !== "-"
+                                          ? formatDateID(v.reschedule)
+                                          : "-"
+                                      }
+                                    />
+                                    <DetailItem
+                                      label="Institusi Kerja"
+                                      value={v.institusi_kerja}
+                                    />
+                                    <DetailItem
+                                      label="PIC Name"
+                                      value={v.pic_name}
+                                    />
+                                    <DetailItem
+                                      label="PIC Phone"
+                                      value={v.pic_phone}
+                                    />
+                                    <DetailItem
+                                      label="PIC Position"
+                                      value={v.pic_position}
+                                    />
+                                    <DetailItem
+                                      label="PIC Role"
+                                      value={v.pic_role}
+                                    />
+                                    <DetailItem
+                                      label="Tindak Lanjut"
+                                      value={v.tindak_lanjut}
+                                    />
+                                    <DetailItem
+                                      label="Kegiatan Status"
+                                      value={v.kegiatan_status}
+                                    />
+                                  </div>
+
+                                  <div className="mt-6 border-t border-gray-100 pt-4">
+                                    <div className="text-xs font-extrabold tracking-wider text-gray-500">
+                                      DESKRIPSI
+                                    </div>
+                                    <div className="mt-2 whitespace-pre-line text-sm text-gray-700">
+                                      {v.descriptions || "-"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

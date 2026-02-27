@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { assertLeaderOrSales } from "@/lib/auth-server";
+import { assertLoggedIn } from "@/lib/auth-server";
 
 type ProductItem = {
   id: string;
@@ -12,6 +12,10 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
+  // Admin Response Fields per item
+  statusBarangAdmin?: string; // e.g Todo, Progress, Hold, Cancel, Done
+  tayangInaprocAdmin?: string; // e.g Ya, Tidak
 };
 
 type EProcDoc = {
@@ -33,33 +37,68 @@ type EProcDoc = {
     fullName: string;
   };
 
-  createdAt: Date;
-  updatedAt: Date;
-
-  assignedTo: {
+  assignedTo?: {
     userId: string;
     role: string;
     username: string;
     fullName: string;
   };
 
+  createdAt: Date;
+  updatedAt: Date;
+
   takenByAdminId: string | null;
   takenByAdminName: string | null;
   takenAt: Date | null;
+
+  // Admin Response Fields
+  perusahaan?: string;
+  catatanAdmin?: string;
+  statusAkhir?: string; // Computed automatically
 };
 
 async function getParams<T>(ctx: { params: T | Promise<T> }) {
   return await Promise.resolve(ctx.params);
 }
 
+function canAccess(session: any, doc: EProcDoc) {
+  if (session.role === "SUPERADMIN" || session.role === "ADMIN") return true;
+  if (doc.createdBy?.userId === session.userId) return true;
+  if (doc.assignedTo?.userId === session.userId) return true;
+  return false;
+}
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = await db.collection("teams").findOne({ leaderId });
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+async function getUserLite(db: any, userId: string) {
+  const { ObjectId } = require("mongodb");
+  if (!ObjectId.isValid(userId)) return null;
+  const u = await db
+    .collection("users")
+    .findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { role: 1, username: 1, fullName: 1 } },
+    );
+  if (!u) return null;
+  return {
+    userId,
+    role: String(u.role || ""),
+    username: String(u.username || ""),
+    fullName: String(u.fullName || ""),
+  };
+}
+
 export async function GET(
   req: Request,
   ctx: { params: { requestId: string } | Promise<{ requestId: string }> },
 ) {
-  const auth = assertLeaderOrSales(req);
-  if (!auth.ok) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok)
     return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
 
   const { requestId } = await getParams(ctx);
   const rid = decodeURIComponent(requestId);
@@ -68,23 +107,16 @@ export async function GET(
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
   const col = db.collection<EProcDoc>("eproc_requests");
 
-  // rules: hanya owner, dan belum di-take admin
-  const doc = await col.findOne(
-    {
-      requestId: rid,
-      $or: [
-        { "createdBy.userId": auth.session.userId },
-        { "assignedTo.userId": auth.session.userId },
-      ],
-    },
-    { projection: { _id: 0 } },
-  );
-
+  const doc = await col.findOne({ requestId: rid }, { projection: { _id: 0 } });
   if (!doc) {
     return NextResponse.json(
-      { error: "Request tidak ditemukan / bukan milik anda" },
+      { error: "Request tidak ditemukan" },
       { status: 404 },
     );
+  }
+
+  if (!canAccess(auth.session, doc)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
   if (doc.takenByAdminId) {
@@ -94,7 +126,6 @@ export async function GET(
     );
   }
 
-  // kembalikan format yang enak buat page kamu
   return NextResponse.json({
     data: {
       header: {
@@ -104,6 +135,7 @@ export async function GET(
         deadline: doc.deadlineUsulan,
         lokasi: doc.lokasi,
         catatanHeader: doc.catatan ?? "",
+        assignedToUserId: doc.assignedTo?.userId ?? doc.createdBy?.userId ?? "",
       },
       items: doc.items ?? [],
       infoId: doc.requestId,
@@ -116,10 +148,9 @@ export async function PUT(
   req: Request,
   ctx: { params: { requestId: string } | Promise<{ requestId: string }> },
 ) {
-  const auth = assertLeaderOrSales(req);
-  if (!auth.ok) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok)
     return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
 
   const { requestId } = await getParams(ctx);
   const rid = decodeURIComponent(requestId);
@@ -128,7 +159,6 @@ export async function PUT(
   const header = body?.header ?? {};
   const items: ProductItem[] = Array.isArray(body?.items) ? body.items : [];
 
-  // map payload dari page.tsx kamu
   const requestor = String(header.requestor ?? "").trim();
   const pemohon = String(header.pemohon ?? "").trim();
   const segmen = String(header.segmen ?? "").trim();
@@ -147,16 +177,76 @@ export async function PUT(
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
   const col = db.collection<EProcDoc>("eproc_requests");
 
+  const existing = await col.findOne(
+    { requestId: rid },
+    { projection: { _id: 0 } },
+  );
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Request tidak ditemukan" },
+      { status: 404 },
+    );
+  }
+
+  if (!canAccess(auth.session, existing)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  if (existing.takenByAdminId) {
+    return NextResponse.json(
+      { error: "Request sudah diambil admin, tidak bisa direvisi" },
+      { status: 409 },
+    );
+  }
+
   const now = new Date();
+
+  // =========================
+  // Resolve target assignment
+  // =========================
+  const assignedToUserIdRaw = String(header.assignedToUserId ?? "").trim();
+  let assignedTo = existing.assignedTo;
+
+  if (assignedToUserIdRaw) {
+    if (auth.session.role === "LEADER") {
+      const allowed = await getLeaderAllowedUserIds(db, auth.session.userId);
+      if (!allowed.includes(assignedToUserIdRaw)) {
+        return NextResponse.json(
+          { error: "FORBIDDEN: target bukan anggota team leader" },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (auth.session.role === "SUPERADMIN" || auth.session.role === "ADMIN") {
+      if (assignedToUserIdRaw !== auth.session.userId) {
+        const u = await getUserLite(db, assignedToUserIdRaw);
+        if (!u)
+          return NextResponse.json(
+            { error: "Target user tidak ditemukan" },
+            { status: 404 },
+          );
+        if (u.role !== "SALES" && u.role !== "LEADER") {
+          return NextResponse.json(
+            {
+              error: `FORBIDDEN: ${auth.session.role} hanya boleh assign ke SALES/LEADER`,
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+
+    const u = await getUserLite(db, assignedToUserIdRaw);
+    if (u) {
+      assignedTo = u;
+    }
+  }
 
   const rawResult = await col.findOneAndUpdate(
     {
       requestId: rid,
       takenByAdminId: null,
-      $or: [
-        { "createdBy.userId": auth.session.userId },
-        { "assignedTo.userId": auth.session.userId },
-      ],
     },
     {
       $set: {
@@ -167,24 +257,21 @@ export async function PUT(
         lokasi,
         catatan,
         items,
+        assignedTo,
         updatedAt: now,
       },
     },
     {
       returnDocument: "after",
       projection: { _id: 0 },
-    } as any, // <-- biar aman beda versi driver
+    } as any,
   );
 
-  // ✅ kompatibel semua versi: ambil dari .value kalau ada, atau langsung rawResult
   const updated = (rawResult as any)?.value ?? rawResult ?? null;
 
   if (!updated) {
     return NextResponse.json(
-      {
-        error:
-          "Tidak bisa revisi (sudah diambil admin / bukan milik anda / tidak ditemukan)",
-      },
+      { error: "Tidak bisa revisi (sudah diambil admin / tidak ditemukan)" },
       { status: 409 },
     );
   }
