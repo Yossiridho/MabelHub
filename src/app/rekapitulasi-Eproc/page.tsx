@@ -420,8 +420,6 @@ export default function RekapitulasiEProcurementPage() {
     { id: "perusahaan", label: "Perusahaan" },
     { id: "tindakLanjut", label: "Tindak Lanjut" },
     { id: "catatanPemohon", label: "Catatan Pemohon" },
-    { id: "tanggalKontrak", label: "Tgl Kontrak" },
-    { id: "nominalKontrak", label: "Nominal Kontrak" },
     { id: "picAdmin", label: "PIC Admin" },
     // List Barang
     { id: "itemMerek", label: "Merek Product" },
@@ -523,12 +521,6 @@ export default function RekapitulasiEProcurementPage() {
           baseRow["Tindak Lanjut"] = getTindakLanjutValue(r);
         if (selectedCols.includes("catatanPemohon"))
           baseRow["Catatan Pemohon"] = r.catatan || "-";
-        if (selectedCols.includes("tanggalKontrak"))
-          baseRow["Tgl Kontrak"] = r.tanggalKontrak
-            ? formatDateOnly(r.tanggalKontrak)
-            : "-";
-        if (selectedCols.includes("nominalKontrak"))
-          baseRow["Nominal Kontrak"] = r.nominalKontrak ?? "-";
         if (selectedCols.includes("picAdmin"))
           baseRow["PIC Admin"] = r.takenByAdminName || "-";
 
