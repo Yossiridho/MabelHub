@@ -5,6 +5,7 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type UserRole = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -551,36 +552,21 @@ export default function AddUserPage() {
       </Modal>
 
       {/* ===== Delete Confirm Modal ===== */}
-      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <div className="w-full max-w-xl rounded-lg bg-white p-12 shadow-lg">
-          <div className="text-lg font-bold text-black">Konfirmasi Hapus</div>
-          <div className="mt-3 text-sm text-gray-700">
-            Apakah anda yakin ingin menghapus user{" "}
+      {/* ===== Delete Confirm Modal ===== */}
+      <ConfirmModal
+        open={deleteOpen}
+        loading={saving}
+        title="Konfirmasi Hapus User"
+        message={
+          <>
+            Apakah Anda yakin ingin menghapus user{" "}
             <span className="font-bold">{selected?.username}</span>?
-          </div>
-
-          <div className="mt-8 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setDeleteOpen(false)}
-              className="h-10 rounded-lg bg-blue-400 px-5 text-sm font-extrabold text-white"
-            >
-              BATAL
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={onConfirmDelete}
-              className={cn(
-                "h-10 rounded-lg px-5 text-sm font-extrabold text-white",
-                saving ? "bg-red-300" : "bg-red-500 hover:bg-red-600",
-              )}
-            >
-              {saving ? "DELETING..." : "HAPUS"}
-            </button>
-          </div>
-        </div>
-      </Modal>
+          </>
+        }
+        confirmText="HAPUS"
+        onConfirm={onConfirmDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </div>
   );
 }

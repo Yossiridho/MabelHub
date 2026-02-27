@@ -6,6 +6,7 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { ChevronRight, ArrowLeft, Building } from "lucide-react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type Company = {
   _id: string;
@@ -107,6 +108,7 @@ function AddPlansContent() {
   const [tanggal, setTanggal] = useState("");
   const [items, setItems] = useState<PlanItem[]>([newItem()]);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // parameter master list
   const [paramRing, setParamRing] = useState<string[]>([]);
@@ -207,7 +209,7 @@ function AddPlansContent() {
   }
 
   function removeItem(id: string) {
-    setItems((prev) => prev.filter((x) => x.id !== id));
+    setConfirmDeleteId(id);
   }
 
   function patchItem(id: string, updates: Partial<PlanItem>) {
@@ -776,6 +778,20 @@ function AddPlansContent() {
           </main>
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Konfirmasi Hapus"
+        message="Apakah Anda yakin ingin menghapus baris tabel ini?"
+        confirmText="HAPUS"
+        onConfirm={() => {
+          if (confirmDeleteId !== null) {
+            setItems((prev) => prev.filter((x) => x.id !== confirmDeleteId));
+            setConfirmDeleteId(null);
+          }
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

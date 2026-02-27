@@ -15,7 +15,8 @@ type ParamKey =
   | "status_kunjungan"
   | "kegiatan"
   | "perusahaan"
-  | "status_akhir";
+  | "status_akhir"
+  | "status_keputusan";
 
 function norm(v: string) {
   return String(v ?? "").trim();
@@ -44,6 +45,7 @@ async function ensureDoc() {
     kegiatan: [],
     perusahaan: [],
     status_akhir: [],
+    status_keputusan: [],
     updatedAt: new Date(),
   });
 
@@ -91,6 +93,7 @@ export async function POST(req: Request) {
     "kegiatan",
     "perusahaan",
     "status_akhir",
+    "status_keputusan",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
 
@@ -130,6 +133,7 @@ export async function DELETE(req: Request) {
     "kegiatan",
     "perusahaan",
     "status_akhir",
+    "status_keputusan",
   ];
   if (!allowed.includes(key)) return bad("key tidak valid");
 

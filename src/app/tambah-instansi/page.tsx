@@ -6,6 +6,7 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { FileUp, Upload } from "lucide-react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type Role = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -153,6 +154,8 @@ export default function AddInstansiPage() {
   const [paramKlpd, setParamKlpd] = useState<string[]>([]);
   const [paramRing, setParamRing] = useState<string[]>([]);
   const [paramPosisi, setParamPosisi] = useState<string[]>([]);
+
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/parameters")
@@ -529,7 +532,7 @@ export default function AddInstansiPage() {
                           {forms.length > 1 ? (
                             <button
                               type="button"
-                              onClick={() => removeAt(idx)}
+                              onClick={() => setConfirmDeleteIdx(idx)}
                               className="flex items-center gap-1.5 rounded-lg text-red-500 px-3 py-1.5 text-xs font-bold ring-1 ring-red-200 hover:bg-red-50 hover:ring-red-300 transition-colors"
                             >
                               <svg
@@ -781,6 +784,20 @@ export default function AddInstansiPage() {
           </main>
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmDeleteIdx !== null}
+        title="Konfirmasi Hapus"
+        message="Apakah Anda yakin ingin menghapus baris form instansi ini?"
+        confirmText="HAPUS"
+        onConfirm={() => {
+          if (confirmDeleteIdx !== null) {
+            removeAt(confirmDeleteIdx);
+            setConfirmDeleteIdx(null);
+          }
+        }}
+        onCancel={() => setConfirmDeleteIdx(null)}
+      />
       <input
         ref={fileRef}
         type="file"

@@ -103,6 +103,8 @@ export default function RekapitulasiResponsePage() {
   const [adminFilter, setAdminFilter] = useState("");
   const [q, setQ] = useState("");
 
+  const [statusKeputusanOpts, setStatusKeputusanOpts] = useState<string[]>([]);
+
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
 
   // modal export excel
@@ -131,6 +133,21 @@ export default function RekapitulasiResponsePage() {
 
       setLoading(true);
       const data = await apiListTaken();
+
+      // Fetch parameters untuk status_keputusan
+      try {
+        const pRes = await fetch("/api/parameters", { cache: "no-store" });
+        if (pRes.ok) {
+          const pJson = await pRes.json();
+          const pData = pJson?.data;
+          if (pData?.status_keputusan) {
+            setStatusKeputusanOpts(pData.status_keputusan);
+          }
+        }
+      } catch (e) {
+        // ignore error fetching parameters
+      }
+
       if (mounted) setRows(data);
       if (mounted) setLoading(false);
     })();
@@ -401,6 +418,7 @@ export default function RekapitulasiResponsePage() {
                             isAdmin={isAdmin}
                             isSuperAdmin={isSuperAdmin}
                             currentUserId={user?.userId ?? ""}
+                            statusKeputusanOpts={statusKeputusanOpts}
                             onUpdated={(updatedRow) => {
                               // update lokal di tabel
                               setRows((prev) =>
@@ -443,6 +461,7 @@ function FragmentRow({
   isAdmin,
   isSuperAdmin,
   currentUserId,
+  statusKeputusanOpts,
   onUpdated,
 }: {
   r: EProcRow;
@@ -451,6 +470,7 @@ function FragmentRow({
   isAdmin: boolean;
   isSuperAdmin: boolean;
   currentUserId: string;
+  statusKeputusanOpts: string[];
   onUpdated: (r: EProcRow) => void;
 }) {
   const [loading, setLoading] = useState(false);
@@ -462,25 +482,11 @@ function FragmentRow({
     catatanAdmin: string;
     statusAkhir: string;
     items: ProductItem[];
-
-    tanggalKontrak: string;
-    nominalKontrak: number | string;
-
-    tanggalPembayaran: string;
-    nominalPembayaran: number | string;
   }>({
     perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
     statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
-
-    tanggalKontrak: r.tanggalKontrak ?? "",
-    nominalKontrak:
-      typeof r.nominalKontrak === "number" ? r.nominalKontrak : "",
-
-    tanggalPembayaran: r.tanggalPembayaran ?? "",
-    nominalPembayaran:
-      typeof r.nominalPembayaran === "number" ? r.nominalPembayaran : "",
   });
 
   const [companies, setCompanies] = useState<string[]>([]);
@@ -534,48 +540,9 @@ function FragmentRow({
       setForm((prev) => ({
         ...prev,
         statusAkhir: "",
-        tanggalKontrak: "",
-        nominalKontrak: "",
-        tanggalPembayaran: "",
-        nominalPembayaran: "",
       }));
     }
   }, [isDone, form.statusAkhir]);
-
-  // Handle cascaded disabling of financial fields if their dependencies change
-  useEffect(() => {
-    const s = String(form.statusAkhir).toUpperCase();
-    if (s !== "RILIS KONTRAK" && s !== "TERBIT BAST") {
-      if (
-        form.tanggalKontrak ||
-        form.nominalKontrak !== "" ||
-        form.tanggalPembayaran ||
-        form.nominalPembayaran !== ""
-      ) {
-        setForm((prev) => ({
-          ...prev,
-          tanggalKontrak: "",
-          nominalKontrak: "",
-          tanggalPembayaran: "",
-          nominalPembayaran: "",
-        }));
-      }
-    } else if (s === "RILIS KONTRAK") {
-      if (form.tanggalPembayaran || form.nominalPembayaran !== "") {
-        setForm((prev) => ({
-          ...prev,
-          tanggalPembayaran: "",
-          nominalPembayaran: "",
-        }));
-      }
-    }
-  }, [
-    form.statusAkhir,
-    form.tanggalKontrak,
-    form.nominalKontrak,
-    form.tanggalPembayaran,
-    form.nominalPembayaran,
-  ]);
 
   // check if editable
   // only simple ADMIN who acts as the taker can edit, or SUPERADMIN can edit
@@ -600,11 +567,6 @@ function FragmentRow({
             catatanAdmin: form.catatanAdmin,
             statusAkhir: isDone ? form.statusAkhir : "",
             items: form.items,
-
-            tanggalKontrak: form.tanggalKontrak,
-            nominalKontrak: Number(form.nominalKontrak),
-            tanggalPembayaran: form.tanggalPembayaran,
-            nominalPembayaran: Number(form.nominalPembayaran),
           }),
         },
       );
@@ -827,11 +789,32 @@ function FragmentRow({
                                 }}
                                 disabled={!canEdit || loading}
                               >
-                                <option value="">Todo</option>
-                                <option value="Progress">Progress</option>
-                                <option value="Done">Done</option>
-                                <option value="Hold">Hold</option>
-                                <option value="Cancel">Cancel</option>
+                                <option value="">Masuk</option>
+                                {statusKeputusanOpts.map((opt) => {
+                                  const o = opt.toLowerCase();
+                                  const isEndState =
+                                    o.includes("done") ||
+                                    o.includes("cancel") ||
+                                    o.includes("hold");
+
+                                  const savedStatus = (
+                                    r.items?.[idx]?.statusBarangAdmin || ""
+                                  ).toLowerCase();
+                                  const hasProgressed =
+                                    savedStatus !== "" &&
+                                    savedStatus !== "masuk";
+
+                                  // Sembunyikan end-state jika belum progress
+                                  if (isEndState && !hasProgressed) {
+                                    return null;
+                                  }
+
+                                  return (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </td>
                             <td colSpan={2} className="px-3 py-2">
@@ -972,10 +955,19 @@ function FragmentRow({
                       setForm({ ...form, statusAkhir: val })
                     }
                     isDisabled={!canEdit || loading || !isDone}
-                    options={statusAkhirOptions.map((s) => ({
-                      value: s,
-                      label: s,
-                    }))}
+                    options={statusAkhirOptions
+                      .filter((s) => {
+                        const low = s.toLowerCase();
+                        return (
+                          low.includes("rilis kontrak") ||
+                          low.includes("barang terkirim ke user") ||
+                          low.includes("terbit bast")
+                        );
+                      })
+                      .map((s) => ({
+                        value: s,
+                        label: s,
+                      }))}
                     placeholder={
                       !isDone
                         ? "Terkunci (Belum Done)"
@@ -998,163 +990,6 @@ function FragmentRow({
                         />
                       </svg>
                       Status Usulan harus &quot;Done&quot; untuk diedit.
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Rincian Finansial & Pembayaran */}
-              <h4 className="font-semibold text-slate-800 mt-8 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
-                <svg
-                  className="w-4 h-4 text-emerald-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Informasi Keuangan & Kontrak
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                {/* Tanggal Kontrak */}
-                <div>
-                  <label className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                    <span>Tanggal Kontrak</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
-                    value={form.tanggalKontrak}
-                    onChange={(e) =>
-                      setForm({ ...form, tanggalKontrak: e.target.value })
-                    }
-                    disabled={
-                      !canEdit ||
-                      loading ||
-                      (String(form.statusAkhir).toUpperCase() !==
-                        "RILIS KONTRAK" &&
-                        String(form.statusAkhir).toUpperCase() !==
-                          "TERBIT BAST")
-                    }
-                  />
-                </div>
-
-                {/* Nominal Kontrak */}
-                <div>
-                  <label className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                    <span>Nominal Kontrak</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 font-semibold text-sm pointer-events-none">
-                      Rp.
-                    </span>
-                    <input
-                      type="number"
-                      className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
-                      placeholder="0"
-                      value={form.nominalKontrak}
-                      onChange={(e) =>
-                        setForm({ ...form, nominalKontrak: e.target.value })
-                      }
-                      disabled={
-                        !canEdit ||
-                        loading ||
-                        (String(form.statusAkhir).toUpperCase() !==
-                          "RILIS KONTRAK" &&
-                          String(form.statusAkhir).toUpperCase() !==
-                            "TERBIT BAST")
-                      }
-                    />
-                  </div>
-                  {String(form.statusAkhir).toUpperCase() !== "RILIS KONTRAK" &&
-                    String(form.statusAkhir).toUpperCase() !==
-                      "TERBIT BAST" && (
-                      <span className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1 inline-flex gap-1.5 leading-tight max-w-[90%]">
-                        <svg
-                          className="w-3.5 h-3.5 shrink-0"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        Terkunci: Ubah Status Akhir ke &quot;Rilis
-                        Kontrak/Terbit BAST&quot;
-                      </span>
-                    )}
-                </div>
-
-                {/* Tanggal Pembayaran */}
-                <div className="pt-2 md:pt-4 border-t border-slate-100 md:border-none">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Tanggal Terbayar (SP2D)
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
-                    value={form.tanggalPembayaran}
-                    onChange={(e) =>
-                      setForm({ ...form, tanggalPembayaran: e.target.value })
-                    }
-                    disabled={
-                      !canEdit ||
-                      loading ||
-                      String(form.statusAkhir).toUpperCase() !== "TERBIT BAST"
-                    }
-                  />
-                </div>
-
-                {/* Nominal Pembayaran */}
-                <div className="pt-2 md:pt-4 border-t border-slate-100 md:border-none">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Nominal Terbayar
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 font-semibold text-sm pointer-events-none">
-                      Rp.
-                    </span>
-                    <input
-                      type="number"
-                      className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
-                      placeholder="0"
-                      value={form.nominalPembayaran}
-                      onChange={(e) =>
-                        setForm({ ...form, nominalPembayaran: e.target.value })
-                      }
-                      disabled={
-                        !canEdit ||
-                        loading ||
-                        String(form.statusAkhir).toUpperCase() !== "TERBIT BAST"
-                      }
-                    />
-                  </div>
-                  {String(form.statusAkhir).toUpperCase() !== "TERBIT BAST" && (
-                    <span className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1 inline-flex gap-1.5 leading-tight max-w-[90%]">
-                      <svg
-                        className="w-3.5 h-3.5 shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Terkunci: Ubah Status Akhir ke &quot;Terbit BAST&quot;
                     </span>
                   )}
                 </div>
