@@ -412,10 +412,13 @@ export default function EProcurementRequestPage() {
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-            <h1 className="text-2xl font-extrabold pl-4 text-black">
+            <h1 className="text-3xl font-extrabold pl-4 text-black drop-shadow-sm">
               E-PROCUREMENT
             </h1>
-            <div className="px-6 pb-6"></div>
+            <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+             Ajukan Request dan Kelola Permintaan Pengadaan.
+            </div>
+            <div className="w-full px-6 py-3"></div>
           </div>
 
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">

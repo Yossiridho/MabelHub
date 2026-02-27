@@ -636,19 +636,26 @@ export default function RekapitulasiEProcurementPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="mx-auto">
             {/* Header */}
-            <div className="mb-4 flex items-center justify-between gap-3 px-6 pt-2 pb-6">
-              <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black">
-                REKAPITULASI E-PROCUREMENT
-              </h1>
-              <button
-                onClick={() => {
-                  console.log("EXPORT BUTTON CLICKED");
-                  setIsExportModalOpen(true);
-                }}
-                className="z-50 relative rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-green-700 hover:bg-green-700 transition"
-              >
-                Export Excel
-              </button>
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 pt-2 pb-4">
+              <div>
+                <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                  REKAPITULASI E-PROCUREMENT
+                </h1>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Rekapitulasi seluruh request e-procurement
+                </div>
+              </div>
+              <div className="px-4">
+                <button
+                  onClick={() => {
+                    console.log("EXPORT BUTTON CLICKED");
+                    setIsExportModalOpen(true);
+                  }}
+                  className="z-50 relative rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-green-700 hover:bg-green-700 transition whitespace-nowrap"
+                >
+                  Export Excel
+                </button>
+              </div>
             </div>
 
             <div className="rounded-2xl bg-white p-6 ring-1 ring-black/10">

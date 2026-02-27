@@ -273,10 +273,15 @@ export default function ParameterPage() {
         <Sidebar />
 
         <div className="flex-1 p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-xl font-extrabold pl-3 tracking-wide text-gray-900">
-              PARAMETER
-            </h1>
+          <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 pt-2 pb-4">
+            <div>
+              <h1 className="text-3xl font-extrabold text-black drop-shadow-sm">
+                PARAMETER
+              </h1>
+              <div className="text-sm mt-2 text-slate-500 font-medium">
+                Kelola parameter untuk dropdown pada sistem
+              </div>
+            </div>
             <div className="flex gap-2">
               <input
                 type="file"
@@ -458,23 +463,8 @@ function CardList({
   return (
     <div className="flex flex-col h-full rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden transition-all hover:shadow-md">
       {/* TITLE */}
-      <div className="bg-linear-to-r from-blue-600 to-blue-700 px-5 py-3.5 text-xs font-extrabold tracking-wider text-white uppercase flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <svg
-            className="w-4 h-4 opacity-80"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 10h16M4 14h16M4 18h16"
-            />
-          </svg>
-          {title}
-        </div>
+      <div className="bg-blue-200 font-bold px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">{title}</div>
         <span className="bg-blue-500/50 px-2 py-0.5 rounded-full text-[10px] font-bold">
           {sorted.length} item
         </span>

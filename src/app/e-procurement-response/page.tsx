@@ -86,7 +86,7 @@ export default function EProcurementResponsePage() {
   const [confirmTakeId, setConfirmTakeId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
-  const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
 
   // ✅ Guard: hanya ADMIN / SUPERADMIN
   useEffect(() => {
@@ -114,7 +114,18 @@ export default function EProcurementResponsePage() {
     };
   }, [sessionLoading, user]);
 
-  const isEmpty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const timeA = new Date(a.tanggalSubmit).getTime();
+      const timeB = new Date(b.tanggalSubmit).getTime();
+      return timeA - timeB; // Oldest first
+    });
+  }, [rows]);
+
+  const isEmpty = useMemo(
+    () => !loading && sortedRows.length === 0,
+    [loading, sortedRows],
+  );
 
   async function handleConfirmTake() {
     if (!confirmTakeId) return;
@@ -137,21 +148,20 @@ export default function EProcurementResponsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
-      {/* Decorative gradient background elements */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
-
+    <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
         <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-            <div>
-              <div className="text-3xl pl-4 font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
-                E-PROCUREMENT RESPONSE
-              </div>
-              <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
-                Request e-procurement yang bisa diambil admin.
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                  E-PROCUREMENT REQUEST
+                </div>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Request e-procurement yang bisa diambil admin.
+                </div>
               </div>
             </div>
 
@@ -162,7 +172,7 @@ export default function EProcurementResponsePage() {
                   Request List
                 </h3>
                 <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
-                  {rows.length} requests
+                  {sortedRows.length} requests
                 </span>
               </div>
 
@@ -193,6 +203,9 @@ export default function EProcurementResponsePage() {
                           Segmen
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Tanggal Masuk
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
                           Deadline
                         </th>
                         <th className="px-5 py-4 text-center whitespace-nowrap">
@@ -202,8 +215,8 @@ export default function EProcurementResponsePage() {
                     </thead>
 
                     <tbody>
-                      {rows.map((r) => {
-                        const isOpen = !!openDetail[r.requestId];
+                      {sortedRows.map((r) => {
+                        const isOpen = openDetail === r.requestId;
                         const isTaking = takingId === r.requestId;
 
                         return (
@@ -213,10 +226,7 @@ export default function EProcurementResponsePage() {
                             isOpen={isOpen}
                             isTaking={isTaking}
                             onToggle={() =>
-                              setOpenDetail((prev) => ({
-                                ...prev,
-                                [r.requestId]: !prev[r.requestId],
-                              }))
+                              setOpenDetail(isOpen ? null : r.requestId)
                             }
                             onTake={() => setConfirmTakeId(r.requestId)}
                           />
@@ -265,17 +275,32 @@ function FragmentRow({
   onToggle: () => void;
   onTake: () => void;
 }) {
+  const isDelayed =
+    Date.now() - new Date(r.tanggalSubmit).getTime() > 3 * 24 * 60 * 60 * 1000;
+
   return (
     <>
       <tr
-        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${isOpen ? "bg-indigo-50/20" : ""}`}
+        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${
+          isOpen ? "bg-indigo-50/20" : isDelayed ? "bg-rose-50/40" : ""
+        }`}
         onClick={onToggle}
         title="Klik untuk lihat detail"
       >
         <td className="px-5 py-4 font-semibold text-slate-800">
-          {r.requestId}
+          <div className="flex items-center gap-2">
+            {r.requestId}
+            {isDelayed && (
+              <span
+                title="Mendesak (>3 hari)"
+                className="inline-flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"
+              />
+            )}
+          </div>
         </td>
-        <td className="px-5 py-4 text-slate-600">{r.requestor}</td>
+        <td className="px-5 py-4 text-slate-600">
+          <span>{r.requestor}</span>
+        </td>
         <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
         <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
         <td className="px-5 py-4">
@@ -283,7 +308,10 @@ function FragmentRow({
             {r.segmen}
           </span>
         </td>
-        <td className="px-5 py-4 text-slate-600">
+        <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>
+        <td
+          className={`px-5 py-4 font-medium ${isDelayed ? "text-rose-600" : "text-slate-600"}`}
+        >
           {fmtDate(r.deadlineUsulan)}
         </td>
 
@@ -298,7 +326,9 @@ function FragmentRow({
               "h-8 rounded-full px-5 text-xs font-bold transition-all flex items-center justify-center mx-auto shadow-sm",
               isTaking
                 ? "bg-slate-300 text-slate-500 shadow-none cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 active:scale-95",
+                : isDelayed
+                  ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 active:scale-95"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 active:scale-95",
             ].join(" ")}
           >
             {isTaking ? (
@@ -324,6 +354,8 @@ function FragmentRow({
                 </svg>
                 TAKING...
               </>
+            ) : isDelayed ? (
+              "TAKE NOW"
             ) : (
               "TAKE"
             )}
@@ -333,7 +365,7 @@ function FragmentRow({
 
       {isOpen ? (
         <tr className="border-b border-slate-100 bg-slate-50/50">
-          <td colSpan={7} className="px-5 py-5 text-sm">
+          <td colSpan={8} className="px-5 py-5 text-sm">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
               <div>
                 <span className="font-semibold text-slate-700">
@@ -351,8 +383,8 @@ function FragmentRow({
               </div>
             </div>
 
-            <div className="mb-2">
-              <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full mb-6">
+              <h4 className="font-semibold text-slate-800 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
                 <svg
                   className="w-4 h-4 text-indigo-500"
                   fill="none"
@@ -373,14 +405,20 @@ function FragmentRow({
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 border-b border-slate-100">
                       <tr className="text-slate-500 uppercase tracking-wider font-semibold">
-                        <th className="px-3 py-3">Merek</th>
-                        <th className="px-3 py-3">Sub Kategori</th>
-                        <th className="px-3 py-3">Spesifikasi</th>
-                        <th className="px-3 py-3">Qty</th>
-                        <th className="px-3 py-3 pl-4">Pagu</th>
-                        <th className="px-3 py-3">Harga Tayang</th>
-                        <th className="px-3 py-3">Link Inaproc</th>
-                        <th className="px-3 py-3">Link ECom</th>
+                        <th className="px-3 py-3 font-semibold">Merek</th>
+                        <th className="px-3 py-3 font-semibold">
+                          Sub Kategori
+                        </th>
+                        <th className="px-3 py-3 font-semibold">Spesifikasi</th>
+                        <th className="px-3 py-3 font-semibold">Qty</th>
+                        <th className="px-3 py-3 font-semibold pl-4">Pagu</th>
+                        <th className="px-3 py-3 font-semibold">
+                          Harga Tayang
+                        </th>
+                        <th className="px-3 py-3 font-semibold">
+                          Link Inaproc
+                        </th>
+                        <th className="px-3 py-3 font-semibold">Link ECom</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">

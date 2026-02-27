@@ -7,6 +7,7 @@ import type { Role, MenuSection } from "@/lib/menu";
 import { getMenuByRole } from "@/lib/menu";
 import { useSession } from "@/components/session/SessionProvider";
 import NotificationMenu from "@/components/modals/NotificationMenu";
+import { Menu, X, ChevronUp } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -37,8 +38,6 @@ export default function Sidebar() {
   const toggleSection = (e: React.MouseEvent, title: string) => {
     e.stopPropagation();
     setOpenSections((prev) => {
-      // Default is open (undefined -> !== false). So if it's currently false, we set it to true (open).
-      // If it's undefined or true, we set it to false (closed).
       const newState = { ...prev, [title]: prev[title] === false };
 
       // Save to localStorage
@@ -122,19 +121,7 @@ export default function Sidebar() {
             className="p-2 -ml-2 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             aria-label="Open Menu"
           >
-            <svg
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
+            <Menu className="w-6 h-6" />
           </button>
           <span className="font-extrabold text-blue-600 text-lg tracking-wide">
             MabelHub
@@ -173,19 +160,7 @@ export default function Sidebar() {
             onClick={() => setIsOpen(false)}
             className="lg:hidden absolute top-4 right-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="w-5 h-5" />
           </button>
 
           <div className="flex h-full flex-col items-center">
@@ -210,28 +185,17 @@ export default function Sidebar() {
               >
                 <button
                   onClick={(e) => toggleSection(e, section.title)}
-                  className="w-full bg-gray-300 px-6 py-3 flex items-center justify-between text-lg font-semibold text-gray-700 hover:bg-gray-400 transition-colors focus:outline-none"
+                  className="w-full bg-blue-100 px-6 py-3 flex items-center justify-between text-lg font-semibold text-gray-700 hover:bg-blue-200 transition-colors focus:outline-none"
                 >
                   <span>{section.title}</span>
-                  <svg
+                  <ChevronUp
                     suppressHydrationWarning
                     className={`w-5 h-5 transition-transform duration-200 ${
                       openSections[section.title] !== false
                         ? ""
                         : "transform rotate-180"
                     }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
+                  />
                 </button>
 
                 <div

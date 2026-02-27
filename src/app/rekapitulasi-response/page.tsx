@@ -25,6 +25,7 @@ type ProductItem = {
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
   catatanAdminItem?: string;
+  perusahaanAdminItem?: string;
 };
 
 type EProcRow = {
@@ -112,7 +113,7 @@ export default function RekapitulasiResponsePage() {
 
   const [statusKeputusanOpts, setStatusKeputusanOpts] = useState<string[]>([]);
 
-  const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
 
   // modal export excel
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -216,6 +217,7 @@ export default function RekapitulasiResponsePage() {
     { id: "itemStatusAdmin", label: "Item: Status Barang (Admin)" },
     { id: "itemTayangInaproc", label: "Item: Tayang Inaproc (Admin)" },
     { id: "itemCatatan", label: "Item: Catatan Admin" },
+    { id: "itemPerusahaan", label: "Item: Perusahaan Admin" },
   ];
 
   const handleExport = async (selectedCols: string[], scope: ExportScope) => {
@@ -292,6 +294,9 @@ export default function RekapitulasiResponsePage() {
                 item.tayangInaprocAdmin || "-";
             if (selectedCols.includes("itemCatatan"))
               rowWithItem["Item: Catatan Admin"] = item.catatanAdminItem || "-";
+            if (selectedCols.includes("itemPerusahaan"))
+              rowWithItem["Item: Perusahaan Admin"] =
+                item.perusahaanAdminItem || "-";
             flattenedData.push(rowWithItem);
           });
         } else {
@@ -344,18 +349,18 @@ export default function RekapitulasiResponsePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
         <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <div className="px-3 pt-2 pb-2">
+          <div className="px-8 pt-4 space-y-1">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-extrabold pl-4 text-black">
+                <h1 className="text-3xl font-extrabold pl-4 text-black drop-shadow-sm">
                   REKAPITULASI RESPONSE
                 </h1>
-                <div className="mt-1 pl-4 text-sm text-neutral-600">
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
                   Menampilkan request e-procurement yang sudah diambil admin.
                 </div>
               </div>
@@ -428,6 +433,9 @@ export default function RekapitulasiResponsePage() {
                           Segmen
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Tanggal Masuk
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
                           Deadline
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
@@ -443,17 +451,14 @@ export default function RekapitulasiResponsePage() {
                     </thead>
                     <tbody>
                       {filtered.map((r) => {
-                        const isOpen = !!openDetail[r.requestId];
+                        const isOpen = openDetail === r.requestId;
                         return (
                           <FragmentRow
                             key={r.requestId}
                             r={r}
                             isOpen={isOpen}
                             onToggle={() =>
-                              setOpenDetail((prev) => ({
-                                ...prev,
-                                [r.requestId]: !prev[r.requestId],
-                              }))
+                              setOpenDetail(isOpen ? null : r.requestId)
                             }
                             isAdmin={isAdmin}
                             isSuperAdmin={isSuperAdmin}
@@ -518,13 +523,11 @@ function FragmentRow({
   const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState<{
-    perusahaan: string;
     catatanAdmin: string;
     statusAkhir: string;
     items: ProductItem[];
     activeTab?: "items" | "history";
   }>({
-    perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
     statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
@@ -534,8 +537,13 @@ function FragmentRow({
   const [companies, setCompanies] = useState<string[]>([]);
   const [statusAkhirOptions, setStatusAkhirOptions] = useState<string[]>([]);
 
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+    new Set(),
+  );
+
   useEffect(() => {
     if (isOpen) {
+      setSelectedIndices(new Set()); // reset on open
       fetch("/api/parameters")
         .then((res) => res.json())
         .then((json) => {
@@ -549,6 +557,51 @@ function FragmentRow({
         .catch(() => {});
     }
   }, [isOpen]);
+
+  const toggleSelectAll = () => {
+    if (selectedIndices.size === form.items.length) {
+      setSelectedIndices(new Set());
+    } else {
+      setSelectedIndices(new Set(form.items.map((_, i) => i)));
+    }
+  };
+
+  const toggleSelect = (idx: number) => {
+    const newSelected = new Set(selectedIndices);
+    if (newSelected.has(idx)) {
+      newSelected.delete(idx);
+    } else {
+      newSelected.add(idx);
+    }
+    setSelectedIndices(newSelected);
+  };
+
+  const applyBulkStatus = (val: string) => {
+    if (selectedIndices.size === 0) return;
+    const newItems = [...form.items];
+    selectedIndices.forEach((idx) => {
+      newItems[idx] = { ...newItems[idx], statusBarangAdmin: val };
+    });
+    setForm({ ...form, items: newItems });
+  };
+
+  const applyBulkPerusahaan = (val: string) => {
+    if (selectedIndices.size === 0) return;
+    const newItems = [...form.items];
+    selectedIndices.forEach((idx) => {
+      newItems[idx] = { ...newItems[idx], perusahaanAdminItem: val };
+    });
+    setForm({ ...form, items: newItems });
+  };
+
+  const applyBulkInaproc = (val: string) => {
+    if (selectedIndices.size === 0) return;
+    const newItems = [...form.items];
+    selectedIndices.forEach((idx) => {
+      newItems[idx] = { ...newItems[idx], tayangInaprocAdmin: val };
+    });
+    setForm({ ...form, items: newItems });
+  };
 
   const computedStatusUsulan = useMemo(() => {
     const total = form.items.length;
@@ -605,7 +658,6 @@ function FragmentRow({
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            perusahaan: form.perusahaan,
             catatanAdmin: form.catatanAdmin,
             statusAkhir: isDone ? form.statusAkhir : "",
             items: form.items,
@@ -627,17 +679,36 @@ function FragmentRow({
     }
   };
 
+  const isFinalStatus = ["Done", "Cancel", "Hold"].includes(
+    computedStatusUsulan,
+  );
+  const isDelayed =
+    !isFinalStatus &&
+    Date.now() - new Date(r.tanggalSubmit).getTime() > 3 * 24 * 60 * 60 * 1000;
+
   return (
     <>
       <tr
-        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${isOpen ? "bg-indigo-50/20" : ""}`}
+        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${
+          isOpen ? "bg-indigo-50/20" : isDelayed ? "bg-rose-50/40" : ""
+        }`}
         onClick={onToggle}
         title="Klik untuk lihat detail"
       >
         <td className="px-5 py-4 font-semibold text-slate-800">
-          {r.requestId}
+          <div className="flex items-center gap-2">
+            {r.requestId}
+            {isDelayed && (
+              <span
+                title="Mendesak (>3 hari belum Done)"
+                className="inline-flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"
+              />
+            )}
+          </div>
         </td>
-        <td className="px-5 py-4 text-slate-600">{r.requestor}</td>
+        <td className="px-5 py-4 text-slate-600">
+          <span>{r.requestor}</span>
+        </td>
         <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
         <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
         <td className="px-5 py-4">
@@ -645,10 +716,14 @@ function FragmentRow({
             {r.segmen}
           </span>
         </td>
-        <td className="px-5 py-4 text-slate-600">
+        <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>
+        <td
+          className={`px-5 py-4 font-medium ${isDelayed ? "text-rose-600" : "text-slate-600"}`}
+        >
           {fmtDate(r.deadlineUsulan)}
         </td>
         <td className="px-5 py-4">
+          {/* ... status logic ... */}
           {(() => {
             const st = computedStatusUsulan;
             if (st === "Done")
@@ -692,49 +767,144 @@ function FragmentRow({
 
       {isOpen && (
         <tr className="border-b border-neutral-100 bg-slate-50/50">
-          <td colSpan={9} className="px-5 py-5 text-sm">
-            {/* TABS untuk Rincian Barang vs History */}
-            <div className="mb-6 flex gap-4 border-b border-slate-200">
-              <button
-                type="button"
-                className={`pb-2 text-sm font-semibold transition-colors ${
-                  !form.activeTab || form.activeTab === "items"
-                    ? "border-b-2 border-indigo-600 text-indigo-700"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setForm((prev) => ({ ...prev, activeTab: "items" }));
-                }}
-              >
-                Rincian Items ({r.items?.length || 0})
-              </button>
-              {r.history && r.history.length > 0 && (
-                <button
-                  type="button"
-                  className={`pb-2 text-sm font-semibold transition-colors ${
-                    form.activeTab === "history"
-                      ? "border-b-2 border-indigo-600 text-indigo-700"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setForm((prev) => ({ ...prev, activeTab: "history" }));
-                  }}
-                >
-                  History Perubahan ({r.history.length})
-                </button>
-              )}
-            </div>
-
+          <td colSpan={10} className="px-5 py-5 text-sm">
             {/* Rincian Barang */}
-            {(!form.activeTab || form.activeTab === "items") && (
-              <div className="mb-6">
+            <div className="mb-6">
+              {/* Rincian Barang Card */}
+              <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full mb-6">
+                <h4 className="font-semibold text-slate-800 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
+                  <svg
+                    className="w-4 h-4 text-indigo-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                  Rincian Items ({r.items?.length || 0})
+                </h4>
+
+                {/* Bulk Action Bar */}
+                {selectedIndices.size > 0 && canEdit && (
+                  <div className="mb-4 flex flex-wrap items-center gap-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 pr-4 border-r border-indigo-200">
+                      <span className="text-xs font-bold text-indigo-700">
+                        {selectedIndices.size} item terpilih
+                      </span>
+                      <button
+                        onClick={() => setSelectedIndices(new Set())}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-700 font-semibold underline"
+                      >
+                        Batal
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Set Status:
+                        </span>
+                        <select
+                          className="text-xs border border-indigo-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          onChange={(e) => applyBulkStatus(e.target.value)}
+                          value=""
+                        >
+                          <option value="" disabled>
+                            Pilih...
+                          </option>
+                          {statusKeputusanOpts.map((opt) => {
+                            const o = opt.toLowerCase();
+                            const isEndState =
+                              o.includes("done") ||
+                              o.includes("cancel") ||
+                              o.includes("hold");
+
+                            // Cek apakah SEMUA yang terpilih sudah progress
+                            let allProgressed = true;
+                            selectedIndices.forEach((idx) => {
+                              const savedStatus = (
+                                r.items?.[idx]?.statusBarangAdmin || ""
+                              ).toLowerCase();
+                              if (
+                                savedStatus === "" ||
+                                savedStatus === "masuk"
+                              ) {
+                                allProgressed = false;
+                              }
+                            });
+
+                            if (isEndState && !allProgressed) return null;
+
+                            return (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Set Penyedia:
+                        </span>
+                        <select
+                          className="text-xs border border-indigo-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 max-w-[150px]"
+                          onChange={(e) => applyBulkPerusahaan(e.target.value)}
+                          value=""
+                        >
+                          <option value="" disabled>
+                            Pilih Vendor...
+                          </option>
+                          {companies.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Set Inaproc:
+                        </span>
+                        <select
+                          className="text-xs border border-indigo-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          onChange={(e) => applyBulkInaproc(e.target.value)}
+                          value=""
+                        >
+                          <option value="" disabled>
+                            Pilih...
+                          </option>
+                          <option value="Ya">Ya</option>
+                          <option value="Tidak">Tidak</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {r.items && r.items.length > 0 ? (
                   <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
                     <table className="w-full text-xs text-left">
                       <thead className="bg-slate-50 border-b border-slate-100">
                         <tr className="text-slate-500 uppercase tracking-wider font-semibold">
+                          <th className="px-3 py-3 w-10">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={
+                                form.items.length > 0 &&
+                                selectedIndices.size === form.items.length
+                              }
+                              onChange={toggleSelectAll}
+                              disabled={!canEdit || loading}
+                            />
+                          </th>
                           <th className="px-3 py-3">Merek</th>
                           <th className="px-3 py-3">Sub Kategori</th>
                           <th className="px-3 py-3">Spesifikasi</th>
@@ -748,7 +918,22 @@ function FragmentRow({
                       <tbody className="divide-y divide-slate-100">
                         {r.items.map((it, idx) => (
                           <React.Fragment key={it.id || idx}>
-                            <tr className="hover:bg-slate-50 transition-colors">
+                            <tr
+                              className={`transition-colors hover:bg-slate-50 ${
+                                selectedIndices.has(idx)
+                                  ? "bg-indigo-50/30"
+                                  : ""
+                              }`}
+                            >
+                              <td className="px-3 py-3">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                  checked={selectedIndices.has(idx)}
+                                  onChange={() => toggleSelect(idx)}
+                                  disabled={!canEdit || loading}
+                                />
+                              </td>
                               <td className="px-3 py-3 font-medium text-slate-800">
                                 {it.merek || "-"}
                               </td>
@@ -826,111 +1011,140 @@ function FragmentRow({
                               </td>
                             </tr>
                             {/* Baris khusus untuk input admin per-item */}
-                            <tr className="bg-indigo-50/40">
-                              <td
-                                colSpan={4}
-                                className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
-                              >
-                                Status Keputusan ({it.merek}):
-                              </td>
-                              <td
-                                colSpan={2}
-                                className="px-3 py-2 border-r border-indigo-100"
-                              >
-                                <select
-                                  className="w-full border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
-                                  value={
-                                    form.items[idx]?.statusBarangAdmin || ""
-                                  }
-                                  onChange={(e) => {
-                                    const newItems = [...form.items];
-                                    newItems[idx] = {
-                                      ...newItems[idx],
-                                      statusBarangAdmin: e.target.value,
-                                    };
-                                    setForm({ ...form, items: newItems });
-                                  }}
-                                  disabled={!canEdit || loading}
-                                >
-                                  <option value="">Masuk</option>
-                                  {statusKeputusanOpts.map((opt) => {
-                                    const o = opt.toLowerCase();
-                                    const isEndState =
-                                      o.includes("done") ||
-                                      o.includes("cancel") ||
-                                      o.includes("hold");
+                            {/* Baris khusus untuk input admin per-item */}
+                            <tr className="bg-indigo-50/40 border-b border-indigo-100/50">
+                              <td colSpan={9} className="px-5 py-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                                  {/* Status Keputusan */}
+                                  <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Status Barang ({it.merek})
+                                    </label>
+                                    <select
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm"
+                                      value={
+                                        form.items[idx]?.statusBarangAdmin || ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          statusBarangAdmin: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                    >
+                                      <option value="">Masuk</option>
+                                      {statusKeputusanOpts.map((opt) => {
+                                        const o = opt.toLowerCase();
+                                        const isEndState =
+                                          o.includes("done") ||
+                                          o.includes("cancel") ||
+                                          o.includes("hold");
 
-                                    const savedStatus = (
-                                      r.items?.[idx]?.statusBarangAdmin || ""
-                                    ).toLowerCase();
-                                    const hasProgressed =
-                                      savedStatus !== "" &&
-                                      savedStatus !== "masuk";
+                                        const savedStatus = (
+                                          r.items?.[idx]?.statusBarangAdmin ||
+                                          ""
+                                        ).toLowerCase();
+                                        const hasProgressed =
+                                          savedStatus !== "" &&
+                                          savedStatus !== "masuk";
 
-                                    // Sembunyikan end-state jika belum progress
-                                    if (isEndState && !hasProgressed) {
-                                      return null;
-                                    }
+                                        // Sembunyikan end-state jika belum progress
+                                        if (isEndState && !hasProgressed) {
+                                          return null;
+                                        }
 
-                                    return (
-                                      <option key={opt} value={opt}>
-                                        {opt}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              </td>
-                              <td colSpan={2} className="px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-slate-500 text-xs font-semibold whitespace-nowrap">
-                                    Tayang Inaproc:
-                                  </span>
-                                  <select
-                                    className="flex-1 border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
-                                    value={
-                                      form.items[idx]?.tayangInaprocAdmin || ""
-                                    }
-                                    onChange={(e) => {
-                                      const newItems = [...form.items];
-                                      newItems[idx] = {
-                                        ...newItems[idx],
-                                        tayangInaprocAdmin: e.target.value,
-                                      };
-                                      setForm({ ...form, items: newItems });
-                                    }}
-                                    disabled={!canEdit || loading}
-                                  >
-                                    <option value="">Pilih</option>
-                                    <option value="Ya">Ya</option>
-                                    <option value="Tidak">Tidak</option>
-                                  </select>
+                                        return (
+                                          <option key={opt} value={opt}>
+                                            {opt}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </div>
+
+                                  {/* Penyedia */}
+                                  <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Penyedia / Vendor
+                                    </label>
+                                    <select
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm"
+                                      value={
+                                        form.items[idx]?.perusahaanAdminItem ||
+                                        ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          perusahaanAdminItem: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                    >
+                                      <option value="">Pilih Vendor...</option>
+                                      {companies.map((c) => (
+                                        <option key={c} value={c}>
+                                          {c}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  {/* Inaproc */}
+                                  <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Tayang Inaproc
+                                    </label>
+                                    <select
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm"
+                                      value={
+                                        form.items[idx]?.tayangInaprocAdmin ||
+                                        ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          tayangInaprocAdmin: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                    >
+                                      <option value="">Pilih...</option>
+                                      <option value="Ya">Ya</option>
+                                      <option value="Tidak">Tidak</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Catatan Area */}
+                                  <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Catatan Admin
+                                    </label>
+                                    <textarea
+                                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white transition-all shadow-sm min-h-[38px] max-h-[120px]"
+                                      value={
+                                        form.items[idx]?.catatanAdminItem || ""
+                                      }
+                                      onChange={(e) => {
+                                        const newItems = [...form.items];
+                                        newItems[idx] = {
+                                          ...newItems[idx],
+                                          catatanAdminItem: e.target.value,
+                                        };
+                                        setForm({ ...form, items: newItems });
+                                      }}
+                                      disabled={!canEdit || loading}
+                                      placeholder="Catatan..."
+                                    />
+                                  </div>
                                 </div>
-                              </td>
-                            </tr>
-                            <tr className="bg-indigo-50/20">
-                              <td
-                                colSpan={4}
-                                className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
-                              >
-                                Catatan Admin ({it.merek}):
-                              </td>
-                              <td colSpan={4} className="px-3 py-2">
-                                <textarea
-                                  className="w-full border border-indigo-200 rounded-md px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white min-h-[40px] max-h-[120px]"
-                                  value={
-                                    form.items[idx]?.catatanAdminItem || ""
-                                  }
-                                  onChange={(e) => {
-                                    const newItems = [...form.items];
-                                    newItems[idx] = {
-                                      ...newItems[idx],
-                                      catatanAdminItem: e.target.value,
-                                    };
-                                    setForm({ ...form, items: newItems });
-                                  }}
-                                  disabled={!canEdit || loading}
-                                  placeholder="Tambahkan catatan khusus item ini (opsional)..."
-                                />
                               </td>
                             </tr>
                           </React.Fragment>
@@ -957,40 +1171,7 @@ function FragmentRow({
                   </div>
                 )}
               </div>
-            )}
-
-            {/* History Perubahan */}
-            {form.activeTab === "history" && r.history && (
-              <div className="mb-6 space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                {r.history
-                  .slice()
-                  .reverse()
-                  .map((h, i) => (
-                    <div
-                      key={i}
-                      className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm relative pl-6"
-                    >
-                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-400 rounded-l-xl"></div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-slate-800">
-                          {h.action} -{" "}
-                          <span className="text-indigo-600">{h.actor}</span>
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded-md">
-                          {fmtDateTime(h.timestamp)}
-                        </span>
-                      </div>
-                      <ul className="list-disc pl-5 mt-2 space-y-1">
-                        {h.details.map((det, di) => (
-                          <li key={di} className="text-sm text-slate-600">
-                            {det}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-              </div>
-            )}
+            </div>
 
             {/* Form Admin Response */}
             <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full">
@@ -1011,26 +1192,7 @@ function FragmentRow({
                 Keputusan Status Akhir (Approval)
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Perusahaan (Penyedia)
-                  </label>
-                  <SearchableSelect
-                    className="mt-1"
-                    value={form.perusahaan}
-                    onChange={(val: string) =>
-                      setForm({ ...form, perusahaan: val })
-                    }
-                    isDisabled={!canEdit || loading}
-                    options={companies.map((c) => ({
-                      value: c,
-                      label: c,
-                    }))}
-                    placeholder="Pilih Perusahaan..."
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 gap-5">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
                     Status Usulan (Otomatis)

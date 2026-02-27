@@ -98,8 +98,17 @@ export async function PUT(
       outItem.catatanAdminItem = String(inItem.catatanAdminItem).trim();
     }
 
+    // New: Per-item Perusahaan Admin
+    if (inItem.perusahaanAdminItem !== undefined) {
+      outItem.perusahaanAdminItem = String(inItem.perusahaanAdminItem).trim();
+    }
+
     return outItem;
   });
+
+  // Backward compatibility: set global perusahaan to the first item's vendor if available
+  const finalPerusahaan =
+    items.length > 0 ? items[0].perusahaanAdminItem || perusahaan : perusahaan;
 
   // Auto-calculate statusAkhir
   let computedStatus = "Masuk";
@@ -141,7 +150,7 @@ export async function PUT(
 
   // Set the payload for MongoDB
   const setPayload: any = {
-    perusahaan,
+    perusahaan: finalPerusahaan,
     catatanAdmin: CATATAN_GLOBAL_OBSOLETE, // Blank out the old one
     items,
     statusUsulan: computedStatus,

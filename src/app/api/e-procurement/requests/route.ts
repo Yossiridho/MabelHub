@@ -190,7 +190,8 @@ export async function POST(req: Request) {
   if (
     session.role !== "SALES" &&
     session.role !== "LEADER" &&
-    session.role !== "SUPERADMIN"
+    session.role !== "SUPERADMIN" &&
+    session.role !== "ADMIN"
   ) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
@@ -245,7 +246,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (session.role === "SUPERADMIN") {
+    if (session.role === "SUPERADMIN" || session.role === "ADMIN") {
       if (assignedToUserIdRaw !== session.userId) {
         const u = await getUserLite(db, assignedToUserIdRaw);
         if (!u)
@@ -256,7 +257,7 @@ export async function POST(req: Request) {
         if (u.role !== "SALES" && u.role !== "LEADER") {
           return NextResponse.json(
             {
-              error: "FORBIDDEN: SUPERADMIN hanya boleh assign ke SALES/LEADER",
+              error: `FORBIDDEN: ${session.role} hanya boleh assign ke SALES/LEADER`,
             },
             { status: 403 },
           );

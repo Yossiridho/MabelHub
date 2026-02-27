@@ -514,20 +514,17 @@ export default function DashboardResponsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
-      <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
-
+    <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
         {/* Sidebar */}
         <Sidebar />
 
         {/* Content */}
         <div className="flex-1 h-screen overflow-y-auto">
-          <div className="w-full px-6 py-6">
-            {/* Header row (mirip dashboard-request) */}
-            <div className="flex items-center justify-between gap-4">
+          <div className="w-full px-5 py-6">
+            <div className="ml-4 pt-2 pb-4  flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="text-3xl pl-4 font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
+                <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                   RESPONSE DASHBOARD
                 </div>
                 <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
@@ -1147,10 +1144,10 @@ function TakeCard({
 
   return (
     <div
-      className={`group relative rounded-2xl border bg-white p-5 shadow-sm transition-all hover:shadow-md ${
+      className={`group relative rounded-2xl border p-5 shadow-sm transition-all hover:shadow-md ${
         isDelayed
-          ? "border-rose-300 ring-2 ring-rose-500/50 hover:border-rose-400"
-          : "border-slate-200 hover:border-indigo-200"
+          ? "border-rose-300 ring-2 ring-rose-500/50 hover:border-rose-400 bg-rose-50/30"
+          : "border-slate-200 hover:border-indigo-200 bg-white"
       }`}
     >
       {isDelayed && (
