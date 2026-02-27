@@ -10,6 +10,7 @@ import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
 import { Search, Clock, Building2, Pen, Trash2, 
 ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight} from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Company = {
   _id: string;
@@ -290,7 +291,9 @@ export default function InstansiPage() {
       limit: String(limit),
     });
 
-    const res = await fetch(`/api/instansi?${qs.toString()}`);
+    const res = await fetch(`/api/instansi?${qs.toString()}`, {
+      cache: "no-store",
+    });
     const data = (await res.json()) as ApiResp;
     setResp(data);
     setLoading(false);
@@ -379,7 +382,9 @@ export default function InstansiPage() {
 
   async function loadPending() {
     setPendingLoading(true);
-    const res = await fetch("/api/company-requests?status=PENDING");
+    const res = await fetch("/api/company-requests?status=PENDING", {
+      cache: "no-store",
+    });
     const data = await res.json();
     setPending(Array.isArray(data) ? data : []);
     setPendingLoading(false);
@@ -395,7 +400,19 @@ export default function InstansiPage() {
     if (!confirm("Approve instansi ini?")) return;
     setBusyId(id);
 
-    await fetch(`/api/company-requests/${id}/approve`, { method: "POST" });
+    try {
+      const res = await fetch(`/api/company-requests/${id}/approve`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(
+          `Gagal approve: ${errorData.message || "Terjadi kesalahan pada server"}`,
+        );
+      }
+    } catch (e: any) {
+      alert(`Terjadi kesalahan jaringan: ${e.message}`);
+    }
 
     setBusyId(null);
     await loadPending();
@@ -408,11 +425,21 @@ export default function InstansiPage() {
     if (!reason) return;
 
     setBusyId(id);
-    await fetch(`/api/company-requests/${id}/reject`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reject_reason: reason }),
-    });
+    try {
+      const res = await fetch(`/api/company-requests/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reject_reason: reason }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(
+          `Gagal reject: ${errorData.message || "Terjadi kesalahan pada server"}`,
+        );
+      }
+    } catch (e: any) {
+      alert(`Terjadi kesalahan jaringan: ${e.message}`);
+    }
 
     setBusyId(null);
     await loadPending();
@@ -483,54 +510,48 @@ export default function InstansiPage() {
                 </Field>
 
                 <Field label="KOTA/KABUPATEN">
-                  <Select
+                  <SearchableSelect
                     value={kota}
-                    onChange={(e) => {
-                      setKota(e.target.value);
+                    onChange={(val: string) => {
+                      setKota(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua Kota</option>
-                    {kotaOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua Kota" },
+                      ...kotaOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
 
                 <Field label="KLPD">
-                  <Select
+                  <SearchableSelect
                     value={klpd}
-                    onChange={(e) => {
-                      setKlpd(e.target.value);
+                    onChange={(val: string) => {
+                      setKlpd(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua KLPD</option>
-                    {klpdOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua KLPD" },
+                      ...klpdOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
 
                 <Field label="RING">
-                  <Select
+                  <SearchableSelect
                     value={segmen}
-                    onChange={(e) => {
-                      setSegmen(e.target.value);
+                    onChange={(val: string) => {
+                      setSegmen(val);
                       setPage(1);
                     }}
-                  >
-                    <option value="ALL">Semua Ring</option>
-                    {segmenOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </Select>
+                    options={[
+                      { value: "ALL", label: "Semua Ring" },
+                      ...segmenOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="h-11 border-0"
+                  />
                 </Field>
               </div>
             </div>

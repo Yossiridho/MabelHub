@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type ProductItem = {
   id: string;
@@ -15,6 +16,10 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
+  statusBarangAdmin?: string;
+  tayangInaprocAdmin?: string;
+  catatanAdminItem?: string;
 };
 
 type EProcRow = {
@@ -39,6 +44,13 @@ type EProcRow = {
   catatanAdmin?: string;
   tayangInaproc?: string;
   statusAkhir?: string;
+  statusUsulan?: string;
+
+  tanggalKontrak?: string;
+  nominalKontrak?: number;
+
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number;
 };
 
 function fmtDate(d: string | Date) {
@@ -148,8 +160,8 @@ export default function RekapitulasiResponsePage() {
   }, [rows, adminFilter, q, isSuperAdmin]);
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      <div className="flex">
+    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
+      <div className="flex relative z-10">
         <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
@@ -162,13 +174,13 @@ export default function RekapitulasiResponsePage() {
             </div>
 
             {/* Filter bar */}
-            <div className="mt-6 rounded-xl bg-white p-4 shadow-md">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="mt-6 rounded-2xl bg-white/70 backdrop-blur-xl p-5 shadow-sm border border-slate-200/60 transition-shadow hover:shadow-md">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari requestId / pemohon / lokasi / segmen..."
-                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                  className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 text-sm outline-none transition-all focus:ring-4 focus:border-indigo-400 focus:ring-indigo-400/20"
                 />
 
                 {isSuperAdmin ? (
@@ -176,37 +188,61 @@ export default function RekapitulasiResponsePage() {
                     value={adminFilter}
                     onChange={(e) => setAdminFilter(e.target.value)}
                     placeholder="Filter Admin (nama)..."
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                    className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 text-sm outline-none transition-all focus:ring-4 focus:border-indigo-400 focus:ring-indigo-400/20"
                   />
                 ) : null}
               </div>
             </div>
 
             {/* Table */}
-            <div className="mt-6 overflow-hidden rounded-xl bg-white shadow-md">
-              <div className="border-b border-neutral-200 px-4 py-3 text-sm font-semibold">
-                Data Rekap({filtered.length})
+            <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
+              <div className="border-b border-slate-100 bg-slate-50/50 flex items-center justify-between px-6 py-4">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Data Rekapitulasi
+                </h3>
+                <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
+                  {filtered.length} requests
+                </span>
               </div>
 
               {sessionLoading || loading ? (
-                <div className="p-6 text-sm text-neutral-700">Loading...</div>
+                <div className="p-6 text-sm text-slate-700">Loading...</div>
               ) : filtered.length === 0 ? (
-                <div className="p-10 text-center text-sm text-neutral-700">
+                <div className="p-10 text-center text-sm text-slate-700">
                   Belum ada request yang diambil (atau filter tidak cocok).
                 </div>
               ) : (
                 <div className="w-full overflow-x-auto">
-                  <table className="min-w-275 w-full text-sm">
-                    <thead className="bg-neutral-50 text-neutral-600">
-                      <tr className="border-b border-neutral-200">
-                        <th className="px-4 py-3 text-left">Request ID</th>
-                        <th className="px-4 py-3 text-left">Requestor</th>
-                        <th className="px-4 py-3 text-left">Pemohon</th>
-                        <th className="px-4 py-3 text-left">Lokasi</th>
-                        <th className="px-4 py-3 text-left">Segmen</th>
-                        <th className="px-4 py-3 text-left">Deadline</th>
-                        <th className="px-4 py-3 text-left">Taken By</th>
-                        <th className="px-4 py-3 text-left">Taken At</th>
+                  <table className="min-w-fit w-full text-sm border-collapse">
+                    <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                      <tr className="border-b border-slate-100">
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Request ID
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Requestor
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Pemohon
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Lokasi
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Segmen
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Deadline
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Status
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Taken By
+                        </th>
+                        <th className="px-5 py-4 text-left whitespace-nowrap">
+                          Taken At
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -274,13 +310,34 @@ function FragmentRow({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    perusahaan: string;
+    catatanAdmin: string;
+    statusAkhir: string;
+    items: ProductItem[];
+
+    tanggalKontrak: string;
+    nominalKontrak: number | string;
+
+    tanggalPembayaran: string;
+    nominalPembayaran: number | string;
+  }>({
     perusahaan: r.perusahaan ?? "",
     catatanAdmin: r.catatanAdmin ?? "",
+    statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
+
+    tanggalKontrak: r.tanggalKontrak ?? "",
+    nominalKontrak:
+      typeof r.nominalKontrak === "number" ? r.nominalKontrak : "",
+
+    tanggalPembayaran: r.tanggalPembayaran ?? "",
+    nominalPembayaran:
+      typeof r.nominalPembayaran === "number" ? r.nominalPembayaran : "",
   });
 
   const [companies, setCompanies] = useState<string[]>([]);
+  const [statusAkhirOptions, setStatusAkhirOptions] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -290,10 +347,88 @@ function FragmentRow({
           if (json?.data?.perusahaan) {
             setCompanies(json.data.perusahaan);
           }
+          if (json?.data?.status_akhir) {
+            setStatusAkhirOptions(json.data.status_akhir);
+          }
         })
         .catch(() => {});
     }
   }, [isOpen]);
+
+  const computedStatusUsulan = useMemo(() => {
+    const total = form.items.length;
+    if (total === 0) return "Masuk";
+    let countDone = 0;
+    let countHold = 0;
+    let countCancel = 0;
+    let countProgress = 0;
+    for (const it of form.items) {
+      const st = (it.statusBarangAdmin || "").toLowerCase();
+      if (st === "done") countDone++;
+      else if (st === "progress") countProgress++;
+      else if (st === "hold") countHold++;
+      else if (st === "cancel") countCancel++;
+    }
+
+    if (countProgress > 0) return "Proses";
+    if (countDone === total) return "Done";
+    if (countDone > 0 && countDone + countHold + countCancel === total)
+      return "Done";
+    if (countCancel === total) return "Cancel";
+    if (countHold === total) return "Hold";
+    if (countDone > 0 || countHold > 0 || countCancel > 0) return "Proses";
+    return "Masuk";
+  }, [form.items]);
+
+  const isDone = computedStatusUsulan === "Done";
+
+  useEffect(() => {
+    if (!isDone && form.statusAkhir !== "") {
+      setForm((prev) => ({
+        ...prev,
+        statusAkhir: "",
+        tanggalKontrak: "",
+        nominalKontrak: "",
+        tanggalPembayaran: "",
+        nominalPembayaran: "",
+      }));
+    }
+  }, [isDone, form.statusAkhir]);
+
+  // Handle cascaded disabling of financial fields if their dependencies change
+  useEffect(() => {
+    const s = String(form.statusAkhir).toUpperCase();
+    if (s !== "RILIS KONTRAK" && s !== "TERBIT BAST") {
+      if (
+        form.tanggalKontrak ||
+        form.nominalKontrak !== "" ||
+        form.tanggalPembayaran ||
+        form.nominalPembayaran !== ""
+      ) {
+        setForm((prev) => ({
+          ...prev,
+          tanggalKontrak: "",
+          nominalKontrak: "",
+          tanggalPembayaran: "",
+          nominalPembayaran: "",
+        }));
+      }
+    } else if (s === "RILIS KONTRAK") {
+      if (form.tanggalPembayaran || form.nominalPembayaran !== "") {
+        setForm((prev) => ({
+          ...prev,
+          tanggalPembayaran: "",
+          nominalPembayaran: "",
+        }));
+      }
+    }
+  }, [
+    form.statusAkhir,
+    form.tanggalKontrak,
+    form.nominalKontrak,
+    form.tanggalPembayaran,
+    form.nominalPembayaran,
+  ]);
 
   // check if editable
   // only simple ADMIN who acts as the taker can edit, or SUPERADMIN can edit
@@ -313,7 +448,17 @@ function FragmentRow({
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify({
+            perusahaan: form.perusahaan,
+            catatanAdmin: form.catatanAdmin,
+            statusAkhir: isDone ? form.statusAkhir : "",
+            items: form.items,
+
+            tanggalKontrak: form.tanggalKontrak,
+            nominalKontrak: Number(form.nominalKontrak),
+            tanggalPembayaran: form.tanggalPembayaran,
+            nominalPembayaran: Number(form.nominalPembayaran),
+          }),
         },
       );
       const json = await res.json().catch(() => ({}));
@@ -333,100 +478,197 @@ function FragmentRow({
 
   return (
     <>
-      <tr className="border-b border-neutral-100 hover:bg-neutral-50">
-        <td className="px-4 py-3 font-semibold">
-          <button
-            className="text-left hover:underline text-blue-600"
-            onClick={onToggle}
-            type="button"
-            title="Klik untuk lihat detail"
-          >
-            {r.requestId}
-          </button>
+      <tr
+        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${isOpen ? "bg-indigo-50/20" : ""}`}
+        onClick={onToggle}
+        title="Klik untuk lihat detail"
+      >
+        <td className="px-5 py-4 font-semibold text-slate-800">
+          {r.requestId}
         </td>
-        <td className="px-4 py-3">{r.requestor}</td>
-        <td className="px-4 py-3">{r.pemohon}</td>
-        <td className="px-4 py-3">{r.lokasi}</td>
-        <td className="px-4 py-3">{r.segmen}</td>
-        <td className="px-4 py-3">{fmtDate(r.deadlineUsulan)}</td>
-        <td className="px-4 py-3">{r.takenByAdminName ?? "-"}</td>
-        <td className="px-4 py-3">
+        <td className="px-5 py-4 text-slate-600">{r.requestor}</td>
+        <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
+        <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
+        <td className="px-5 py-4">
+          <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200">
+            {r.segmen}
+          </span>
+        </td>
+        <td className="px-5 py-4 text-slate-600">
+          {fmtDate(r.deadlineUsulan)}
+        </td>
+        <td className="px-5 py-4">
+          {(() => {
+            const st = computedStatusUsulan;
+            if (st === "Done")
+              return (
+                <span className="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                  Done
+                </span>
+              );
+            if (st === "Cancel")
+              return (
+                <span className="inline-flex items-center rounded-md bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 ring-1 ring-inset ring-rose-600/20">
+                  Cancel
+                </span>
+              );
+            if (st === "Hold")
+              return (
+                <span className="inline-flex items-center rounded-md bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  Hold
+                </span>
+              );
+            if (st === "Proses")
+              return (
+                <span className="inline-flex items-center rounded-md bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-700 ring-1 ring-inset ring-sky-600/20">
+                  Proses
+                </span>
+              );
+            return (
+              <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                Masuk
+              </span>
+            );
+          })()}
+        </td>
+        <td className="px-5 py-4 text-slate-800 font-medium">
+          {r.takenByAdminName ?? "-"}
+        </td>
+        <td className="px-5 py-4 text-slate-500 text-xs">
           {r.takenAt ? fmtDateTime(r.takenAt) : "-"}
         </td>
       </tr>
 
       {isOpen && (
-        <tr className="border-b border-neutral-100 bg-neutral-50">
-          <td colSpan={8} className="px-4 py-4 text-sm">
+        <tr className="border-b border-neutral-100 bg-slate-50/50">
+          <td colSpan={9} className="px-5 py-5 text-sm">
             {/* Rincian Barang */}
-            <div className="mb-4">
-              <h4 className="font-semibold text-neutral-800 mb-2">
+            <div className="mb-6">
+              <h4 className="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                <svg
+                  className="w-4 h-4 text-indigo-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
                 Rincian Items ({r.items?.length || 0})
               </h4>
               {r.items && r.items.length > 0 ? (
-                <div className="overflow-x-auto border border-neutral-200 rounded-md">
+                <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
                   <table className="w-full text-xs text-left">
-                    <thead className="bg-neutral-100">
-                      <tr>
-                        <th className="px-2 py-2">Merek</th>
-                        <th className="px-2 py-2">Sub Kategori</th>
-                        <th className="px-2 py-2">Spesifikasi</th>
-                        <th className="px-2 py-2">Qty</th>
-                        <th className="px-2 py-2">Pagu</th>
-                        <th className="px-2 py-2">Harga Tayang</th>
-                        <th className="px-2 py-2">Link Inaproc</th>
-                        <th className="px-2 py-2">Link ECom</th>
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr className="text-slate-500 uppercase tracking-wider font-semibold">
+                        <th className="px-3 py-3">Merek</th>
+                        <th className="px-3 py-3">Sub Kategori</th>
+                        <th className="px-3 py-3">Spesifikasi</th>
+                        <th className="px-3 py-3">Qty</th>
+                        <th className="px-3 py-3">Pagu</th>
+                        <th className="px-3 py-3">Harga Tayang</th>
+                        <th className="px-3 py-3">Link Inaproc</th>
+                        <th className="px-3 py-3">Link ECom</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                       {r.items.map((it, idx) => (
                         <React.Fragment key={it.id || idx}>
-                          <tr className="border-t border-neutral-200">
-                            <td className="px-2 py-2">{it.merek}</td>
-                            <td className="px-2 py-2">{it.subKategori}</td>
-                            <td className="px-2 py-2">{it.spesifikasi}</td>
-                            <td className="px-2 py-2">{it.qty}</td>
-                            <td className="px-2 py-2">{it.paguPerItem}</td>
-                            <td className="px-2 py-2">{it.hargaTayang}</td>
-                            <td className="px-2 py-2">
-                              {it.linkInaproc && (
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="px-3 py-3 font-medium text-slate-800">
+                              {it.merek || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-slate-600">
+                              {it.subKategori || "-"}
+                            </td>
+                            <td
+                              className="px-3 py-3 text-slate-600 line-clamp-2"
+                              title={it.spesifikasi}
+                            >
+                              {it.spesifikasi || "-"}
+                            </td>
+                            <td className="px-3 py-3 font-semibold text-slate-700">
+                              {it.qty ?? "-"}
+                            </td>
+                            <td className="px-3 py-3 text-slate-600">
+                              {it.paguPerItem || "-"}
+                            </td>
+                            <td className="px-3 py-3 text-slate-600">
+                              {it.hargaTayang || "-"}
+                            </td>
+                            <td className="px-3 py-3">
+                              {it.linkInaproc ? (
                                 <a
                                   href={it.linkInaproc}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-blue-500 hover:underline"
+                                  className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
                                 >
-                                  Link
+                                  Link{" "}
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                    />
+                                  </svg>
                                 </a>
+                              ) : (
+                                <span className="text-slate-400">-</span>
                               )}
                             </td>
-                            <td className="px-2 py-2">
-                              {it.linkEcom && (
+                            <td className="px-3 py-3">
+                              {it.linkEcom ? (
                                 <a
                                   href={it.linkEcom}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-blue-500 hover:underline"
+                                  className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline flex items-center gap-1"
                                 >
-                                  Link
+                                  Link{" "}
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                    />
+                                  </svg>
                                 </a>
+                              ) : (
+                                <span className="text-slate-400">-</span>
                               )}
                             </td>
                           </tr>
                           {/* Baris khusus untuk input admin per-item */}
-                          <tr className="border-t border-neutral-100 bg-blue-50/50">
+                          <tr className="bg-indigo-50/40">
                             <td
                               colSpan={4}
-                              className="px-2 py-2 text-right text-neutral-600 font-medium align-middle border-r border-white"
+                              className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
                             >
-                              Status Admin ({it.merek}):
+                              Status Keputusan ({it.merek}):
                             </td>
                             <td
                               colSpan={2}
-                              className="px-2 py-2 border-r border-white"
+                              className="px-3 py-2 border-r border-indigo-100"
                             >
                               <select
-                                className="w-full border rounded-md px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                                className="w-full border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
                                 value={form.items[idx]?.statusBarangAdmin || ""}
                                 onChange={(e) => {
                                   const newItems = [...form.items];
@@ -445,13 +687,13 @@ function FragmentRow({
                                 <option value="Cancel">Cancel</option>
                               </select>
                             </td>
-                            <td colSpan={2} className="px-2 py-2">
+                            <td colSpan={2} className="px-3 py-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-neutral-500 text-xs text-nowrap">
+                                <span className="text-slate-500 text-xs font-semibold whitespace-nowrap">
                                   Tayang Inaproc:
                                 </span>
                                 <select
-                                  className="flex-1 border rounded-md px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                                  className="flex-1 border border-indigo-200 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white"
                                   value={
                                     form.items[idx]?.tayangInaprocAdmin || ""
                                   }
@@ -472,83 +714,340 @@ function FragmentRow({
                               </div>
                             </td>
                           </tr>
+                          <tr className="bg-indigo-50/20">
+                            <td
+                              colSpan={4}
+                              className="px-3 py-2 text-right text-slate-600 text-xs font-semibold align-middle border-r border-indigo-100"
+                            >
+                              Catatan Admin ({it.merek}):
+                            </td>
+                            <td colSpan={4} className="px-3 py-2">
+                              <textarea
+                                className="w-full border border-indigo-200 rounded-md px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 font-medium text-slate-700 bg-white min-h-[40px] max-h-[120px]"
+                                value={form.items[idx]?.catatanAdminItem || ""}
+                                onChange={(e) => {
+                                  const newItems = [...form.items];
+                                  newItems[idx] = {
+                                    ...newItems[idx],
+                                    catatanAdminItem: e.target.value,
+                                  };
+                                  setForm({ ...form, items: newItems });
+                                }}
+                                disabled={!canEdit || loading}
+                                placeholder="Tambahkan catatan khusus item ini (opsional)..."
+                              />
+                            </td>
+                          </tr>
                         </React.Fragment>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <div className="text-neutral-500 text-xs">
+                <div className="text-slate-500 text-xs flex items-center gap-2 p-4 border border-dashed border-slate-200 rounded-lg bg-white">
+                  <svg
+                    className="w-4 h-4 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                   Tidak ada item rincian
                 </div>
               )}
             </div>
 
             {/* Form Admin Response */}
-            <div className="border border-neutral-200 rounded-md p-4 bg-white">
-              <h4 className="font-semibold text-neutral-800 mb-3">
-                Update Status Admin
+            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white w-full">
+              <h4 className="font-semibold text-slate-800 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
+                <svg
+                  className="w-4 h-4 text-indigo-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Keputusan Status Akhir (Approval)
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
                     Perusahaan (Penyedia)
                   </label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100"
+                  <SearchableSelect
+                    className="mt-1"
                     value={form.perusahaan}
-                    onChange={(e) =>
-                      setForm({ ...form, perusahaan: e.target.value })
+                    onChange={(val: string) =>
+                      setForm({ ...form, perusahaan: val })
                     }
-                    disabled={!canEdit || loading}
-                  >
-                    <option value="">Pilih Perusahaan...</option>
-                    {companies.map((c, i) => (
-                      <option key={i} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    isDisabled={!canEdit || loading}
+                    options={companies.map((c) => ({
+                      value: c,
+                      label: c,
+                    }))}
+                    placeholder="Pilih Perusahaan..."
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    Status Akhir
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Status Usulan (Otomatis)
                   </label>
                   <input
-                    className="w-full border rounded-md px-3 py-2 text-sm outline-none bg-neutral-100 text-neutral-600 font-semibold cursor-not-allowed"
-                    value={r.statusAkhir || "Open"}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 text-slate-600 font-bold cursor-not-allowed text-center md:text-left"
+                    value={computedStatusUsulan}
                     disabled
                     readOnly
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    Catatan Admin
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Status Akhir (Manual)
                   </label>
-                  <textarea
-                    className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-100 h-20"
-                    value={form.catatanAdmin}
-                    onChange={(e) =>
-                      setForm({ ...form, catatanAdmin: e.target.value })
+                  <SearchableSelect
+                    className="mt-1"
+                    value={form.statusAkhir}
+                    onChange={(val: string) =>
+                      setForm({ ...form, statusAkhir: val })
                     }
-                    disabled={!canEdit || loading}
-                    placeholder="Catatan tambahan..."
+                    isDisabled={!canEdit || loading || !isDone}
+                    options={statusAkhirOptions.map((s) => ({
+                      value: s,
+                      label: s,
+                    }))}
+                    placeholder={
+                      !isDone
+                        ? "Terkunci (Belum Done)"
+                        : "Pilih Status Akhir..."
+                    }
                   />
+                  {!isDone && (
+                    <span className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1 inline-flex gap-1.5 leading-tight max-w-[90%]">
+                      <svg
+                        className="w-3.5 h-3.5 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Status Usulan harus &quot;Done&quot; untuk diedit.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Rincian Finansial & Pembayaran */}
+              <h4 className="font-semibold text-slate-800 mt-8 mb-4 inline-flex items-center gap-1.5 border-b border-indigo-100 pb-2">
+                <svg
+                  className="w-4 h-4 text-emerald-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Informasi Keuangan & Kontrak
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                {/* Tanggal Kontrak */}
+                <div>
+                  <label className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    <span>Tanggal Kontrak</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
+                    value={form.tanggalKontrak}
+                    onChange={(e) =>
+                      setForm({ ...form, tanggalKontrak: e.target.value })
+                    }
+                    disabled={
+                      !canEdit ||
+                      loading ||
+                      (String(form.statusAkhir).toUpperCase() !==
+                        "RILIS KONTRAK" &&
+                        String(form.statusAkhir).toUpperCase() !==
+                          "TERBIT BAST")
+                    }
+                  />
+                </div>
+
+                {/* Nominal Kontrak */}
+                <div>
+                  <label className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    <span>Nominal Kontrak</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 font-semibold text-sm pointer-events-none">
+                      Rp.
+                    </span>
+                    <input
+                      type="number"
+                      className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
+                      placeholder="0"
+                      value={form.nominalKontrak}
+                      onChange={(e) =>
+                        setForm({ ...form, nominalKontrak: e.target.value })
+                      }
+                      disabled={
+                        !canEdit ||
+                        loading ||
+                        (String(form.statusAkhir).toUpperCase() !==
+                          "RILIS KONTRAK" &&
+                          String(form.statusAkhir).toUpperCase() !==
+                            "TERBIT BAST")
+                      }
+                    />
+                  </div>
+                  {String(form.statusAkhir).toUpperCase() !== "RILIS KONTRAK" &&
+                    String(form.statusAkhir).toUpperCase() !==
+                      "TERBIT BAST" && (
+                      <span className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1 inline-flex gap-1.5 leading-tight max-w-[90%]">
+                        <svg
+                          className="w-3.5 h-3.5 shrink-0"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        Terkunci: Ubah Status Akhir ke &quot;Rilis
+                        Kontrak/Terbit BAST&quot;
+                      </span>
+                    )}
+                </div>
+
+                {/* Tanggal Pembayaran */}
+                <div className="pt-2 md:pt-4 border-t border-slate-100 md:border-none">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Tanggal Terbayar (SP2D)
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
+                    value={form.tanggalPembayaran}
+                    onChange={(e) =>
+                      setForm({ ...form, tanggalPembayaran: e.target.value })
+                    }
+                    disabled={
+                      !canEdit ||
+                      loading ||
+                      String(form.statusAkhir).toUpperCase() !== "TERBIT BAST"
+                    }
+                  />
+                </div>
+
+                {/* Nominal Pembayaran */}
+                <div className="pt-2 md:pt-4 border-t border-slate-100 md:border-none">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Nominal Terbayar
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 font-semibold text-sm pointer-events-none">
+                      Rp.
+                    </span>
+                    <input
+                      type="number"
+                      className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
+                      placeholder="0"
+                      value={form.nominalPembayaran}
+                      onChange={(e) =>
+                        setForm({ ...form, nominalPembayaran: e.target.value })
+                      }
+                      disabled={
+                        !canEdit ||
+                        loading ||
+                        String(form.statusAkhir).toUpperCase() !== "TERBIT BAST"
+                      }
+                    />
+                  </div>
+                  {String(form.statusAkhir).toUpperCase() !== "TERBIT BAST" && (
+                    <span className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1 inline-flex gap-1.5 leading-tight max-w-[90%]">
+                      <svg
+                        className="w-3.5 h-3.5 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Terkunci: Ubah Status Akhir ke &quot;Terbit BAST&quot;
+                    </span>
+                  )}
                 </div>
               </div>
 
               {canEdit && (
-                <div className="mt-4 flex items-center justify-end space-x-3">
+                <div className="mt-5 flex items-center justify-end space-x-4 border-t border-slate-100 pt-4">
                   {error && (
-                    <span className="text-red-500 text-xs font-medium">
+                    <span className="text-rose-500 text-xs font-bold flex items-center gap-1">
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
                       {error}
                     </span>
                   )}
                   {success && (
-                    <span className="text-green-600 text-xs font-medium">
+                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
                       {success}
                     </span>
                   )}
@@ -556,9 +1055,34 @@ function FragmentRow({
                   <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:bg-blue-400"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:bg-indigo-400 disabled:shadow-none active:scale-95 min-w-[150px] flex items-center justify-center gap-2"
                   >
-                    {loading ? "Menyimpan..." : "Simpan Perubahan"}
+                    {loading ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Menyimpan...
+                      </>
+                    ) : (
+                      "Simpan Perubahan"
+                    )}
                   </button>
                 </div>
               )}

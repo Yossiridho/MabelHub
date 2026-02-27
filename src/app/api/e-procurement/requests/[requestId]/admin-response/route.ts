@@ -25,8 +25,23 @@ export async function PUT(
   const body = await req.json().catch(() => ({}));
 
   const perusahaan = String(body.perusahaan ?? "").trim();
-  const catatanAdmin = String(body.catatanAdmin ?? "").trim();
-  const items = Array.isArray(body.items) ? body.items : [];
+  const statusAkhirInput = String(body.statusAkhir ?? "").trim();
+  // Financial & Contract Fields
+  const tanggalKontrak = String(body.tanggalKontrak ?? "").trim();
+  const nominalKontrakRaw = Number(body.nominalKontrak);
+  const nominalKontrak = isNaN(nominalKontrakRaw) ? 0 : nominalKontrakRaw;
+
+  // Catatan Admin global digantikan fallback/di-ignore.
+  // We keep it in DB schema as optional but stop getting it globally.
+  const CATATAN_GLOBAL_OBSOLETE = "";
+
+  const tanggalPembayaran = String(body.tanggalPembayaran ?? "").trim();
+  const nominalPembayaranRaw = Number(body.nominalPembayaran);
+  const nominalPembayaran = isNaN(nominalPembayaranRaw)
+    ? 0
+    : nominalPembayaranRaw;
+
+  const incomingItems = Array.isArray(body.items) ? body.items : [];
 
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB || "MabelHub");
@@ -53,49 +68,112 @@ export async function PUT(
     }
   }
 
+  const existingItems = existing.items || [];
+  const now = new Date();
+
+  // Merge items to manage tanggalProses and tanggalDone
+  const items = incomingItems.map((inItem: any) => {
+    const exItem = existingItems.find((e: any) => e.id === inItem.id) || {};
+    const outItem = { ...inItem };
+
+    // Preserve existing dates
+    if (exItem.tanggalProses) outItem.tanggalProses = exItem.tanggalProses;
+    if (exItem.tanggalDone) outItem.tanggalDone = exItem.tanggalDone;
+
+    // Check if status changed
+    const oldStatus = (exItem.statusBarangAdmin || "").toLowerCase();
+    const newStatus = (inItem.statusBarangAdmin || "").toLowerCase();
+
+    if (newStatus !== oldStatus) {
+      if (newStatus === "progress" && !outItem.tanggalProses) {
+        outItem.tanggalProses = now;
+      }
+      if (newStatus === "done" && !outItem.tanggalDone) {
+        outItem.tanggalDone = now;
+      }
+    }
+
+    // New: Per-item Catatan Admin
+    if (inItem.catatanAdminItem !== undefined) {
+      outItem.catatanAdminItem = String(inItem.catatanAdminItem).trim();
+    }
+
+    return outItem;
+  });
+
   // Auto-calculate statusAkhir
-  let computedStatus = "Open";
+  let computedStatus = "Masuk";
   if (items && items.length > 0) {
     const total = items.length;
     let countDone = 0;
     let countProgress = 0;
-    let countHoldCancel = 0;
+    let countHold = 0;
+    let countCancel = 0;
 
     for (const it of items) {
       const st = (it.statusBarangAdmin || "").toLowerCase();
       if (st === "done") countDone++;
       else if (st === "progress") countProgress++;
-      else if (st === "hold" || st === "cancel") countHoldCancel++;
+      else if (st === "hold") countHold++;
+      else if (st === "cancel") countCancel++;
     }
 
     if (countProgress > 0) {
       computedStatus = "Proses";
     } else if (countDone === total) {
-      computedStatus = "Selesai";
-    } else if (countDone > 0 && countDone + countHoldCancel === total) {
+      computedStatus = "Done";
+    } else if (countDone > 0 && countDone + countHold + countCancel === total) {
       // Ada yang done, sisanya cuma hold/cancel
-      computedStatus = "Selesai";
-    } else if (countHoldCancel === total) {
-      computedStatus = "Batal";
-    } else if (countDone > 0 || countHoldCancel > 0) {
+      computedStatus = "Done";
+    } else if (countCancel === total) {
+      // ✅ Jika semuanya cancel
+      computedStatus = "Cancel";
+    } else if (countHold === total) {
+      // ✅ Jika semuanya hold
+      computedStatus = "Hold";
+    } else if (countDone > 0 || countHold > 0 || countCancel > 0) {
       // fallback if there's a mix but no progress and not matching above
       computedStatus = "Proses";
     }
   }
 
-  const now = new Date();
+  const finalStatusAkhir = computedStatus === "Done" ? statusAkhirInput : "";
+
+  // Set the payload for MongoDB
+  const setPayload: any = {
+    perusahaan,
+    catatanAdmin: CATATAN_GLOBAL_OBSOLETE, // Blank out the old one
+    items,
+    statusUsulan: computedStatus,
+    statusAkhir: finalStatusAkhir,
+    updatedAt: now,
+  };
+
+  const isRilisKontrak = finalStatusAkhir.toUpperCase() === "RILIS KONTRAK";
+  const isTerbitBast = finalStatusAkhir.toUpperCase() === "TERBIT BAST";
+
+  // Only bind finance fields if the status allows it
+  if (isRilisKontrak || isTerbitBast) {
+    setPayload.tanggalKontrak = tanggalKontrak;
+    setPayload.nominalKontrak = nominalKontrak;
+  } else {
+    // Clear out if downgraded
+    setPayload.tanggalKontrak = "";
+    setPayload.nominalKontrak = 0;
+  }
+
+  if (isTerbitBast) {
+    setPayload.tanggalPembayaran = tanggalPembayaran;
+    setPayload.nominalPembayaran = nominalPembayaran;
+  } else {
+    // Clear out if downgraded
+    setPayload.tanggalPembayaran = "";
+    setPayload.nominalPembayaran = 0;
+  }
 
   const rawResult = await col.findOneAndUpdate(
     { requestId: rid },
-    {
-      $set: {
-        perusahaan,
-        catatanAdmin,
-        items,
-        statusAkhir: computedStatus,
-        updatedAt: now,
-      },
-    },
+    { $set: setPayload },
     { returnDocument: "after", projection: { _id: 0 } },
   );
 

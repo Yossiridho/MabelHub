@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { FileUp, Upload } from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Role = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 
@@ -565,39 +566,33 @@ export default function AddInstansiPage() {
 
                           <div className="grid grid-cols-1 gap-y-5 gap-x-6 md:grid-cols-2">
                             <Field label="KOTA/KABUPATEN">
-                              <Select
+                              <SearchableSelect
                                 value={form.kota_kab}
-                                onChange={(e) =>
-                                  updateForm(idx, { kota_kab: e.target.value })
+                                onChange={(val: string) =>
+                                  updateForm(idx, { kota_kab: val })
                                 }
-                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
-                              >
-                                <option value="">
-                                  Pilih Kota/Kabupaten...
-                                </option>
-                                {paramKotaKab.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
-                              </Select>
+                                options={paramKotaKab.map((opt) => ({
+                                  value: opt,
+                                  label: opt,
+                                }))}
+                                placeholder="Pilih Kota/Kabupaten..."
+                                className="h-11 border-0"
+                              />
                             </Field>
 
                             <Field label="KLPD">
-                              <Select
+                              <SearchableSelect
                                 value={form.klpd}
-                                onChange={(e) =>
-                                  updateForm(idx, { klpd: e.target.value })
+                                onChange={(val: string) =>
+                                  updateForm(idx, { klpd: val })
                                 }
-                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
-                              >
-                                <option value="">Pilih KLPD...</option>
-                                {paramKlpd.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
-                              </Select>
+                                options={paramKlpd.map((opt) => ({
+                                  value: opt,
+                                  label: opt,
+                                }))}
+                                placeholder="Pilih KLPD..."
+                                className="h-11 border-0"
+                              />
                             </Field>
                           </div>
 
@@ -616,22 +611,20 @@ export default function AddInstansiPage() {
                             </Field>
 
                             <Field label="STATUS SEGMEN (RING)">
-                              <Select
+                              <SearchableSelect
                                 value={form.status_ring}
-                                onChange={(e) =>
+                                onChange={(val: string) =>
                                   updateForm(idx, {
-                                    status_ring: e.target.value,
+                                    status_ring: val,
                                   })
                                 }
-                                className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
-                              >
-                                <option value="">Pilih Status Ring...</option>
-                                {paramRing.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
-                              </Select>
+                                options={paramRing.map((opt) => ({
+                                  value: opt,
+                                  label: opt,
+                                }))}
+                                placeholder="Pilih Status Ring..."
+                                className="h-11 border-0"
+                              />
                             </Field>
                           </div>
 
@@ -668,22 +661,20 @@ export default function AddInstansiPage() {
                               </Field>
 
                               <Field label="ROLE PIC (OPSIONAL)">
-                                <Select
+                                <SearchableSelect
                                   value={form.pic_role}
-                                  onChange={(e) =>
+                                  onChange={(val: string) =>
                                     updateForm(idx, {
-                                      pic_role: e.target.value,
+                                      pic_role: val,
                                     })
                                   }
-                                  className="border-0 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 rounded-lg h-11 bg-white"
-                                >
-                                  <option value="">Pilih Jabatan PIC...</option>
-                                  {paramPosisi.map((opt) => (
-                                    <option key={opt} value={opt}>
-                                      {opt}
-                                    </option>
-                                  ))}
-                                </Select>
+                                  options={paramPosisi.map((opt) => ({
+                                    value: opt,
+                                    label: opt,
+                                  }))}
+                                  placeholder="Pilih Jabatan PIC..."
+                                  className="h-11 border-0"
+                                />
                               </Field>
 
                               <Field label="NAMA PIC (OPSIONAL)">

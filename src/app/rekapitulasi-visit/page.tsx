@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useRouter } from "next/navigation";
 
 type VisitRow = {
@@ -102,6 +103,9 @@ export default function RekapitulasiVisitPage() {
   const [fRing, setFRing] = useState<string>("ALL");
   const [fCity, setFCity] = useState<string>("ALL");
   const [fSatker, setFSatker] = useState<string>("ALL");
+
+  // ====== mobile filter toggle ======
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // ====== pagination ======
   const [pageSize, setPageSize] = useState<number>(25);
@@ -246,7 +250,26 @@ export default function RekapitulasiVisitPage() {
 
           {/* FILTER CARD */}
           <section className="rounded-2xl bg-white p-7 shadow-sm">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
+            {/* Mobile Filter Toggle Button */}
+            <div
+              className="md:hidden flex items-center justify-between cursor-pointer mb-2 bg-blue-50 p-4 rounded-xl border border-blue-100"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+            >
+              <div className="flex items-center gap-2 font-extrabold text-[#0B6AA9]">
+                <span>{isFilterOpen ? "🔽" : "▶️"}</span>
+                <span>FILTER PENCARIAN</span>
+              </div>
+              <span className="text-sm font-bold text-[#0B6AA9] bg-white px-3 py-1 rounded-full shadow-sm">
+                {isFilterOpen ? "Tutup" : "Buka"}
+              </span>
+            </div>
+
+            <div
+              className={cn(
+                "grid grid-cols-1 gap-6 md:grid-cols-6 mt-4 md:mt-0",
+                !isFilterOpen ? "hidden md:grid" : "grid",
+              )}
+            >
               <FilterSelect
                 label="SALES PERSON"
                 value={fSales}
@@ -310,7 +333,8 @@ export default function RekapitulasiVisitPage() {
 
           {/* TABLE */}
           <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-blue-100">
-            <div className="overflow-x-auto">
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-blue-200">
                   <tr className="text-left">
@@ -369,8 +393,8 @@ export default function RekapitulasiVisitPage() {
                               className={cn(
                                 "px-6 py-6 font-extrabold text-[#0B6AA9]",
                                 active
-                                  ? "border-l-[4px] border-blue-600"
-                                  : "border-l-[4px] border-transparent",
+                                  ? "border-l-4 border-l-blue-600"
+                                  : "border-l-4 border-l-transparent",
                               )}
                             >
                               {r.nama_sales}
@@ -401,7 +425,7 @@ export default function RekapitulasiVisitPage() {
                             <tr className="bg-blue-50/30">
                               <td
                                 colSpan={8}
-                                className="px-6 py-6 border-l-[4px] border-blue-600 border-b border-blue-100"
+                                className="px-6 py-6 border-l-4 border-l-blue-600 border-b border-b-blue-100"
                               >
                                 <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
                                   <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
@@ -468,6 +492,150 @@ export default function RekapitulasiVisitPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden flex flex-col p-4 bg-gray-50/50 gap-4">
+              {loadingRows ? (
+                <div className="py-10 text-center text-gray-500">
+                  Loading...
+                </div>
+              ) : rows.length === 0 ? (
+                <div className="py-10 text-center text-gray-500">
+                  Tidak ada data.
+                </div>
+              ) : (
+                rows.map((r) => {
+                  const active = selected?._id === r._id;
+                  return (
+                    <div
+                      key={r._id}
+                      onClick={() => setSelected(active ? null : r)}
+                      className={cn(
+                        "bg-white border flex flex-col rounded-2xl shadow-sm transition-colors cursor-pointer overflow-hidden",
+                        active
+                          ? "border-[#0B6AA9] bg-blue-50/10 ring-1 ring-[#0B6AA9]"
+                          : "border-blue-100 hover:bg-black/5",
+                      )}
+                    >
+                      <div className="p-4 flex flex-col gap-3">
+                        <div className="flex items-start justify-between border-b border-blue-50 pb-3">
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 mb-0.5">
+                              Nama Sales
+                            </div>
+                            <div className="text-base font-extrabold text-[#0B6AA9]">
+                              {r.nama_sales}
+                            </div>
+                          </div>
+                          <div className="shrink-0 ml-2">
+                            <StatusPill value={r.status_visit} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 mb-0.5">
+                              Ring
+                            </div>
+                            <div className="font-extrabold text-[#0B6AA9]">
+                              {r.status_ring}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 mb-0.5">
+                              City
+                            </div>
+                            <div className="font-semibold text-gray-900">
+                              {r.city}
+                            </div>
+                          </div>
+                          <div className="col-span-2">
+                            <div className="text-xs font-medium text-gray-500 mb-0.5">
+                              Satuan Kerja
+                            </div>
+                            <div className="font-semibold text-gray-900 leading-tight">
+                              {r.satuan_kerja}
+                            </div>
+                          </div>
+                          <div className="col-span-2">
+                            <div className="text-xs font-medium text-gray-500 mb-0.5">
+                              PIC Name
+                            </div>
+                            <div className="font-semibold text-gray-900">
+                              {r.pic_name}
+                            </div>
+                          </div>
+                          <div className="col-span-2">
+                            <div className="text-xs font-medium text-gray-500 mb-0.5">
+                              Visit Date
+                            </div>
+                            <div className="font-semibold text-gray-800">
+                              {formatDateID(r.visit_date)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {active && (
+                        <div className="border-t border-blue-100 bg-blue-50/30 p-4">
+                          <div className="mb-4 flex items-center gap-2 text-base font-extrabold text-gray-900">
+                            <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-100 text-blue-600 text-sm">
+                              📖
+                            </span>
+                            Detail Kunjungan
+                          </div>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
+                            <DetailItem
+                              label="Created At"
+                              value={formatDateID(r.created_at)}
+                            />
+                            <DetailItem
+                              label="Market Status"
+                              value={r.status_market}
+                            />
+                            <DetailItem label="KLPD" value={r.klpd} />
+                            <DetailItem
+                              label="Reschedule"
+                              value={
+                                r.reschedule && r.reschedule !== "-"
+                                  ? formatDateID(r.reschedule)
+                                  : "-"
+                              }
+                            />
+                            <DetailItem
+                              label="Institusi Kerja"
+                              value={r.institusi_kerja}
+                            />
+                            <DetailItem
+                              label="PIC Position"
+                              value={r.pic_position}
+                            />
+                            <DetailItem label="PIC Role" value={r.pic_role} />
+                            <DetailItem
+                              label="Tindak Lanjut"
+                              value={r.tindak_lanjut}
+                            />
+                            <DetailItem
+                              label="Kegiatan Status"
+                              value={r.kegiatan_status}
+                            />
+                          </div>
+
+                          <div className="mt-4 border-t border-blue-100 pt-3">
+                            <div className="text-xs font-extrabold tracking-wider text-gray-500 mb-1">
+                              DESKRIPSI
+                            </div>
+                            <div className="whitespace-pre-line text-sm text-gray-700 bg-white p-3 rounded-lg border border-blue-50 shadow-sm leading-relaxed">
+                              {r.descriptions || "-"}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </section>
 
@@ -557,20 +725,13 @@ function FilterSelect({
         {label}
       </div>
       <div className="relative mt-2">
-        <select
+        <SearchableSelect
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-12 w-full appearance-none rounded-xl border border-blue-200 bg-white px-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-        >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-700">
-          ▾
-        </span>
+          onChange={(val: string) => onChange(val)}
+          options={options}
+          placeholder={`Pilih ${label}...`}
+          className="h-12 w-full appearance-none rounded-xl border-blue-200 border bg-white"
+        />
       </div>
     </div>
   );

@@ -4,6 +4,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type TeamMember = {
   userId: string;
@@ -316,8 +318,55 @@ export default function EProcurementRequestPage() {
   };
 
   const handleSubmitUpload = () => {
-    alert(`UPLOAD FILE: ${uploadFile?.name ?? "-"}`);
-    setOpenUpload(false);
+    if (!uploadFile) {
+      alert("Pilih file Excel terlebih dahulu");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const jsonData = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+        const rows = jsonData.slice(1); // Lewati header di baris pertama
+
+        const newItems: ProductItem[] = rows
+          .map((row, index) => ({
+            id: String(Date.now() + index),
+            merek: row[0] ? String(row[0]).trim() : "",
+            subKategori: row[1] ? String(row[1]).trim() : "",
+            qty:
+              row[2] && !isNaN(Number(row[2]))
+                ? Math.max(1, Number(row[2]))
+                : 1,
+            spesifikasi: row[3] ? String(row[3]).trim() : "",
+            paguPerItem: row[4] && !isNaN(Number(row[4])) ? Number(row[4]) : 0,
+            hargaTayang: row[5] && !isNaN(Number(row[5])) ? Number(row[5]) : 0,
+            linkInaproc: row[6] ? String(row[6]).trim() : "",
+            linkEcom: row[7] ? String(row[7]).trim() : "",
+          }))
+          .filter((item) => item.merek || item.subKategori || item.spesifikasi); // Abaikan baris kosong
+
+        if (newItems.length > 0) {
+          setItems(newItems);
+          alert(`Berhasil memuat ${newItems.length} produk dari Excel`);
+          setOpenUpload(false);
+          setUploadFile(null); // Reset file yang dipilih setelah berhasil upload
+        } else {
+          alert("Data Excel kosong atau tidak sesuai dengan format template.");
+        }
+      } catch (err) {
+        console.error("Excel parse error:", err);
+        alert(
+          "Terjadi kesalahan saat membaca file Excel. Pastikan file tidak rusak dan sesuai template.",
+        );
+      }
+    };
+    reader.readAsBinaryString(uploadFile);
   };
 
   const handleKirim = async () => {
@@ -374,18 +423,19 @@ export default function EProcurementRequestPage() {
 
                 <div className="relative mt-2">
                   {canPickAssignee ? (
-                    <select
+                    <SearchableSelect
                       value={assignedToUserId}
-                      onChange={(e) => setAssignedToUserId(e.target.value)}
-                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                    >
-                      <option value="">(Diri sendiri)</option>
-                      {assigneeOptions.map((m) => (
-                        <option key={m.userId} value={m.userId}>
-                          {displayName(m)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val: string) => setAssignedToUserId(val)}
+                      options={[
+                        { value: "", label: "(Diri sendiri)" },
+                        ...assigneeOptions.map((m) => ({
+                          value: m.userId,
+                          label: displayName(m),
+                        })),
+                      ]}
+                      className="border-0 bg-white"
+                      placeholder="Pilih Assignee..."
+                    />
                   ) : (
                     // SALES: requestor tampil auto (boleh edit manual kalau mau)
                     <input
@@ -395,17 +445,6 @@ export default function EProcurementRequestPage() {
                       placeholder="Nama requestor"
                     />
                   )}
-
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </span>
                 </div>
 
                 {canPickAssignee ? (
@@ -433,36 +472,19 @@ export default function EProcurementRequestPage() {
                     PILIH RING
                   </label>
                   <div className="relative mt-2">
-                    <select
+                    <SearchableSelect
                       value={selectedRing}
-                      onChange={(e) => {
-                        setSelectedRing(e.target.value);
+                      onChange={(val: string) => {
+                        setSelectedRing(val);
                         setSegmen("");
                       }}
-                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                    >
-                      <option value="">-- Pilih --</option>
-                      {paramRing.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M6 9l6 6 6-6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </span>
+                      options={[
+                        { value: "", label: "-- Pilih --" },
+                        ...paramRing.map((r) => ({ value: r, label: r })),
+                      ]}
+                      className="border-0 bg-white"
+                      placeholder="Pilih Ring..."
+                    />
                   </div>
                 </div>
 
@@ -471,34 +493,20 @@ export default function EProcurementRequestPage() {
                     SEGMEN
                   </label>
                   <div className="relative mt-2">
-                    <select
+                    <SearchableSelect
                       value={segmen}
-                      onChange={(e) => setSegmen(e.target.value)}
-                      disabled={!selectedRing}
-                      className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-400"
-                    >
-                      <option value="">-- Pilih --</option>
-                      {availableSegmen.map((s) => (
-                        <option key={s} value={`${selectedRing}::${s}`}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M6 9l6 6 6-6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </span>
+                      onChange={(val: string) => setSegmen(val)}
+                      isDisabled={!selectedRing}
+                      options={[
+                        { value: "", label: "-- Pilih --" },
+                        ...availableSegmen.map((s) => ({
+                          value: `${selectedRing}::${s}`,
+                          label: s,
+                        })),
+                      ]}
+                      className="border-0 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                      placeholder="Pilih Segmen..."
+                    />
                   </div>
                 </div>
               </div>

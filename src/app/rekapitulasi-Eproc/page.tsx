@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, Fragment } from "react";
+import { useEffect, useMemo, useState, Fragment, useCallback } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import HistoryEprocModal, {
+  EProcHistoryItem,
+} from "@/components/modals/HistoryEprocModal";
+import { useSession } from "@/components/session/SessionProvider";
 
 type ProductItem = {
   id: string;
@@ -14,8 +19,12 @@ type ProductItem = {
   hargaTayang: number | "";
   linkInaproc: string;
   linkEcom: string;
+
   statusBarangAdmin?: string;
   tayangInaprocAdmin?: string;
+  catatanAdminItem?: string;
+  tanggalProses?: string | Date;
+  tanggalDone?: string | Date;
 };
 
 type EProcDoc = {
@@ -35,17 +44,25 @@ type EProcDoc = {
   takenAt?: string | null;
 
   statusAkhir?: string;
+  statusUsulan?: string;
+  tanggalKontrak?: string;
+  nominalKontrak?: number;
+  tanggalPembayaran?: string;
+  nominalPembayaran?: number;
   perusahaan?: string;
+  tindakLanjut?: string;
+  statusReqSales?: string;
+  catatanTindakLanjut?: string; // We map this from 'catatan' field in db just in case, but let's just use it on modal state
 };
 
 function clsx(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
 
-function formatDateTime(iso?: string | null) {
+function formatDateTime(iso?: string | Date | null): string {
   if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return String(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(
     d.getHours(),
@@ -68,6 +85,7 @@ function formatSegmen(raw: string) {
 
 export default function RekapitulasiEProcurementPage() {
   const router = useRouter();
+  const { user } = useSession();
 
   const [rows, setRows] = useState<EProcDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +94,13 @@ export default function RekapitulasiEProcurementPage() {
   const [requestor, setRequestor] = useState("ALL");
   const [pemohon, setPemohon] = useState("ALL");
   const [status, setStatus] = useState("ALL");
+  const [statusAkhir, setStatusAkhir] = useState("ALL");
   const [tindakLanjut, setTindakLanjut] = useState("ALL");
+
+  // mobile filter toggle
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // pagination
   const [segmen, setSegmen] = useState("ALL");
 
   const [startDate, setStartDate] = useState(""); // yyyy-mm-dd (input date)
@@ -91,22 +115,93 @@ export default function RekapitulasiEProcurementPage() {
   const [selected, setSelected] = useState<EProcDoc | null>(null);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
+  // modal tindak lanjut
+  const [isLaporModalOpen, setIsLaporModalOpen] = useState(false);
+  const [laporTargetId, setLaporTargetId] = useState<string | null>(null);
+  const [laporSelectedValue, setLaporSelectedValue] = useState<
+    "Lanjut" | "Cancel" | ""
+  >("");
+  const [laporStatusReqSales, setLaporStatusReqSales] = useState("");
+  const [laporCatatan, setLaporCatatan] = useState("");
+  const [isLaporLoading, setIsLaporLoading] = useState(false);
+
+  // modal history
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
   const [paramRing, setParamRing] = useState<string[]>([]);
   const [paramSegmen, setParamSegmen] = useState<string[]>([]);
+  const [paramStatusAkhir, setParamStatusAkhir] = useState<string[]>([]);
+
+  // Function to get distinct parameters
+  const loadParameters = useCallback(async () => {
+    try {
+      const res = await fetch("/api/parameters");
+      if (!res.ok) return;
+      const json = await res.json();
+      const doc = json?.data;
+      if (doc) {
+        setParamRing(doc.ring || []);
+        setParamSegmen(doc.segmen || []);
+        setParamStatusAkhir(doc.status_akhir || []);
+      }
+    } catch (e) {}
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/e-procurement/requests?mode=all");
+      if (!res.ok) throw new Error("Gagal mengambil data");
+      const json = await res.json();
+      setRows(json.data || []);
+    } catch (err: any) {
+      console.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
+    loadParameters();
     fetchData();
-    fetch("/api/parameters")
-      .then((res) => res.json())
-      .then((json) => {
-        const d = json?.data;
-        if (d) {
-          setParamRing(d.ring || []);
-          setParamSegmen(d.segmen || []);
+  }, [loadParameters, fetchData]);
+
+  // derived data (statistics, etc...)
+  const stats = useMemo(() => {
+    let diajukan = 0;
+    let diproses = 0;
+    let selesai = 0;
+    let cancel = 0;
+
+    let totalBarang = 0;
+    let doneBarang = 0;
+
+    for (const r of rows) {
+      const sa = r.statusAkhir || "";
+      if (sa === "Selesai") selesai++;
+      else if (sa === "Cancel") cancel++;
+      else if (sa === "Diproses") diproses++;
+      else diajukan++; // blank, Todo, etc
+
+      // per item stats
+      if (Array.isArray(r.items)) {
+        for (const item of r.items) {
+          totalBarang++;
+          if (item.statusBarangAdmin === "Done") {
+            doneBarang++;
+          }
         }
-      })
-      .catch(() => {});
-  }, []);
+      }
+    }
+    return {
+      diajukan,
+      diproses,
+      selesai,
+      cancel,
+      totalBarang,
+      doneBarang,
+    };
+  }, [rows]);
 
   const [selectedRing, setSelectedRing] = useState("ALL");
 
@@ -114,19 +209,6 @@ export default function RekapitulasiEProcurementPage() {
     if (selectedRing === "ALL") return paramSegmen;
     return paramSegmen.filter((s) => s.startsWith(selectedRing + "::"));
   }, [selectedRing, paramSegmen]);
-
-  async function fetchData() {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/e-procurement/requests?mode=all", {
-        cache: "no-store",
-      });
-      const json = await res.json().catch(() => ({}));
-      setRows(Array.isArray(json?.data) ? json.data : []);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   // options dropdown (dari database)
   const requestorOptions = useMemo(() => {
@@ -141,17 +223,38 @@ export default function RekapitulasiEProcurementPage() {
     return Array.from(set).filter(Boolean).sort();
   }, [rows]);
 
-  // ===== mapping status sesuai kebutuhan UI (sementara) =====
-  // kamu bisa ubah nanti kalau field "status usulan / current status / tindak lanjut" sudah ada di DB
   function getStatusUsulan(r: EProcDoc) {
-    return "MASUK";
+    return r.statusUsulan || r.statusAkhir || "Masuk";
   }
-  function getCurrentStatus(r: EProcDoc) {
-    return r.statusAkhir || "Open";
+  function getDisplayStatusAkhir(val?: string) {
+    if (!val) return "-";
+    const legacy = [
+      "Open",
+      "Proses",
+      "Done",
+      "Selesai",
+      "Cancel",
+      "Hold",
+      "Masuk",
+      "MASUK",
+    ];
+    if (legacy.includes(val)) return "-";
+    if (paramStatusAkhir.length > 0 && !paramStatusAkhir.includes(val))
+      return "-";
+    return val;
   }
-  function getTindakLanjutValue(_r: EProcDoc) {
-    // belum ada field di schema kamu → placeholder "-"
-    return "-";
+  function getTindakLanjutValue(r: EProcDoc) {
+    if (r.tindakLanjut === "Lanjut" || r.tindakLanjut === "Cancel") {
+      return r.tindakLanjut;
+    }
+    const hasItems = Array.isArray(r.items) && r.items.length > 0;
+    const allDone =
+      hasItems && r.items.every((it) => it.statusBarangAdmin === "Done");
+
+    if (allDone) {
+      return "Lapor";
+    }
+    return "Proses";
   }
 
   const filtered = useMemo(() => {
@@ -181,8 +284,13 @@ export default function RekapitulasiEProcurementPage() {
         if (segmen !== "ALL" && r.segmen !== segmen) return false;
 
         if (status !== "ALL") {
-          const s = getCurrentStatus(r);
+          const s = getStatusUsulan(r);
           if (s !== status) return false;
+        }
+
+        if (statusAkhir !== "ALL") {
+          const displayStatusAkhir = getDisplayStatusAkhir(r.statusAkhir);
+          if (displayStatusAkhir !== statusAkhir) return false;
         }
 
         if (tindakLanjut !== "ALL") {
@@ -214,6 +322,7 @@ export default function RekapitulasiEProcurementPage() {
     requestor,
     pemohon,
     status,
+    statusAkhir,
     tindakLanjut,
     selectedRing,
     segmen,
@@ -248,6 +357,49 @@ export default function RekapitulasiEProcurementPage() {
     setOpenItemId((p) => (p === id ? null : id));
   }
 
+  async function handleLaporSave() {
+    if (!laporTargetId) return;
+
+    if (laporSelectedValue === "") {
+      // user clicked kembali ke lapor
+      // kita boleh lanjut save value empty string.
+    } else if (!laporSelectedValue) {
+      alert("Pilih Tindak Lanjut terlebih dahulu!");
+      return;
+    }
+
+    setIsLaporLoading(true);
+    try {
+      const payload = {
+        tindakLanjut: laporSelectedValue,
+        statusReqSales: laporStatusReqSales,
+        catatan: laporCatatan,
+      };
+
+      const res = await fetch(
+        `/api/e-procurement/requests/${encodeURIComponent(laporTargetId)}/tindak-lanjut`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal update tindak lanjut");
+
+      setIsLaporModalOpen(false);
+      setLaporTargetId(null);
+      setLaporSelectedValue("");
+      setLaporStatusReqSales("");
+      setLaporCatatan("");
+      fetchData(); // reload data table
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setIsLaporLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
@@ -264,27 +416,44 @@ export default function RekapitulasiEProcurementPage() {
             </div>
 
             <div className="rounded-2xl bg-white p-6 ring-1 ring-black/10">
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
+              {/* Mobile Filter Toggle Button */}
+              <div
+                className="md:hidden flex items-center justify-between cursor-pointer mb-2 bg-blue-50 p-4 rounded-xl border border-blue-100"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
+                <div className="flex items-center gap-2 font-extrabold text-blue-700">
+                  <span>{isFilterOpen ? "🔽" : "▶️"}</span>
+                  <span>FILTER PENCARIAN</span>
+                </div>
+                <span className="text-sm font-bold text-blue-600 bg-white px-3 py-1 rounded-full shadow-sm">
+                  {isFilterOpen ? "Tutup" : "Buka"}
+                </span>
+              </div>
+
+              {/* Filter Grid */}
+              <div
+                className={clsx(
+                  "grid grid-cols-1 gap-4 md:grid-cols-6 mt-4 md:mt-0",
+                  !isFilterOpen ? "hidden md:grid" : "grid",
+                )}
+              >
                 {/* Requestor */}
                 <div className="md:col-span-1">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     REQUESTOR
                   </div>
-                  <select
+                  <SearchableSelect
                     value={requestor}
-                    onChange={(e) => {
-                      setRequestor(e.target.value);
+                    onChange={(val: string) => {
+                      setRequestor(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Sales</option>
-                    {requestorOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Sales" },
+                      ...requestorOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Tanggal Mulai */}
@@ -352,8 +521,30 @@ export default function RekapitulasiEProcurementPage() {
                     className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
                   >
                     <option value="ALL">Semua Tindakan</option>
-                    <option value="-">-</option>
+                    <option value="Proses">Proses</option>
+                    <option value="Lapor">Lapor</option>
+                    <option value="Lanjut">Lanjut</option>
+                    <option value="Cancel">Cancel</option>
                   </select>
+                </div>
+
+                {/* Status Akhir */}
+                <div className="md:col-span-1">
+                  <div className="mb-1 text-sm font-extrabold text-blue-600">
+                    STATUS AKHIR
+                  </div>
+                  <SearchableSelect
+                    value={statusAkhir}
+                    onChange={(val: string) => {
+                      setStatusAkhir(val);
+                      setPage(1);
+                    }}
+                    options={[
+                      { value: "ALL", label: "Semua Status" },
+                      ...paramStatusAkhir.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Ring (Parent Segmen) */}
@@ -361,22 +552,19 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     RING
                   </div>
-                  <select
+                  <SearchableSelect
                     value={selectedRing}
-                    onChange={(e) => {
-                      setSelectedRing(e.target.value);
+                    onChange={(val: string) => {
+                      setSelectedRing(val);
                       setSegmen("ALL");
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Ring</option>
-                    {paramRing.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Ring" },
+                      ...paramRing.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Segmen */}
@@ -384,42 +572,39 @@ export default function RekapitulasiEProcurementPage() {
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     SEGMEN
                   </div>
-                  <select
+                  <SearchableSelect
                     value={segmen}
-                    onChange={(e) => {
-                      setSegmen(e.target.value);
+                    onChange={(val: string) => {
+                      setSegmen(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Segmen</option>
-                    {availableSegmen.map((x) => (
-                      <option key={x} value={x}>
-                        {formatSegmen(x)}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Segmen" },
+                      ...availableSegmen.map((x) => ({
+                        value: x,
+                        label: formatSegmen(x),
+                      })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
                 {/* Pemohon */}
                 <div className="md:col-span-2">
                   <div className="mb-1 text-sm font-extrabold text-blue-600">
                     PEMOHON
                   </div>
-                  <select
+                  <SearchableSelect
                     value={pemohon}
-                    onChange={(e) => {
-                      setPemohon(e.target.value);
+                    onChange={(val: string) => {
+                      setPemohon(val);
                       setPage(1);
                     }}
-                    className="h-10 w-full rounded-xl bg-white px-4 text-sm ring-1 ring-blue-200 outline-blue-300"
-                  >
-                    <option value="ALL">Semua Pemohon</option>
-                    {pemohonOptions.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "ALL", label: "Semua Pemohon" },
+                      ...pemohonOptions.map((x) => ({ value: x, label: x })),
+                    ]}
+                    className="mt-1 border-blue-200"
+                  />
                 </div>
 
                 {/* Search ID */}
@@ -443,7 +628,8 @@ export default function RekapitulasiEProcurementPage() {
             </div>
 
             <div className="mt-4 overflow-hidden rounded-2xl bg-white ring-1 ring-black/10">
-              <div className="overflow-x-auto">
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-white">
                     <tr className="border-b border-black/10">
@@ -455,7 +641,7 @@ export default function RekapitulasiEProcurementPage() {
                         "Lokasi",
                         "Deadline Usulan",
                         "Status Usulan",
-                        "Current Status",
+                        "Status Akhir",
                       ].map((h) => (
                         <th
                           key={h}
@@ -498,7 +684,64 @@ export default function RekapitulasiEProcurementPage() {
                           )}
                         >
                           <td className="px-3 py-2">
-                            {getTindakLanjutValue(r)}
+                            {(() => {
+                              const tVal = getTindakLanjutValue(r);
+                              if (tVal === "Lapor") {
+                                return (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLaporTargetId(r.requestId);
+                                      setIsLaporModalOpen(true);
+                                    }}
+                                    className="rounded bg-blue-600 px-3 py-1 text-xs font-bold text-white hover:bg-blue-700"
+                                  >
+                                    Lapor
+                                  </button>
+                                );
+                              }
+                              if (tVal === "Proses") {
+                                return (
+                                  <button
+                                    disabled
+                                    className="rounded bg-gray-300 px-3 py-1 text-xs font-bold text-gray-500 cursor-not-allowed"
+                                  >
+                                    Proses
+                                  </button>
+                                );
+                              }
+                              if (tVal === "Lanjut") {
+                                return (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLaporTargetId(r.requestId);
+                                      setLaporSelectedValue("Lanjut");
+                                      setIsLaporModalOpen(true);
+                                    }}
+                                    className="rounded bg-green-100 px-3 py-1 text-xs font-bold text-green-700 hover:bg-green-200"
+                                  >
+                                    Lanjut
+                                  </button>
+                                );
+                              }
+                              if (tVal === "Cancel") {
+                                return (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLaporTargetId(r.requestId);
+                                      setLaporSelectedValue("Cancel");
+                                      setIsLaporModalOpen(true);
+                                    }}
+                                    className="rounded bg-red-100 px-3 py-1 text-xs font-bold text-red-700 hover:bg-red-200"
+                                  >
+                                    Cancel
+                                  </button>
+                                );
+                              }
+                              return <span className="text-gray-500">-</span>;
+                            })()}
                           </td>
                           <td className="px-3 py-2">{r.requestId}</td>
                           <td className="px-3 py-2">{r.requestor || "-"}</td>
@@ -508,12 +751,172 @@ export default function RekapitulasiEProcurementPage() {
                             {r.deadlineUsulan || "-"}
                           </td>
                           <td className="px-3 py-2">{getStatusUsulan(r)}</td>
-                          <td className="px-3 py-2">{getCurrentStatus(r)}</td>
+                          <td className="px-3 py-2">
+                            {getDisplayStatusAkhir(r.statusAkhir)}
+                          </td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden flex flex-col p-4 bg-gray-50/50">
+                {loading ? (
+                  <div className="py-10 text-center text-black/60">
+                    Loading...
+                  </div>
+                ) : pageItems.length === 0 ? (
+                  <div className="py-10 text-center text-black/60">
+                    Tidak ada data.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {pageItems.map((r) => {
+                      const isSelected = selected?.requestId === r.requestId;
+                      return (
+                        <div
+                          key={r.requestId}
+                          onClick={() => onRowClick(r)}
+                          className={clsx(
+                            "flex flex-col gap-4 rounded-2xl border p-4 shadow-sm transition-colors cursor-pointer",
+                            isSelected
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-black/10 bg-white hover:bg-black/5",
+                          )}
+                        >
+                          <div className="flex items-start justify-between border-b border-black/5 pb-3">
+                            <div>
+                              <div className="text-xs font-medium text-black/50 mb-0.5">
+                                Request ID
+                              </div>
+                              <div className="text-base font-bold text-black">
+                                {r.requestId}
+                              </div>
+                            </div>
+                            <div className="shrink-0 ml-2">
+                              {(() => {
+                                const tVal = getTindakLanjutValue(r);
+                                if (tVal === "Lapor") {
+                                  return (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLaporTargetId(r.requestId);
+                                        setIsLaporModalOpen(true);
+                                      }}
+                                      className="rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm"
+                                    >
+                                      Lapor
+                                    </button>
+                                  );
+                                }
+                                if (tVal === "Proses") {
+                                  return (
+                                    <span className="rounded bg-gray-200 px-3 py-1.5 text-xs font-bold text-gray-500">
+                                      Proses
+                                    </span>
+                                  );
+                                }
+                                if (tVal === "Lanjut") {
+                                  return (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLaporTargetId(r.requestId);
+                                        setLaporSelectedValue("Lanjut");
+                                        setIsLaporModalOpen(true);
+                                      }}
+                                      className="rounded bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 ring-1 ring-green-200/50"
+                                    >
+                                      Lanjut
+                                    </button>
+                                  );
+                                }
+                                if (tVal === "Cancel") {
+                                  return (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLaporTargetId(r.requestId);
+                                        setLaporSelectedValue("Cancel");
+                                        setIsLaporModalOpen(true);
+                                      }}
+                                      className="rounded bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 ring-1 ring-red-200/50"
+                                    >
+                                      Cancel
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <div className="text-xs font-medium text-black/50">
+                                Pemohon
+                              </div>
+                              <div className="font-semibold text-black/80">
+                                {r.pemohon || "-"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-black/50">
+                                Lokasi
+                              </div>
+                              <div className="font-semibold text-black/80">
+                                {r.lokasi || "-"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-black/50">
+                                Nama Requestor
+                              </div>
+                              <div className="font-semibold text-black/80">
+                                {r.requestor || "-"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-black/50">
+                                Tgl Submit
+                              </div>
+                              <div className="font-semibold text-black/80">
+                                {r.tanggalSubmit
+                                  ? new Date(
+                                      r.tanggalSubmit,
+                                    ).toLocaleDateString()
+                                  : "-"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex items-center justify-between rounded-xl bg-gray-100/80 p-3 ring-1 ring-black/5 text-xs">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-black/50 mb-0.5">
+                                Usulan:
+                              </span>
+                              <span className="font-bold text-black">
+                                {getStatusUsulan(r)}
+                              </span>
+                            </div>
+                            <div className="h-6 w-px bg-black/10 mx-2"></div>
+                            <div className="flex flex-col items-end">
+                              <span className="font-medium text-black/50 mb-0.5">
+                                Akhir:
+                              </span>
+                              <span className="font-bold text-black">
+                                {getDisplayStatusAkhir(r.statusAkhir)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Pagination bar (mirip screenshot) */}
@@ -620,13 +1023,21 @@ export default function RekapitulasiEProcurementPage() {
                   </div>
 
                   {selected && (
-                    <button
-                      onClick={() => setSelected(null)}
-                      className="grid h-9 w-9 place-items-center rounded-lg bg-white text-lg font-bold ring-1 ring-white hover:bg-red-600"
-                      title="Tutup"
-                    >
-                      X
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIsHistoryModalOpen(true)}
+                        className="rounded-lg bg-blue-100 px-3 py-2 text-sm font-bold text-blue-700 hover:bg-blue-200"
+                      >
+                        Lihat History
+                      </button>
+                      <button
+                        onClick={() => setSelected(null)}
+                        className="grid h-9 w-9 place-items-center rounded-lg bg-white text-lg font-bold ring-1 ring-white hover:bg-red-600"
+                        title="Tutup"
+                      >
+                        X
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -667,9 +1078,10 @@ export default function RekapitulasiEProcurementPage() {
                     <div>
                       <div className="text-sm text-black/50">Status Akhir</div>
                       <div className="font-semibold text-black">
-                        {getCurrentStatus(selected)}
+                        {getDisplayStatusAkhir(selected.statusAkhir)}
                       </div>
                     </div>
+
                     <div>
                       <div className="text-sm text-black/50">Perusahaan</div>
                       <div className="font-semibold text-black">
@@ -706,11 +1118,72 @@ export default function RekapitulasiEProcurementPage() {
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <div className="text-sm text-black/50">Catatan</div>
+                      <div className="text-sm text-black/50">
+                        Catatan Pemohon
+                      </div>
                       <div className="font-semibold text-black">
                         {selected.catatan || "-"}
                       </div>
                     </div>
+
+                    {/* Informasi Finansial Khusus E-Proc */}
+                    {String(selected.statusAkhir).toUpperCase() ===
+                      "RILIS KONTRAK" ||
+                    String(selected.statusAkhir).toUpperCase() ===
+                      "TERBIT BAST" ? (
+                      <>
+                        <div>
+                          <div className="text-sm text-black/50">
+                            Tgl Kontrak
+                          </div>
+                          <div className="font-semibold text-black">
+                            {selected.tanggalKontrak
+                              ? formatDateTime(selected.tanggalKontrak).split(
+                                  " ",
+                                )[0]
+                              : "-"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-black/50">
+                            Nominal Kontrak
+                          </div>
+                          <div className="font-semibold text-black">
+                            {typeof selected.nominalKontrak === "number" &&
+                            selected.nominalKontrak > 0
+                              ? `Rp. ${selected.nominalKontrak.toLocaleString("id-ID")}`
+                              : "-"}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+
+                    {String(selected.statusAkhir).toUpperCase() ===
+                    "TERBIT BAST" ? (
+                      <>
+                        <div>
+                          <div className="text-sm text-black/50">Tgl SP2D</div>
+                          <div className="font-semibold text-black">
+                            {selected.tanggalPembayaran
+                              ? formatDateTime(
+                                  selected.tanggalPembayaran,
+                                ).split(" ")[0]
+                              : "-"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-black/50">
+                            Nominal Terbayar
+                          </div>
+                          <div className="font-semibold text-black">
+                            {typeof selected.nominalPembayaran === "number" &&
+                            selected.nominalPembayaran > 0
+                              ? `Rp. ${selected.nominalPembayaran.toLocaleString("id-ID")}`
+                              : "-"}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="mt-3 text-sm text-black/50">
@@ -727,7 +1200,8 @@ export default function RekapitulasiEProcurementPage() {
                 </div>
 
                 <div className="mt-3 overflow-hidden rounded-xl bg-white ring-1 ring-black/10">
-                  <div className="overflow-x-auto">
+                  {/* Desktop View */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full text-md">
                       <thead className="bg-white">
                         <tr className="border-b border-black/10 text-black">
@@ -739,6 +1213,7 @@ export default function RekapitulasiEProcurementPage() {
                             "Tanggal Done",
                             "Status Barang (Admin)",
                             "Tayang Inaproc (Admin)",
+                            "Catatan Admin",
                           ].map((h) => (
                             <th
                               key={h}
@@ -754,7 +1229,7 @@ export default function RekapitulasiEProcurementPage() {
                         {!selected?.items?.length ? (
                           <tr>
                             <td
-                              colSpan={8}
+                              colSpan={9}
                               className="px-3 py-10 text-center text-black/50"
                             >
                               Pilih request terlebih dahulu.
@@ -777,21 +1252,33 @@ export default function RekapitulasiEProcurementPage() {
                                   </td>
                                   <td className="px-3 py-3">{it.qty ?? "-"}</td>
                                   <td className="px-3 py-3">
-                                    {formatDateTime(selected.takenAt)}
+                                    {it.tanggalProses
+                                      ? formatDateTime(it.tanggalProses)
+                                      : "-"}
                                   </td>
-                                  <td className="px-3 py-3">-</td>
+                                  <td className="px-3 py-3">
+                                    {it.tanggalDone
+                                      ? formatDateTime(it.tanggalDone)
+                                      : "-"}
+                                  </td>
                                   <td className="px-3 py-3">
                                     {it.statusBarangAdmin || "Masuk"}
                                   </td>
                                   <td className="px-3 py-3">
                                     {it.tayangInaprocAdmin || "-"}
                                   </td>
+                                  <td
+                                    className="px-3 py-3 max-w-[200px] truncate"
+                                    title={it.catatanAdminItem}
+                                  >
+                                    {it.catatanAdminItem || "-"}
+                                  </td>
                                 </tr>
 
                                 {isOpen ? (
                                   <tr className="border-t border-black/5">
                                     <td
-                                      colSpan={8}
+                                      colSpan={9}
                                       className="bg-gray-100 px-4 py-4"
                                     >
                                       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -847,6 +1334,34 @@ export default function RekapitulasiEProcurementPage() {
                                             )}
                                           </div>
                                         </div>
+
+                                        <div className="md:col-span-3 mt-2 border-t border-black/10 pt-3">
+                                          <div className="text-md font-bold text-indigo-600 flex items-center gap-1.5">
+                                            <svg
+                                              className="w-4 h-4"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                              />
+                                            </svg>
+                                            Catatan Admin
+                                          </div>
+                                          <div className="mt-1 pl-2 text-sm text-slate-700 italic bg-white p-3 rounded-md border border-slate-200 shadow-sm min-h-[40px]">
+                                            {it.catatanAdminItem ? (
+                                              it.catatanAdminItem
+                                            ) : (
+                                              <span className="text-slate-400 not-italic">
+                                                Belum ada catatan dari Admin.
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
                                       </div>
                                     </td>
                                   </tr>
@@ -858,6 +1373,146 @@ export default function RekapitulasiEProcurementPage() {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Mobile View */}
+                  <div className="md:hidden flex flex-col p-4 bg-gray-50/50 gap-4">
+                    {!selected?.items?.length ? (
+                      <div className="py-10 text-center text-sm text-black/50">
+                        Pilih request terlebih dahulu.
+                      </div>
+                    ) : (
+                      selected.items.map((it) => {
+                        const isOpen = openItemId === it.id;
+                        return (
+                          <div
+                            key={it.id}
+                            className="bg-white border flex flex-col border-black/10 rounded-xl overflow-hidden shadow-sm"
+                          >
+                            <div
+                              onClick={() => toggleItem(it.id)}
+                              className="p-4 cursor-pointer hover:bg-gray-50 flex items-start justify-between"
+                            >
+                              <div className="pr-2">
+                                <div className="text-xs font-bold text-blue-600 mb-1">
+                                  {it.subKategori || "-"}
+                                </div>
+                                <div className="text-base font-extrabold text-black leading-snug">
+                                  {it.merek || "-"}
+                                </div>
+                                <div className="mt-2 text-xs font-medium text-black/60">
+                                  Qty:{" "}
+                                  <span className="font-bold text-black">
+                                    {it.qty ?? "-"}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end shrink-0">
+                                <div className="text-[10px] font-bold uppercase text-black/40 mb-1">
+                                  Status Admin
+                                </div>
+                                <div
+                                  className={clsx(
+                                    "text-xs px-2 py-1 rounded font-bold",
+                                    it.statusBarangAdmin === "Done"
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-gray-100 text-gray-700",
+                                  )}
+                                >
+                                  {it.statusBarangAdmin || "Masuk"}
+                                </div>
+                                <div className="mt-2 text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                  {isOpen ? "Tutup Detail ▲" : "Lihat Detail ▼"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Expandable Details */}
+                            {isOpen && (
+                              <div className="bg-gray-50 border-t border-black/5 p-4 text-xs space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <div className="text-black/50 font-semibold mb-0.5">
+                                      Tgl Proses
+                                    </div>
+                                    <div className="font-bold text-black">
+                                      {it.tanggalProses
+                                        ? formatDateTime(it.tanggalProses)
+                                        : "-"}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-black/50 font-semibold mb-0.5">
+                                      Tgl Done
+                                    </div>
+                                    <div className="font-bold text-black">
+                                      {it.tanggalDone
+                                        ? formatDateTime(it.tanggalDone)
+                                        : "-"}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="text-black/50 font-semibold mb-0.5">
+                                    Tayang Inaproc
+                                  </div>
+                                  <div className="font-bold text-black">
+                                    {it.tayangInaprocAdmin || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="border-t border-black/10 pt-3">
+                                  <div className="font-bold text-blue-600 mb-1">
+                                    Spesifikasi Barang
+                                  </div>
+                                  <div className="text-black text-sm whitespace-pre-wrap">
+                                    {it.spesifikasi || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-3 border-t border-black/10 pt-3">
+                                  <div>
+                                    <div className="font-bold text-blue-600 mb-1">
+                                      Link Inaproc
+                                    </div>
+                                    {it.linkInaproc ? (
+                                      <a
+                                        href={it.linkInaproc}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-500 underline break-all"
+                                      >
+                                        {it.linkInaproc}
+                                      </a>
+                                    ) : (
+                                      <span className="text-black/50">-</span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-blue-600 mb-1">
+                                      Link E-Commerce
+                                    </div>
+                                    {it.linkEcom ? (
+                                      <a
+                                        href={it.linkEcom}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-500 underline break-all"
+                                      >
+                                        {it.linkEcom}
+                                      </a>
+                                    ) : (
+                                      <span className="text-black/50">-</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-2 text-sm text-black/50">
@@ -868,6 +1523,222 @@ export default function RekapitulasiEProcurementPage() {
           </main>
         </div>
       </div>
+
+      {/* MODAL LAPOR (TINDAK LANJUT) */}
+      {isLaporModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsLaporModalOpen(false)}
+          />
+          <div className="relative w-full max-w-lg rounded-xl bg-white shadow-xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 shadow-sm z-10">
+              <h3 className="font-extrabold text-blue-900 text-xl flex items-center gap-2">
+                <span>📝</span> Input Laporan Tindak Lanjut
+              </h3>
+              <button
+                onClick={() => setIsLaporModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-6 text-sm text-gray-800 space-y-5 flex-1">
+              <div>
+                <label className="block text-sm font-bold text-blue-900 mb-1">
+                  Request ID
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={laporTargetId || ""}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-50 text-gray-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-blue-900 mb-1">
+                  Nama Pelapor
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={user?.fullName || ""}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-50 text-gray-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-blue-900 mb-1">
+                  Tindak Lanjut
+                </label>
+                <select
+                  value={laporSelectedValue}
+                  onChange={(e) => {
+                    setLaporSelectedValue(e.target.value as any);
+                    setLaporStatusReqSales(""); // reset dependent dropdown
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white outline-blue-500 hover:border-blue-400 transition-colors"
+                >
+                  <option value="">-- Kembali Menjadi Lapor --</option>
+                  <option value="Lanjut">Lanjut</option>
+                  <option value="Cancel">Cancel</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-blue-900 mb-1">
+                  Status Req Sales
+                </label>
+                <select
+                  value={laporStatusReqSales}
+                  onChange={(e) => setLaporStatusReqSales(e.target.value)}
+                  disabled={!laporSelectedValue}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white outline-blue-500 hover:border-blue-400 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {!laporSelectedValue && (
+                    <option value="">
+                      -- Pilih Tindak Lanjut Terlebih Dahulu --
+                    </option>
+                  )}
+                  {laporSelectedValue === "Lanjut" && (
+                    <>
+                      <option value="">-- Pilih Status --</option>
+                      <option value="Harga sesuai budget">
+                        Harga sesuai budget
+                      </option>
+                      <option value="Spesifikasi sesuai kebutuhan">
+                        Spesifikasi sesuai kebutuhan
+                      </option>
+                      <option value="Mendapat persetujuan manajemen">
+                        Mendapat persetujuan manajemen
+                      </option>
+                      <option value="Masuk dalam rencana pengadaan">
+                        Masuk dalam rencana pengadaan
+                      </option>
+                      <option value="Timeline pengerjaan sesuai">
+                        Timeline pengerjaan sesuai
+                      </option>
+                      <option value="Vendor memenuhi kualifikasi">
+                        Vendor memenuhi kualifikasi
+                      </option>
+                      <option value="Kualitas produk/layanan sesuai ekspektasi">
+                        Kualitas produk/layanan sesuai ekspektasi
+                      </option>
+                      <option value="Hasil negosiasi disepakati">
+                        Hasil negosiasi disepakati
+                      </option>
+                      <option value="Proyek bersifat prioritas">
+                        Proyek bersifat prioritas
+                      </option>
+                      <option value="Dokumen & data pendukung lengkap">
+                        Dokumen & data pendukung lengkap
+                      </option>
+                      <option value="Potensi kerja sama jangka panjang">
+                        Potensi kerja sama jangka panjang
+                      </option>
+                      <option value="Rekomendasi dari internal">
+                        Rekomendasi dari internal
+                      </option>
+                      <option value="Kebutuhan mendesak">
+                        Kebutuhan mendesak
+                      </option>
+                      <option value="Harga kompetitif dibanding vendor lain">
+                        Harga kompetitif dibanding vendor lain
+                      </option>
+                      <option value="Alasan lainnya">Alasan lainnya</option>
+                    </>
+                  )}
+                  {laporSelectedValue === "Cancel" && (
+                    <>
+                      <option value="">-- Pilih Status --</option>
+                      <option value="Harga tidak sesuai budget">
+                        Harga tidak sesuai budget
+                      </option>
+                      <option value="Kebutuhan dibatalkan oleh requestor">
+                        Kebutuhan dibatalkan oleh requestor
+                      </option>
+                      <option value="Spesifikasi tidak sesuai kebutuhan">
+                        Spesifikasi tidak sesuai kebutuhan
+                      </option>
+                      <option value="Prioritas proyek berubah">
+                        Prioritas proyek berubah
+                      </option>
+                      <option value="Sudah menggunakan vendor lain">
+                        Sudah menggunakan vendor lain
+                      </option>
+                      <option value="Waktu pengerjaan tidak sesuai">
+                        Waktu pengerjaan tidak sesuai
+                      </option>
+                      <option value="Menunggu keputusan manajemen">
+                        Menunggu keputusan manajemen
+                      </option>
+                      <option value="Proyek ditunda">Proyek ditunda</option>
+                      <option value="Dokumen pendukung belum lengkap">
+                        Dokumen pendukung belum lengkap
+                      </option>
+                      <option value="Tidak ada respon lanjutan dari requestor">
+                        Tidak ada respon lanjutan dari requestor
+                      </option>
+                      <option value="Negosiasi tidak mencapai kesepakatan">
+                        Negosiasi tidak mencapai kesepakatan
+                      </option>
+                      <option value="Perubahan scope pekerjaan">
+                        Perubahan scope pekerjaan
+                      </option>
+                      <option value="Permintaan hanya untuk pembanding harga">
+                        Permintaan hanya untuk pembanding harga
+                      </option>
+                      <option value="Kendala anggaran internal">
+                        Kendala anggaran internal
+                      </option>
+                      <option value="Alasan lainnya">Alasan lainnya</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-blue-900 mb-1">
+                  Catatan
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Masukkan catatan tambahan..."
+                  value={laporCatatan}
+                  onChange={(e) => setLaporCatatan(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white outline-blue-500 hover:border-blue-400 transition-colors resize-y"
+                />
+              </div>
+            </div>
+
+            <div className="flex px-6 py-5 gap-4">
+              <button
+                onClick={handleLaporSave}
+                disabled={isLaporLoading}
+                className="flex-1 rounded-lg bg-[#10b981] py-3 text-sm font-extrabold text-white hover:bg-[#059669] transition-colors disabled:opacity-50"
+              >
+                {isLaporLoading ? "MENYIMPAN..." : "SIMPAN LAPORAN"}
+              </button>
+              <button
+                onClick={() => setIsLaporModalOpen(false)}
+                className="flex-1 rounded-lg bg-gray-50 border border-gray-200 py-3 text-sm font-extrabold text-gray-700 hover:bg-gray-100 transition-colors"
+                disabled={isLaporLoading}
+              >
+                BATAL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HISTORY TINDAK LANJUT */}
+      <HistoryEprocModal
+        open={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        requestId={selected?.requestId || null}
+      />
     </div>
   );
 }

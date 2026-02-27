@@ -47,6 +47,7 @@ export async function POST(
       satuan_kerja: reqDoc.satuan_kerja ?? "",
       kota_kab: reqDoc.kota_kab ?? "",
       klpd: reqDoc.klpd ?? "",
+      status_ring: reqDoc.status_ring ?? "",
     };
 
     const existing = await compCol.findOne({

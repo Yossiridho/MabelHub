@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { ChevronRight, ArrowLeft, Building } from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Company = {
   _id: string;
@@ -415,18 +416,19 @@ function AddPlansContent() {
                         (opsional)
                       </span>
                     </label>
-                    <select
+                    <SearchableSelect
                       value={assigneeUserId}
-                      onChange={(e) => setAssigneeUserId(e.target.value)}
-                      className="mt-2 block w-full rounded-lg border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 bg-white transition-all"
-                    >
-                      <option value="">(Diri sendiri)</option>
-                      {assigneeOptions.map((a) => (
-                        <option key={a.userId} value={a.userId}>
-                          {displayAssignee(a)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val: string) => setAssigneeUserId(val)}
+                      options={[
+                        { value: "", label: "(Diri sendiri)" },
+                        ...assigneeOptions.map((a) => ({
+                          value: a.userId,
+                          label: displayAssignee(a),
+                        })),
+                      ]}
+                      placeholder="Pilih Assignee..."
+                      className="mt-2"
+                    />
                     <div className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
                       <svg
                         className="w-3.5 h-3.5"
@@ -517,21 +519,19 @@ function AddPlansContent() {
                       <label className="text-xs font-bold tracking-wide text-gray-500 uppercase">
                         Status Ring
                       </label>
-                      <select
+                      <SearchableSelect
                         value={it.status_ring}
-                        onChange={(e) => {
-                          patchItem(it.id, { status_ring: e.target.value });
+                        onChange={(val: string) => {
+                          patchItem(it.id, { status_ring: val });
                           resetCompanyFields(it.id);
                         }}
-                        className="mt-2 block w-full rounded-lg border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 bg-white transition-all"
-                      >
-                        <option value="">Pilih Status Ring...</option>
-                        {paramRing.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
+                        options={paramRing.map((opt) => ({
+                          value: opt,
+                          label: opt,
+                        }))}
+                        placeholder="Pilih Status Ring..."
+                        className="mt-2"
+                      />
                     </div>
 
                     <div className="hidden md:block" />

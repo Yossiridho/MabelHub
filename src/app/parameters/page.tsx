@@ -13,7 +13,8 @@ type ParamKey =
   | "posisi"
   | "status_kunjungan"
   | "kegiatan"
-  | "perusahaan";
+  | "perusahaan"
+  | "status_akhir";
 
 type ParamDoc = {
   _id: string;
@@ -25,6 +26,7 @@ type ParamDoc = {
   status_kunjungan: string[];
   kegiatan: string[];
   perusahaan: string[];
+  status_akhir: string[];
   updatedAt?: string;
 };
 
@@ -41,6 +43,7 @@ const KEY_LABEL: Record<ParamKey, string> = {
   status_kunjungan: "Status Kunjungan",
   kegiatan: "Kegiatan",
   perusahaan: "Perusahaan",
+  status_akhir: "Status Akhir",
 };
 
 const ALL_KEYS: ParamKey[] = [
@@ -52,6 +55,7 @@ const ALL_KEYS: ParamKey[] = [
   "status_kunjungan",
   "kegiatan",
   "perusahaan",
+  "status_akhir",
 ];
 
 export default function ParameterPage() {
@@ -105,6 +109,7 @@ export default function ParameterPage() {
       status_kunjungan: d?.status_kunjungan ?? [],
       kegiatan: d?.kegiatan ?? [],
       perusahaan: d?.perusahaan ?? [],
+      status_akhir: d?.status_akhir ?? [],
     } as Record<ParamKey, string[]>;
   }, [doc]);
 
@@ -245,7 +250,7 @@ export default function ParameterPage() {
                 </div>
                 <input
                   value={value}
-                  onChange={(e) => setValue(e.target.value)}
+                  onChange={(e) => setValue(e.target.value.toUpperCase())}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") onAdd();
                   }}
@@ -277,7 +282,7 @@ export default function ParameterPage() {
               [
                 ["kota_kabupaten", "klpd", "ring"],
                 ["segmen", "posisi", "status_kunjungan"],
-                ["kegiatan", "perusahaan"],
+                ["kegiatan", "perusahaan", "status_akhir"],
               ] as ParamKey[][]
             )
               .flat()
@@ -347,7 +352,7 @@ function CardList({
         </span>
       </div>
 
-      <div className="p-3 bg-gray-50/50 flex-1 overflow-y-auto max-h-[320px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <div className="p-3 bg-gray-50/50 flex-1 overflow-y-auto max-h-[250px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
         {loading ? (
           <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
             <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
