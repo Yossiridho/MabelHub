@@ -5,9 +5,9 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useRouter } from "next/navigation";
 import type { Role } from "@/lib/menu";
 import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
-import DeleteInstansiModal from "@/components/modals/DeleteInstansiModal";
 import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Company = {
@@ -242,6 +242,7 @@ export default function InstansiPage() {
   const [openHistory, setOpenHistory] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
 
   // add form
@@ -376,6 +377,29 @@ export default function InstansiPage() {
     });
 
     await loadApproved();
+  }
+
+  async function confirmDelete() {
+    if (!activeCompany?._id) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/companies/${activeCompany._id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        alert("Gagal menghapus instansi.");
+        return;
+      }
+
+      await loadApproved();
+      setOpenDelete(false);
+    } catch (e: any) {
+      alert("Gagal menghapus instansi.");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function loadPending() {
@@ -918,12 +942,23 @@ export default function InstansiPage() {
         onSaved={loadApproved}
       />
 
-      <DeleteInstansiModal
+      <ConfirmModal
         open={openDelete}
-        onClose={() => setOpenDelete(false)}
-        companyId={activeCompany?._id ?? null}
-        companyName={activeCompany?.institusi_kerja ?? "-"}
-        onDeleted={loadApproved}
+        loading={deleting}
+        title="Hapus Instansi"
+        message={
+          <>
+            Anda yakin ingin menghapus:
+            <br />
+            <span className="font-bold">
+              {activeCompany?.institusi_kerja ?? "-"}
+            </span>
+            ?
+          </>
+        }
+        confirmText="HAPUS"
+        onConfirm={confirmDelete}
+        onCancel={() => setOpenDelete(false)}
       />
     </div>
   );

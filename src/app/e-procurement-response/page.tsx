@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { ArrowLeft } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type EProcRow = {
   requestId: string;
@@ -82,6 +83,7 @@ export default function EProcurementResponsePage() {
   const [rows, setRows] = useState<EProcRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [takingId, setTakingId] = useState<string | null>(null);
+  const [confirmTakeId, setConfirmTakeId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
@@ -113,6 +115,26 @@ export default function EProcurementResponsePage() {
   }, [sessionLoading, user]);
 
   const isEmpty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
+
+  async function handleConfirmTake() {
+    if (!confirmTakeId) return;
+    const reqId = confirmTakeId;
+
+    try {
+      setError("");
+      setTakingId(reqId);
+
+      await apiTake(reqId);
+
+      // remove from takeable list
+      setRows((prev) => prev.filter((x) => x.requestId !== reqId));
+    } catch (e: any) {
+      setError(e?.message ?? "Gagal mengambil request");
+    } finally {
+      setTakingId(null);
+      setConfirmTakeId(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
@@ -196,27 +218,7 @@ export default function EProcurementResponsePage() {
                                 [r.requestId]: !prev[r.requestId],
                               }))
                             }
-                            onTake={async () => {
-                              try {
-                                setError("");
-                                setTakingId(r.requestId);
-
-                                await apiTake(r.requestId);
-
-                                // remove from takeable list
-                                setRows((prev) =>
-                                  prev.filter(
-                                    (x) => x.requestId !== r.requestId,
-                                  ),
-                                );
-                              } catch (e: any) {
-                                setError(
-                                  e?.message ?? "Gagal mengambil request",
-                                );
-                              } finally {
-                                setTakingId(null);
-                              }
-                            }}
+                            onTake={() => setConfirmTakeId(r.requestId)}
                           />
                         );
                       })}
@@ -236,6 +238,16 @@ export default function EProcurementResponsePage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!confirmTakeId}
+        loading={takingId === confirmTakeId}
+        title="Konfirmasi Pengambilan"
+        message={`Apakah Anda yakin ingin TAKE request ${confirmTakeId}?`}
+        confirmText="TAKE"
+        onConfirm={handleConfirmTake}
+        onCancel={() => setConfirmTakeId(null)}
+      />
     </div>
   );
 }

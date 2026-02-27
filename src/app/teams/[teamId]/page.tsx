@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type TeamDoc = {
   _id: string;
@@ -56,6 +57,7 @@ export default function TeamDetailPage() {
 
   const [toAdd, setToAdd] = useState<string[]>([]);
   const [toRemove, setToRemove] = useState<string[]>([]);
+  const [confirmSave, setConfirmSave] = useState(false);
 
   const usersById = useMemo(() => {
     const m = new Map<string, UserLite>();
@@ -170,6 +172,18 @@ export default function TeamDetailPage() {
       return;
     }
 
+    if (toRemove.length > 0) {
+      setConfirmSave(true);
+      return;
+    }
+
+    await handleConfirmSave();
+  }
+
+  async function handleConfirmSave() {
+    if (!team) return;
+    if (!user || user.role !== "SUPERADMIN") return;
+
     // ✅ hitung memberIds final agar kompatibel dengan API PUT kamu
     const current = Array.isArray(team.memberIds)
       ? team.memberIds.map(String)
@@ -206,6 +220,7 @@ export default function TeamDetailPage() {
       }
 
       setInfo("Berhasil update members.");
+      setConfirmSave(false);
       await load();
     } catch (e: any) {
       setErr(e?.message || "Gagal menyimpan");
@@ -438,6 +453,16 @@ export default function TeamDetailPage() {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmSave}
+        loading={saving}
+        title="Konfirmasi Perubahan Tim"
+        message="Apakah Anda yakin ingin menghapus Sales ini dari Tim?"
+        confirmText="SIMPAN"
+        onConfirm={handleConfirmSave}
+        onCancel={() => setConfirmSave(false)}
+      />
     </div>
   );
 }

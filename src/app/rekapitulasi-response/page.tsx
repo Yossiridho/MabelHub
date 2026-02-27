@@ -98,6 +98,8 @@ export default function RekapitulasiResponsePage() {
   const [adminFilter, setAdminFilter] = useState("");
   const [q, setQ] = useState("");
 
+  const [statusKeputusanOpts, setStatusKeputusanOpts] = useState<string[]>([]);
+
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
 
   // ✅ Guard: halaman ini hanya untuk SUPERADMIN/ADMIN
@@ -122,6 +124,21 @@ export default function RekapitulasiResponsePage() {
 
       setLoading(true);
       const data = await apiListTaken();
+
+      // Fetch parameters untuk status_keputusan
+      try {
+        const pRes = await fetch("/api/parameters", { cache: "no-store" });
+        if (pRes.ok) {
+          const pJson = await pRes.json();
+          const pData = pJson?.data;
+          if (pData?.status_keputusan) {
+            setStatusKeputusanOpts(pData.status_keputusan);
+          }
+        }
+      } catch (e) {
+        // ignore error fetching parameters
+      }
+
       if (mounted) setRows(data);
       if (mounted) setLoading(false);
     })();
@@ -262,6 +279,7 @@ export default function RekapitulasiResponsePage() {
                             isAdmin={isAdmin}
                             isSuperAdmin={isSuperAdmin}
                             currentUserId={user?.userId ?? ""}
+                            statusKeputusanOpts={statusKeputusanOpts}
                             onUpdated={(updatedRow) => {
                               // update lokal di tabel
                               setRows((prev) =>
@@ -296,6 +314,7 @@ function FragmentRow({
   isAdmin,
   isSuperAdmin,
   currentUserId,
+  statusKeputusanOpts,
   onUpdated,
 }: {
   r: EProcRow;
@@ -304,6 +323,7 @@ function FragmentRow({
   isAdmin: boolean;
   isSuperAdmin: boolean;
   currentUserId: string;
+  statusKeputusanOpts: string[];
   onUpdated: (r: EProcRow) => void;
 }) {
   const [loading, setLoading] = useState(false);
@@ -622,11 +642,32 @@ function FragmentRow({
                                 }}
                                 disabled={!canEdit || loading}
                               >
-                                <option value="">Todo</option>
-                                <option value="Progress">Progress</option>
-                                <option value="Done">Done</option>
-                                <option value="Hold">Hold</option>
-                                <option value="Cancel">Cancel</option>
+                                <option value="">Masuk</option>
+                                {statusKeputusanOpts.map((opt) => {
+                                  const o = opt.toLowerCase();
+                                  const isEndState =
+                                    o.includes("done") ||
+                                    o.includes("cancel") ||
+                                    o.includes("hold");
+
+                                  const savedStatus = (
+                                    r.items?.[idx]?.statusBarangAdmin || ""
+                                  ).toLowerCase();
+                                  const hasProgressed =
+                                    savedStatus !== "" &&
+                                    savedStatus !== "masuk";
+
+                                  // Sembunyikan end-state jika belum progress
+                                  if (isEndState && !hasProgressed) {
+                                    return null;
+                                  }
+
+                                  return (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </td>
                             <td colSpan={2} className="px-3 py-2">
@@ -767,10 +808,19 @@ function FragmentRow({
                       setForm({ ...form, statusAkhir: val })
                     }
                     isDisabled={!canEdit || loading || !isDone}
-                    options={statusAkhirOptions.map((s) => ({
-                      value: s,
-                      label: s,
-                    }))}
+                    options={statusAkhirOptions
+                      .filter((s) => {
+                        const low = s.toLowerCase();
+                        return (
+                          low.includes("rilis kontrak") ||
+                          low.includes("barang terkirim ke user") ||
+                          low.includes("terbit bast")
+                        );
+                      })
+                      .map((s) => ({
+                        value: s,
+                        label: s,
+                      }))}
                     placeholder={
                       !isDone
                         ? "Terkunci (Belum Done)"

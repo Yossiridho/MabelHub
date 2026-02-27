@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 type ParamKey =
   | "kota_kabupaten"
@@ -14,7 +15,8 @@ type ParamKey =
   | "status_kunjungan"
   | "kegiatan"
   | "perusahaan"
-  | "status_akhir";
+  | "status_akhir"
+  | "status_keputusan";
 
 type ParamDoc = {
   _id: string;
@@ -27,11 +29,12 @@ type ParamDoc = {
   kegiatan: string[];
   perusahaan: string[];
   status_akhir: string[];
+  status_keputusan: string[];
   updatedAt?: string;
 };
 
-function cn(...s: Array<string | false | null | undefined>) {
-  return s.filter(Boolean).join(" ");
+function cn(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(" ");
 }
 
 const KEY_LABEL: Record<ParamKey, string> = {
@@ -44,6 +47,7 @@ const KEY_LABEL: Record<ParamKey, string> = {
   kegiatan: "Kegiatan",
   perusahaan: "Perusahaan",
   status_akhir: "Status Akhir",
+  status_keputusan: "Status Keputusan",
 };
 
 const ALL_KEYS: ParamKey[] = [
@@ -56,6 +60,7 @@ const ALL_KEYS: ParamKey[] = [
   "kegiatan",
   "perusahaan",
   "status_akhir",
+  "status_keputusan",
 ];
 
 export default function ParameterPage() {
@@ -74,7 +79,12 @@ export default function ParameterPage() {
 
   const [key, setKey] = useState<ParamKey>("kota_kabupaten");
   const [value, setValue] = useState("");
-  const [parentRing, setParentRing] = useState(""); // Untuk Segmen
+  const [parentRing, setParentRing] = useState("");
+
+  const [confirmDelete, setConfirmDelete] = useState<{
+    k: ParamKey;
+    v: string;
+  } | null>(null); // Untuk Segmen
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -110,6 +120,7 @@ export default function ParameterPage() {
       kegiatan: d?.kegiatan ?? [],
       perusahaan: d?.perusahaan ?? [],
       status_akhir: d?.status_akhir ?? [],
+      status_keputusan: d?.status_keputusan ?? [],
     } as Record<ParamKey, string[]>;
   }, [doc]);
 
@@ -145,7 +156,14 @@ export default function ParameterPage() {
     }
   }
 
-  async function onDeleteItem(k: ParamKey, v: string) {
+  function onDeleteItem(k: ParamKey, v: string) {
+    setConfirmDelete({ k, v });
+  }
+
+  async function handleConfirmDelete() {
+    if (!confirmDelete) return;
+    const { k, v } = confirmDelete;
+
     setSaving(true);
     setErr("");
     try {
@@ -165,6 +183,7 @@ export default function ParameterPage() {
       setErr(e?.message ?? "Gagal hapus");
     } finally {
       setSaving(false);
+      setConfirmDelete(null);
     }
   }
 
@@ -282,7 +301,7 @@ export default function ParameterPage() {
               [
                 ["kota_kabupaten", "klpd", "ring"],
                 ["segmen", "posisi", "status_kunjungan"],
-                ["kegiatan", "perusahaan", "status_akhir"],
+                ["kegiatan", "perusahaan", "status_akhir", "status_keputusan"],
               ] as ParamKey[][]
             )
               .flat()
@@ -299,6 +318,21 @@ export default function ParameterPage() {
           </section>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        loading={saving}
+        title="Konfirmasi Hapus Parameter"
+        message={
+          <>
+            Apakah Anda yakin ingin menghapus parameter{" "}
+            <span className="font-bold">{confirmDelete?.v}</span>?
+          </>
+        }
+        confirmText="HAPUS"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

@@ -145,9 +145,6 @@ export async function GET(req: Request) {
     filter.takenByAdminId = null;
   } else if (mode === "taken") {
     filter.takenByAdminId = { $ne: null };
-    if (auth.session.role === "ADMIN") {
-      filter.takenByAdminId = auth.session.userId;
-    }
   } else if (mode === "mine") {
     // ✅ mine = createdBy OR assignedTo
     filter.$or = [

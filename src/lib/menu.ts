@@ -45,11 +45,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
   ADMIN: [
     {
       title: "ACTIVITY REQUEST",
-      items: [
-        { label: "E-Procurement", href: "/e-procurement" },
-        { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit" },
-        { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc" },
-      ],
+      items: [{ label: "E-Procurement", href: "/e-procurement" }],
     },
     {
       title: "ACTIVITY RESPONSE",

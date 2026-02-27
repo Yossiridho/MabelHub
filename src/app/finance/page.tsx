@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, Fragment } from "react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 // Tipe Data sesuai E-Procurement
 type ProductItem = {
@@ -64,10 +65,12 @@ function formatSegmen(s: string) {
 
 function FinanceFormRow({
   row,
+  statusAkhirOptions,
   onUpdated,
   onCancel,
 }: {
   row: EProcRow;
+  statusAkhirOptions: string[];
   onUpdated: (updated: EProcRow) => void;
   onCancel: () => void;
 }) {
@@ -82,12 +85,25 @@ function FinanceFormRow({
     tanggalPembayaran: row.tanggalPembayaran || "",
     nominalPembayaran:
       typeof row.nominalPembayaran === "number" ? row.nominalPembayaran : "",
+    statusAkhir: row.statusAkhir || "",
   });
 
-  const statusAkhir = String(row.statusAkhir || "").toUpperCase();
+  // Calculate editable zones
+  const currentOverallStatus = String(form.statusAkhir || "").toUpperCase();
   const canEditKontrak =
-    statusAkhir === "RILIS KONTRAK" || statusAkhir === "TERBIT BAST";
-  const canEditPembayaran = statusAkhir === "TERBIT BAST";
+    currentOverallStatus === "RILIS KONTRAK" ||
+    currentOverallStatus === "TERBIT BAST" ||
+    currentOverallStatus === "PENAGIHAN" ||
+    currentOverallStatus === "LUNAS" ||
+    currentOverallStatus === "PENGUMPULAN DOKUMEN" ||
+    currentOverallStatus === "DONE PROJECT";
+
+  const canEditPembayaran =
+    currentOverallStatus === "TERBIT BAST" ||
+    currentOverallStatus === "PENAGIHAN" ||
+    currentOverallStatus === "LUNAS" ||
+    currentOverallStatus === "PENGUMPULAN DOKUMEN" ||
+    currentOverallStatus === "DONE PROJECT";
 
   const handleSave = async () => {
     try {
@@ -103,10 +119,9 @@ function FinanceFormRow({
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // Preserve existing data
             perusahaan: row.perusahaan,
             catatanAdmin: row.catatanAdmin,
-            statusAkhir: row.statusAkhir,
+            statusAkhir: form.statusAkhir,
             items: row.items,
 
             // New finance data payload
@@ -153,6 +168,48 @@ function FinanceFormRow({
             Data Keuangan Perusahaan
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Status Akhir List Dropdown */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                Pembaruan Status Keuangan
+              </label>
+              <SearchableSelect
+                className="mt-1 max-w-sm"
+                value={form.statusAkhir}
+                onChange={(val: string) =>
+                  setForm({ ...form, statusAkhir: val })
+                }
+                isDisabled={
+                  loading ||
+                  String(row.statusAkhir || "").toUpperCase() !== "TERBIT BAST"
+                }
+                options={statusAkhirOptions
+                  .filter((s) => {
+                    const low = s.toLowerCase();
+                    return (
+                      low.includes("penagihan") ||
+                      low.includes("lunas") ||
+                      low.includes("pengumpulan dokumen") ||
+                      low.includes("done project")
+                    );
+                  })
+                  .map((s) => ({
+                    value: s,
+                    label: s,
+                  }))}
+                placeholder={
+                  String(row.statusAkhir || "").toUpperCase() !== "TERBIT BAST"
+                    ? "Terkunci (Belum Terbit BAST)"
+                    : "Pilih Status Keuangan..."
+                }
+              />
+              <p className="text-[10px] items-center text-slate-500 font-medium ml-1 mt-1.5 inline-flex gap-1.5 leading-tight">
+                Hanya menampilkan status tingkat ke-2 (Penagihan, Lunas,
+                Pengumpulan Dokumen, Done Project). Terkunci sebelum Terbit
+                BAST.
+              </p>
+            </div>
+
             {/* Tanggal Kontrak */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
@@ -314,6 +371,7 @@ export default function FinancePage() {
   const [errorConfig, setErrorConfig] = useState("");
 
   const [openRequestId, setOpenRequestId] = useState<string | null>(null);
+  const [statusAkhirOpts, setStatusAkhirOpts] = useState<string[]>([]);
 
   // Akses eksklusif SUPERADMIN
   useEffect(() => {
@@ -333,10 +391,20 @@ export default function FinancePage() {
       setLoadingConfig(true);
       setErrorConfig("");
       // Menggunakan API yang sama, karena SUPERADMIN mendapat "all"
-      const res = await fetch("/api/e-procurement/requests?mode=all");
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Gagal mengambil data");
-      setData(json.data || []);
+      const [reqRes, paramsRes] = await Promise.all([
+        fetch("/api/e-procurement/requests?mode=all"),
+        fetch("/api/parameters"),
+      ]);
+
+      const reqJson = await reqRes.json();
+      const paramsJson = await paramsRes.json();
+
+      if (!reqRes.ok) throw new Error(reqJson.error || "Gagal mengambil data");
+
+      setData(reqJson.data || []);
+      if (paramsJson?.data?.status_akhir) {
+        setStatusAkhirOpts(paramsJson.data.status_akhir);
+      }
     } catch (e: any) {
       setErrorConfig(e.message);
     } finally {
@@ -507,6 +575,7 @@ export default function FinancePage() {
                         <td colSpan={3} className="p-0">
                           <FinanceFormRow
                             row={row}
+                            statusAkhirOptions={statusAkhirOpts}
                             onCancel={() => setOpenRequestId(null)}
                             onUpdated={(updatedRow) => {
                               // Update row in local state

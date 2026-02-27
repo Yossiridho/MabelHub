@@ -5,12 +5,14 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import NotificationMenu from "@/components/modals/NotificationMenu";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 import {
   Search,
   ClipboardList,
   Building2,
   CheckCircle2,
   PackageOpen,
+  Users,
 } from "lucide-react";
 
 import {
@@ -67,6 +69,7 @@ type ChartFilter = {
   company: string | null;
   segment: string | null;
   status: string | null;
+  admin: string | null;
 };
 
 type Summary = {
@@ -74,6 +77,7 @@ type Summary = {
   bySegment: Array<{ label: string; value: number }>;
   byCompany: Array<{ label: string; value: number }>;
   byStatus: Array<{ label: string; value: number }>;
+  byAdmin: Array<{ label: string; value: number }>;
 };
 
 const renderActiveShape = (props: any) => {
@@ -207,22 +211,25 @@ export default function DashboardResponsePage() {
   const [allRows, setAllRows] = useState<EProcRow[]>([]);
   const [loadingRows, setLoadingRows] = useState(true);
   const [takingId, setTakingId] = useState<string | null>(null);
+  const [confirmTakeId, setConfirmTakeId] = useState<string | null>(null);
+
+  // chart
+  const [pieActiveIndex, setPieActiveIndex] = useState(0);
+  const onPieEnter = useCallback((_: any, index: number) => {
+    setPieActiveIndex(index);
+  }, []);
 
   const [q, setQ] = useState("");
-
-  const [activeIndex, setActiveIndex] = useState(0);
-  const onPieEnter = useCallback((_: any, index: number) => {
-    setActiveIndex(index);
-  }, []);
 
   const [chartFilter, setChartFilter] = useState<ChartFilter>({
     company: null,
     segment: null,
     status: null,
+    admin: null,
   });
 
   const toggleFilter = (
-    type: "company" | "segment" | "status",
+    type: "company" | "segment" | "status" | "admin",
     value: string,
   ) => {
     setChartFilter((prev) => ({
@@ -242,7 +249,10 @@ export default function DashboardResponsePage() {
 
   // Dynamic summary
   const summary: Summary = useMemo(() => {
-    const fullyFiltered = allRows.filter((r) => {
+    // 1. Tdk masukkan yg blm di-take
+    const takenRows = allRows.filter((r) => r.takenByAdminId != null);
+
+    const fullyFiltered = takenRows.filter((r) => {
       if (
         chartFilter.company &&
         (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
@@ -258,14 +268,20 @@ export default function DashboardResponsePage() {
         (r.statusAkhir || r.statusUsulan || "Masuk") !== chartFilter.status
       )
         return false;
+      if (
+        chartFilter.admin &&
+        (r.takenByAdminName || "Unknown Admin") !== chartFilter.admin
+      )
+        return false;
       return true;
     });
 
     const countSegmen: Record<string, number> = {};
     const countCompany: Record<string, number> = {};
     const countStatus: Record<string, number> = {};
+    const countAdmin: Record<string, number> = {};
 
-    const segmenData = allRows.filter((r) => {
+    const segmenData = takenRows.filter((r) => {
       if (
         chartFilter.company &&
         (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
@@ -274,6 +290,11 @@ export default function DashboardResponsePage() {
       if (
         chartFilter.status &&
         (r.statusAkhir || r.statusUsulan || "Masuk") !== chartFilter.status
+      )
+        return false;
+      if (
+        chartFilter.admin &&
+        (r.takenByAdminName || "Unknown Admin") !== chartFilter.admin
       )
         return false;
       return true;
@@ -283,7 +304,58 @@ export default function DashboardResponsePage() {
       countSegmen[s] = (countSegmen[s] || 0) + 1;
     });
 
-    const companyData = allRows.filter((r) => {
+    const companyData = takenRows.filter((r) => {
+      if (
+        chartFilter.segment &&
+        (r.segmen || "Unknown") !== chartFilter.segment
+      )
+        return false;
+      if (
+        chartFilter.status &&
+        (r.statusAkhir || r.statusUsulan || "Masuk") !== chartFilter.status
+      )
+        return false;
+      if (
+        chartFilter.admin &&
+        (r.takenByAdminName || "Unknown Admin") !== chartFilter.admin
+      )
+        return false;
+      return true;
+    });
+    companyData.forEach((r) => {
+      const c = r.perusahaan || "Belum Ditentukan";
+      countCompany[c] = (countCompany[c] || 0) + 1;
+    });
+
+    const statusData = takenRows.filter((r) => {
+      if (
+        chartFilter.company &&
+        (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
+      )
+        return false;
+      if (
+        chartFilter.segment &&
+        (r.segmen || "Unknown") !== chartFilter.segment
+      )
+        return false;
+      if (
+        chartFilter.admin &&
+        (r.takenByAdminName || "Unknown Admin") !== chartFilter.admin
+      )
+        return false;
+      return true;
+    });
+    statusData.forEach((r) => {
+      const st = r.statusAkhir || r.statusUsulan || "Masuk";
+      countStatus[st] = (countStatus[st] || 0) + 1;
+    });
+
+    const adminData = takenRows.filter((r) => {
+      if (
+        chartFilter.company &&
+        (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
+      )
+        return false;
       if (
         chartFilter.segment &&
         (r.segmen || "Unknown") !== chartFilter.segment
@@ -296,27 +368,10 @@ export default function DashboardResponsePage() {
         return false;
       return true;
     });
-    companyData.forEach((r) => {
-      const c = r.perusahaan || "Belum Ditentukan";
-      countCompany[c] = (countCompany[c] || 0) + 1;
-    });
 
-    const statusData = allRows.filter((r) => {
-      if (
-        chartFilter.company &&
-        (r.perusahaan || "Belum Ditentukan") !== chartFilter.company
-      )
-        return false;
-      if (
-        chartFilter.segment &&
-        (r.segmen || "Unknown") !== chartFilter.segment
-      )
-        return false;
-      return true;
-    });
-    statusData.forEach((r) => {
-      const st = r.statusAkhir || r.statusUsulan || "Masuk";
-      countStatus[st] = (countStatus[st] || 0) + 1;
+    adminData.forEach((r) => {
+      const adm = r.takenByAdminName || "Unknown Admin";
+      countAdmin[adm] = (countAdmin[adm] || 0) + 1;
     });
 
     const toArr = (obj: Record<string, number>) =>
@@ -324,11 +379,39 @@ export default function DashboardResponsePage() {
         .map(([label, value]) => ({ label, value }))
         .sort((a, b) => b.value - a.value);
 
+    // Custom Urutan untuk bagian status
+    const STATUS_ORDER = [
+      "masuk",
+      "proses",
+      "done",
+      "hold",
+      "cancel",
+      "rilis kontrak",
+      "barang terkirim ke user",
+      "terbit bast",
+      "penagihan",
+      "lunas",
+      "pengumpulan dokumen",
+      "done project",
+    ];
+
+    const sortedStatus = Object.entries(countStatus)
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => {
+        const idxA = STATUS_ORDER.indexOf(a.label.toLowerCase());
+        const idxB = STATUS_ORDER.indexOf(b.label.toLowerCase());
+        const orderA = idxA === -1 ? 999 : idxA;
+        const orderB = idxB === -1 ? 999 : idxB;
+        if (orderA !== orderB) return orderA - orderB;
+        return b.value - a.value;
+      });
+
     return {
       total: fullyFiltered.length,
       bySegment: toArr(countSegmen),
       byCompany: toArr(countCompany),
-      byStatus: toArr(countStatus),
+      byStatus: sortedStatus,
+      byAdmin: toArr(countAdmin),
     };
   }, [allRows, chartFilter]);
 
@@ -373,30 +456,49 @@ export default function DashboardResponsePage() {
           (r.statusAkhir || r.statusUsulan || "Masuk") === chartFilter.status,
       );
     }
-
+    if (chartFilter.admin) {
+      base = base.filter(
+        (r) => (r.takenByAdminName || "Unknown Admin") === chartFilter.admin,
+      );
+    }
     const qq = q.trim().toLowerCase();
-    if (!qq) return base;
-    return base.filter((r) =>
-      [
-        r.requestId,
-        r.requestor,
-        r.pemohon,
-        r.lokasi,
-        r.segmen,
-        fmtDate(r.deadlineUsulan),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(qq),
-    );
+    const sortedBase = qq
+      ? base.filter((r) =>
+          [
+            r.requestId,
+            r.requestor,
+            r.pemohon,
+            r.lokasi,
+            r.segmen,
+            fmtDate(r.deadlineUsulan),
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(qq),
+        )
+      : base;
+
+    // Prioritaskan yang belum diambil & paling lama di-submit
+    return sortedBase.sort((a, b) => {
+      const timeA = new Date(a.tanggalSubmit).getTime();
+      const timeB = new Date(b.tanggalSubmit).getTime();
+      return timeA - timeB; // Ascending: oldest first
+    });
   }, [rows, q, chartFilter]);
 
   const hasOrders = filtered.length > 0;
 
-  async function onTake(requestId: string) {
+  function onTake(requestId: string) {
+    setConfirmTakeId(requestId);
+  }
+
+  async function handleConfirmTake() {
+    if (!confirmTakeId) return;
+    const reqId = confirmTakeId;
+
     try {
-      setTakingId(requestId);
-      await apiTake(requestId);
+      setTakingId(reqId);
+      await apiTake(reqId);
       // refresh list
       const takeableData = await apiListTakeable();
       setRows(takeableData);
@@ -407,6 +509,7 @@ export default function DashboardResponsePage() {
       alert(e?.message ?? "Gagal mengambil request");
     } finally {
       setTakingId(null);
+      setConfirmTakeId(null);
     }
   }
 
@@ -452,7 +555,13 @@ export default function DashboardResponsePage() {
             </div>
 
             {/* Top cards row (warna & feel sama) */}
-            <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div
+              className={`mt-6 grid grid-cols-1 gap-4 ${
+                user?.role === "SUPERADMIN"
+                  ? "lg:grid-cols-4"
+                  : "lg:grid-cols-3"
+              }`}
+            >
               <TopCard
                 title="TOTAL REQUEST"
                 icon={<ClipboardList className="h-4 w-4 text-neutral-500" />}
@@ -488,6 +597,19 @@ export default function DashboardResponsePage() {
                   activeLabel={chartFilter.status}
                 />
               </TopCard>
+
+              {user?.role === "SUPERADMIN" && (
+                <TopCard
+                  title="ADMIN"
+                  icon={<Users className="h-4 w-4 text-neutral-500" />}
+                >
+                  <MiniTable
+                    rows={summary.byAdmin}
+                    onRowClick={(val) => toggleFilter("admin", val)}
+                    activeLabel={chartFilter.admin}
+                  />
+                </TopCard>
+              )}
             </div>
 
             {/* Takeable orders (putih, rounded, shadow) */}
@@ -516,7 +638,8 @@ export default function DashboardResponsePage() {
 
               {(chartFilter.company ||
                 chartFilter.segment ||
-                chartFilter.status) && (
+                chartFilter.status ||
+                chartFilter.admin) && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-neutral-500">
                     Active Filters:
@@ -572,12 +695,30 @@ export default function DashboardResponsePage() {
                       </button>
                     </div>
                   )}
+                  {chartFilter.admin && (
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-800 ring-1 ring-inset ring-pink-200">
+                      <span className="flex items-center gap-1">
+                        <span className="text-pink-500">🧑‍💻</span>
+                        Admin:{" "}
+                        <span className="font-bold">{chartFilter.admin}</span>
+                      </span>
+                      <button
+                        onClick={() =>
+                          toggleFilter("admin", chartFilter.admin!)
+                        }
+                        className="ml-1 flex h-5 w-5 items-center justify-center rounded-md hover:bg-pink-200/50 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
                   <button
                     onClick={() =>
                       setChartFilter({
                         company: null,
                         segment: null,
                         status: null,
+                        admin: null,
                       })
                     }
                     className="text-xs font-semibold text-red-500 hover:text-red-700 underline underline-offset-2 ml-2"
@@ -696,7 +837,7 @@ export default function DashboardResponsePage() {
                       <RechartsPieChart>
                         <Pie
                           // @ts-ignore
-                          activeIndex={activeIndex}
+                          activeIndex={pieActiveIndex}
                           activeShape={renderActiveShape}
                           data={summary.bySegment}
                           cx="50%"
@@ -822,12 +963,101 @@ export default function DashboardResponsePage() {
                   </div>
                 </OverviewCard>
               </div>
+
+              {user?.role === "SUPERADMIN" && (
+                <div className="mt-4">
+                  <OverviewCard title="ADMIN PERFORMANCE (SUPERADMIN ONLY)">
+                    <div className="h-[280px] w-full text-xs">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={summary.byAdmin}
+                          layout="vertical"
+                          margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            horizontal={false}
+                            stroke="#e5e7eb"
+                          />
+                          <XAxis
+                            type="number"
+                            allowDecimals={false}
+                            tick={{ fill: "#6b7280" }}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="label"
+                            width={150}
+                            tick={{
+                              fontSize: 11,
+                              fill: "#374151",
+                              fontWeight: 500,
+                            }}
+                            interval={0}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "#f3f4f6" }}
+                            formatter={(value: any) => [value, "Request"]}
+                            contentStyle={{
+                              borderRadius: "8px",
+                              border: "none",
+                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            }}
+                          />
+                          <Bar
+                            dataKey="value"
+                            radius={[0, 4, 4, 0]}
+                            barSize={20}
+                            fill="#8b5cf6"
+                            activeBar={
+                              <Rectangle
+                                fill="#c4b5fd"
+                                stroke="#8b5cf6"
+                                strokeWidth={1}
+                                radius={[0, 4, 4, 0]}
+                              />
+                            }
+                          >
+                            {summary.byAdmin.map((entry, index) => {
+                              const isSelected =
+                                chartFilter.admin === entry.label;
+                              const isDimmed =
+                                chartFilter.admin !== null && !isSelected;
+                              return (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  cursor="pointer"
+                                  fill={COLORS[index % COLORS.length]}
+                                  opacity={isDimmed ? 0.35 : 1}
+                                  onClick={() =>
+                                    toggleFilter("admin", entry.label)
+                                  }
+                                />
+                              );
+                            })}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </OverviewCard>
+                </div>
+              )}
             </div>
 
             <div className="h-10" />
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!confirmTakeId}
+        loading={takingId === confirmTakeId}
+        title="Konfirmasi Pengambilan"
+        message={`Apakah Anda yakin ingin TAKE request ${confirmTakeId}?`}
+        confirmText="TAKE"
+        onConfirm={handleConfirmTake}
+        onCancel={() => setConfirmTakeId(null)}
+      />
     </div>
   );
 }
@@ -911,9 +1141,40 @@ function TakeCard({
   onTake: () => void;
   taking: boolean;
 }) {
+  const isDelayed =
+    Date.now() - new Date(row.tanggalSubmit).getTime() >
+    3 * 24 * 60 * 60 * 1000; // > 3 days
+
   return (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-indigo-200">
-      <div className="flex items-start justify-between gap-3">
+    <div
+      className={`group relative rounded-2xl border bg-white p-5 shadow-sm transition-all hover:shadow-md ${
+        isDelayed
+          ? "border-rose-300 ring-2 ring-rose-500/50 hover:border-rose-400"
+          : "border-slate-200 hover:border-indigo-200"
+      }`}
+    >
+      {isDelayed && (
+        <div className="absolute -top-3 left-4 inline-flex items-center gap-1 rounded-full bg-rose-500 px-3 py-0.5 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          MENDESAK (&gt;3 HARI)
+        </div>
+      )}
+
+      <div
+        className={`flex items-start justify-between gap-3 ${isDelayed ? "mt-2" : ""}`}
+      >
         <div>
           <div className="text-xs font-bold tracking-wider text-neutral-500 uppercase">
             REQUEST ID
