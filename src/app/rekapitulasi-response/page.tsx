@@ -160,20 +160,21 @@ export default function RekapitulasiResponsePage() {
   }, [rows, adminFilter, q, isSuperAdmin]);
 
   return (
-    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
-        <Sidebar />
+<Sidebar />
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
-          <div className="px-3 pt-2 pb-2">
-            <h1 className="text-2xl font-extrabold pl-4 text-black">
-              REKAPITULASI RESPONSE
-            </h1>
-            <div className="mt-1 text-sm text-neutral-600">
-              Menampilkan request e-procurement yang sudah diambil admin.
-            </div>
+<div className="flex-1 p-6 h-screen overflow-y-auto">
+  <div className="px-8 pt-2 pb-4 space-y-1">
+    <h1 className="text-3xl font-extrabold text-black drop-shadow-sm">
+      REKAPITULASI RESPONSE
+    </h1>
+    <p className="text-sm text-neutral-600">
+      Menampilkan request e-procurement yang sudah diambil admin.
+    </p>
+  </div>
 
-            {/* Filter bar */}
+  {/* Filter bar */}
             <div className="mt-6 rounded-2xl bg-white/70 backdrop-blur-xl p-5 shadow-sm border border-slate-200/60 transition-shadow hover:shadow-md">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
@@ -285,7 +286,6 @@ export default function RekapitulasiResponsePage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

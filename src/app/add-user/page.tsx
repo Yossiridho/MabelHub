@@ -302,16 +302,17 @@ export default function AddUserPage() {
       <div className="flex">
         <Sidebar />
 
-        <div className="flex-1 h-screen overflow-y-auto">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center">
-              <div className="text-xl font-extrabold pl-3 text-black">
+        <div className="flex-1 h-screen overflow-y-auto w-full p-6">
+          <div className="px-7 pt-2 pb-2">
+              <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                 ADD USER
               </div>
+            <div className="mt-2 ml-4 text-sm text-neutral-600">
+              Kelola Users by (SUPERADMIN)
             </div>
 
             {/* Form Card */}
+
             <div className="mt-8 rounded-lg bg-white p-6 ring-1 ring-blue-200 shadow-md">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field label="Nama Lengkap">

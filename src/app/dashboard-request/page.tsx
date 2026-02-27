@@ -330,11 +330,14 @@ export default function DashboardRequestPage() {
         {/* CONTENT */}
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           {/* TOP BAR */}
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="mb-4 px-4 pt-2 pb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-2xl pl-4 font-extrabold flex items-center gap-3">
+              <h2 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                 VISIT DASHBOARD
               </h2>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Monitoring dan Analisis Aktivitas Visit Lapangan
+                </div>
               {/* Active Filters Indicator */}
               {(activeFilters.ring ||
                 activeFilters.statusGroup ||
