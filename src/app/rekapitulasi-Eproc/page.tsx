@@ -8,6 +8,11 @@ import HistoryEprocModal, {
   EProcHistoryItem,
 } from "@/components/modals/HistoryEprocModal";
 import { useSession } from "@/components/session/SessionProvider";
+import * as XLSX from "xlsx";
+import ExportExcelModal, {
+  ExportColumn,
+  ExportScope,
+} from "@/components/modals/ExportExcelModal";
 
 type ProductItem = {
   id: string;
@@ -124,6 +129,10 @@ export default function RekapitulasiEProcurementPage() {
   const [laporStatusReqSales, setLaporStatusReqSales] = useState("");
   const [laporCatatan, setLaporCatatan] = useState("");
   const [isLaporLoading, setIsLaporLoading] = useState(false);
+
+  // modal export excel
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // modal history
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -398,7 +407,233 @@ export default function RekapitulasiEProcurementPage() {
     } finally {
       setIsLaporLoading(false);
     }
+    // define export columns inside component body so it's not redefined repeatedly, or outside
+    // we'll define it here so it has access to helpers or just as constant
   }
+
+  const exportColumns: ExportColumn[] = [
+    { id: "requestId", label: "Request ID" },
+    { id: "requestor", label: "Nama Requestor" },
+    { id: "pemohon", label: "Pemohon" },
+    { id: "lokasi", label: "Lokasi" },
+    { id: "segmen", label: "Segmen" },
+    { id: "tanggalSubmit", label: "Tanggal Submit" },
+    { id: "deadlineUsulan", label: "Deadline Usulan" },
+    { id: "statusUsulan", label: "Status Usulan" },
+    { id: "statusAkhir", label: "Status Akhir" },
+    { id: "perusahaan", label: "Perusahaan" },
+    { id: "tindakLanjut", label: "Tindak Lanjut" },
+    { id: "catatanPemohon", label: "Catatan Pemohon" },
+    { id: "tanggalKontrak", label: "Tgl Kontrak" },
+    { id: "nominalKontrak", label: "Nominal Kontrak" },
+    { id: "picAdmin", label: "PIC Admin" },
+    // List Barang
+    { id: "itemMerek", label: "Merek Product" },
+    { id: "itemKategori", label: "Sub-Kategori" },
+    { id: "itemSpesifikasi", label: "Spesifikasi Barang" },
+    { id: "itemQty", label: "Qty" },
+    { id: "itemPagu", label: "Pagu Per Item" },
+    { id: "itemHargaTayang", label: "Harga Tayang" },
+    { id: "itemLinkInaproc", label: "Link Inaproc" },
+    { id: "itemLinkEcom", label: "Link E-Commerce" },
+    { id: "itemStatusAdmin", label: "Status Barang (Admin)" },
+    { id: "itemTayangInaproc", label: "Tayang Inaproc (Admin)" },
+    { id: "itemCatatanAdmin", label: "Catatan Admin" },
+    // History
+    {
+      id: "historyTindakLanjut",
+      label: "Export Sheet History (Tindak Lanjut & Approval)",
+    },
+  ];
+
+  const handleExport = async (selectedCols: string[], scope: ExportScope) => {
+    setIsExporting(true);
+    try {
+      const dataToProcess = scope === "page" ? pageItems : filtered;
+
+      const flattenedData: any[] = [];
+      const merges: any[] = [];
+      let currentRowIndex = 1; // 0 is header row
+
+      const historyData: any[] = [];
+      const historyMerges: any[] = [];
+      let currentHistoryRowIndex = 1;
+
+      for (const r of dataToProcess) {
+        // Fetch History for this specific request if the user selected that column
+        if (selectedCols.includes("historyTindakLanjut")) {
+          try {
+            const histRes = await fetch(
+              `/api/e-procurement/requests/${r.requestId}/history`,
+            );
+            if (histRes.ok) {
+              const histJson = await histRes.json();
+              if (
+                histJson.data &&
+                Array.isArray(histJson.data) &&
+                histJson.data.length > 0
+              ) {
+                const logsCount = histJson.data.length;
+
+                histJson.data.forEach((log: any) => {
+                  historyData.push({
+                    "Request ID": r.requestId,
+                    Waktu: formatDateTime(log.at),
+                    "Aksi/Status": log.action || log.tindakLanjut || "Update",
+                    Oleh: log.by || "System",
+                    Catatan: log.catatan || "-",
+                  });
+                });
+
+                if (logsCount > 1) {
+                  historyMerges.push({
+                    s: { r: currentHistoryRowIndex, c: 0 }, // c: 0 is Request ID
+                    e: { r: currentHistoryRowIndex + logsCount - 1, c: 0 },
+                  });
+                }
+                currentHistoryRowIndex += logsCount;
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch history for", r.requestId);
+          }
+        }
+
+        const baseRow: any = {};
+
+        if (selectedCols.includes("requestId"))
+          baseRow["Request ID"] = r.requestId;
+        if (selectedCols.includes("requestor"))
+          baseRow["Nama Requestor"] = r.requestor || "-";
+        if (selectedCols.includes("pemohon"))
+          baseRow["Pemohon"] = r.pemohon || "-";
+        if (selectedCols.includes("lokasi"))
+          baseRow["Lokasi"] = r.lokasi || "-";
+        if (selectedCols.includes("segmen"))
+          baseRow["Segmen"] = r.segmen || "-";
+        if (selectedCols.includes("tanggalSubmit"))
+          baseRow["Tanggal Submit"] = r.tanggalSubmit
+            ? formatDateTime(r.tanggalSubmit)
+            : "-";
+        if (selectedCols.includes("deadlineUsulan"))
+          baseRow["Deadline Usulan"] = r.deadlineUsulan || "-";
+        if (selectedCols.includes("statusUsulan"))
+          baseRow["Status Usulan"] = getStatusUsulan(r);
+        if (selectedCols.includes("statusAkhir"))
+          baseRow["Status Akhir"] = getDisplayStatusAkhir(r.statusAkhir);
+        if (selectedCols.includes("perusahaan"))
+          baseRow["Perusahaan"] = r.perusahaan || "-";
+        if (selectedCols.includes("tindakLanjut"))
+          baseRow["Tindak Lanjut"] = getTindakLanjutValue(r);
+        if (selectedCols.includes("catatanPemohon"))
+          baseRow["Catatan Pemohon"] = r.catatan || "-";
+        if (selectedCols.includes("tanggalKontrak"))
+          baseRow["Tgl Kontrak"] = r.tanggalKontrak
+            ? formatDateOnly(r.tanggalKontrak)
+            : "-";
+        if (selectedCols.includes("nominalKontrak"))
+          baseRow["Nominal Kontrak"] = r.nominalKontrak ?? "-";
+        if (selectedCols.includes("picAdmin"))
+          baseRow["PIC Admin"] = r.takenByAdminName || "-";
+
+        const hasItemCols = selectedCols.some((c) => c.startsWith("item"));
+        const itemCount =
+          hasItemCols && Array.isArray(r.items) && r.items.length > 0
+            ? r.items.length
+            : 1;
+
+        if (hasItemCols && Array.isArray(r.items) && r.items.length > 0) {
+          r.items.forEach((item) => {
+            const rowWithItem = { ...baseRow };
+            if (selectedCols.includes("itemMerek"))
+              rowWithItem["Merek Product"] = item.merek || "-";
+            if (selectedCols.includes("itemKategori"))
+              rowWithItem["Sub-Kategori"] = item.subKategori || "-";
+            if (selectedCols.includes("itemSpesifikasi"))
+              rowWithItem["Spesifikasi Barang"] = item.spesifikasi || "-";
+            if (selectedCols.includes("itemQty"))
+              rowWithItem["Qty"] = item.qty || 0;
+            if (selectedCols.includes("itemPagu"))
+              rowWithItem["Pagu Per Item"] = item.paguPerItem || "-";
+            if (selectedCols.includes("itemHargaTayang"))
+              rowWithItem["Harga Tayang"] = item.hargaTayang || "-";
+            if (selectedCols.includes("itemLinkInaproc"))
+              rowWithItem["Link Inaproc"] = item.linkInaproc || "-";
+            if (selectedCols.includes("itemLinkEcom"))
+              rowWithItem["Link E-Commerce"] = item.linkEcom || "-";
+            if (selectedCols.includes("itemStatusAdmin"))
+              rowWithItem["Status Barang (Admin)"] =
+                item.statusBarangAdmin || "Todo";
+            if (selectedCols.includes("itemTayangInaproc"))
+              rowWithItem["Tayang Inaproc (Admin)"] =
+                item.tayangInaprocAdmin || "-";
+            if (selectedCols.includes("itemCatatanAdmin"))
+              rowWithItem["Catatan Admin"] = item.catatanAdminItem || "-";
+            flattenedData.push(rowWithItem);
+          });
+        } else {
+          flattenedData.push(baseRow);
+        }
+
+        // Cell Merging Logic for Request Data spanning multiple items
+        if (itemCount > 1) {
+          const finalCols = exportColumns.filter((c) =>
+            selectedCols.includes(c.id),
+          );
+          finalCols.forEach((c, cIdx) => {
+            if (!c.id.startsWith("item")) {
+              merges.push({
+                s: { r: currentRowIndex, c: cIdx },
+                e: { r: currentRowIndex + itemCount - 1, c: cIdx },
+              });
+            }
+          });
+        }
+
+        currentRowIndex += itemCount;
+      }
+
+      const finalColLabels = exportColumns
+        .filter(
+          (c) => selectedCols.includes(c.id) && c.id !== "historyTindakLanjut",
+        )
+        .map((c) => c.label);
+      const worksheet = XLSX.utils.json_to_sheet(flattenedData, {
+        header: finalColLabels,
+      });
+
+      if (merges.length > 0) {
+        worksheet["!merges"] = merges;
+      }
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_E-Proc");
+
+      if (
+        selectedCols.includes("historyTindakLanjut") &&
+        historyData.length > 0
+      ) {
+        const historyWorksheet = XLSX.utils.json_to_sheet(historyData, {
+          header: ["Request ID", "Waktu", "Aksi/Status", "Oleh", "Catatan"],
+        });
+        if (historyMerges.length > 0) {
+          historyWorksheet["!merges"] = historyMerges;
+        }
+        XLSX.utils.book_append_sheet(workbook, historyWorksheet, "History");
+      }
+
+      XLSX.writeFile(
+        workbook,
+        `Rekapitulasi_E-Proc_${scope === "all" ? "All" : "Page"}.xlsx`,
+      );
+
+      setIsExportModalOpen(false);
+    } catch (e) {
+      console.error(e);
+      alert("Gagal export Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-blue-50">
@@ -407,12 +642,19 @@ export default function RekapitulasiEProcurementPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="mx-auto">
             {/* Header */}
-            <div className="mb-4 flex items-center gap-3">
-              <div className="px-6 pt-2 pb-6">
-                <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black">
-                  REKAPITULASI E-PROCUREMENT
-                </h1>
-              </div>
+            <div className="mb-4 flex items-center justify-between gap-3 px-6 pt-2 pb-6">
+              <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black">
+                REKAPITULASI E-PROCUREMENT
+              </h1>
+              <button
+                onClick={() => {
+                  console.log("EXPORT BUTTON CLICKED");
+                  setIsExportModalOpen(true);
+                }}
+                className="z-50 relative rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-green-700 hover:bg-green-700 transition"
+              >
+                Export Excel
+              </button>
             </div>
 
             <div className="rounded-2xl bg-white p-6 ring-1 ring-black/10">
@@ -1732,6 +1974,15 @@ export default function RekapitulasiEProcurementPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL EXPORT EXCEL */}
+      <ExportExcelModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        columns={exportColumns}
+        onExport={handleExport}
+        isLoading={isExporting}
+      />
 
       {/* MODAL HISTORY TINDAK LANJUT */}
       <HistoryEprocModal

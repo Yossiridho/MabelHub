@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { FileUp, Upload } from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Role = "SUPERADMIN" | "ADMIN" | "LEADER" | "SALES";
 

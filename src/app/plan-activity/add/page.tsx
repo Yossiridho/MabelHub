@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { ChevronRight, ArrowLeft, Building } from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Company = {
   _id: string;

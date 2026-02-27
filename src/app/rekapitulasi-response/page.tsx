@@ -5,6 +5,11 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import * as XLSX from "xlsx";
+import ExportExcelModal, {
+  ExportColumn,
+  ExportScope,
+} from "@/components/modals/ExportExcelModal";
 
 type ProductItem = {
   id: string;
@@ -100,6 +105,10 @@ export default function RekapitulasiResponsePage() {
 
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
 
+  // modal export excel
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
   // ✅ Guard: halaman ini hanya untuk SUPERADMIN/ADMIN
   useEffect(() => {
     if (sessionLoading) return;
@@ -159,6 +168,124 @@ export default function RekapitulasiResponsePage() {
     });
   }, [rows, adminFilter, q, isSuperAdmin]);
 
+  const exportColumns: ExportColumn[] = [
+    { id: "requestId", label: "Request ID" },
+    { id: "requestor", label: "Requestor" },
+    { id: "pemohon", label: "Pemohon" },
+    { id: "lokasi", label: "Lokasi" },
+    { id: "segmen", label: "Segmen" },
+    { id: "deadlineUsulan", label: "Deadline Usulan" },
+    { id: "tanggalSubmit", label: "Tanggal Submit" },
+    { id: "statusAkhir", label: "Status Akhir (Approval)" },
+    { id: "takenBy", label: "Taken By" },
+    { id: "takenAt", label: "Taken At" },
+    { id: "perusahaan", label: "Perusahaan (Penyedia)" },
+    { id: "catatanAdmin", label: "Catatan Admin" },
+    { id: "nominalKontrak", label: "Nominal Kontrak" },
+    { id: "nominalPembayaran", label: "Nominal Pembayaran" },
+    { id: "itemMerek", label: "Item: Merek" },
+    { id: "itemKategori", label: "Item: Sub Kategori" },
+    { id: "itemSpesifikasi", label: "Item: Spesifikasi" },
+    { id: "itemQty", label: "Item: Qty" },
+    { id: "itemPagu", label: "Item: Pagu Per Item" },
+    { id: "itemHargaTayang", label: "Item: Harga Tayang" },
+    { id: "itemStatusAdmin", label: "Item: Status Barang (Admin)" },
+    { id: "itemTayangInaproc", label: "Item: Tayang Inaproc (Admin)" },
+    { id: "itemCatatan", label: "Item: Catatan Admin" },
+  ];
+
+  const handleExport = async (selectedCols: string[], scope: ExportScope) => {
+    setIsExporting(true);
+    try {
+      // For Response, 'filtered' contains all data since apiListTaken fetches taken mode data.
+      const dataToProcess = scope === "page" ? filtered.slice() : filtered;
+      // Pagination is not fully implemented on server or client side here yet according to code,
+      // 'filtered' effectively works as page & all simultaneously if no real pagination exists,
+      // but let's keep scope conceptually correct if pagination is added later.
+
+      const flattenedData: any[] = [];
+
+      dataToProcess.forEach((r) => {
+        const baseRow: any = {};
+
+        if (selectedCols.includes("requestId"))
+          baseRow["Request ID"] = r.requestId;
+        if (selectedCols.includes("requestor"))
+          baseRow["Requestor"] = r.requestor || "-";
+        if (selectedCols.includes("pemohon"))
+          baseRow["Pemohon"] = r.pemohon || "-";
+        if (selectedCols.includes("lokasi"))
+          baseRow["Lokasi"] = r.lokasi || "-";
+        if (selectedCols.includes("segmen"))
+          baseRow["Segmen"] = r.segmen || "-";
+        if (selectedCols.includes("deadlineUsulan"))
+          baseRow["Deadline Usulan"] = fmtDate(r.deadlineUsulan);
+        if (selectedCols.includes("tanggalSubmit"))
+          baseRow["Tanggal Submit"] = fmtDate(r.tanggalSubmit);
+        if (selectedCols.includes("statusAkhir"))
+          baseRow["Status Akhir (Approval)"] = r.statusAkhir || "-";
+        if (selectedCols.includes("takenBy"))
+          baseRow["Taken By"] = r.takenByAdminName || "-";
+        if (selectedCols.includes("takenAt"))
+          baseRow["Taken At"] = r.takenAt ? fmtDateTime(r.takenAt) : "-";
+        if (selectedCols.includes("perusahaan"))
+          baseRow["Perusahaan (Penyedia)"] = r.perusahaan || "-";
+        if (selectedCols.includes("catatanAdmin"))
+          baseRow["Catatan Admin"] = r.catatanAdmin || "-";
+        if (selectedCols.includes("nominalKontrak"))
+          baseRow["Nominal Kontrak"] = r.nominalKontrak ?? "-";
+        if (selectedCols.includes("nominalPembayaran"))
+          baseRow["Nominal Pembayaran"] = r.nominalPembayaran ?? "-";
+
+        const hasItemCols = selectedCols.some((c) => c.startsWith("item"));
+
+        if (hasItemCols && Array.isArray(r.items) && r.items.length > 0) {
+          r.items.forEach((item) => {
+            const rowWithItem = { ...baseRow };
+            if (selectedCols.includes("itemMerek"))
+              rowWithItem["Item: Merek"] = item.merek || "-";
+            if (selectedCols.includes("itemKategori"))
+              rowWithItem["Item: Sub Kategori"] = item.subKategori || "-";
+            if (selectedCols.includes("itemSpesifikasi"))
+              rowWithItem["Item: Spesifikasi"] = item.spesifikasi || "-";
+            if (selectedCols.includes("itemQty"))
+              rowWithItem["Item: Qty"] = item.qty || 0;
+            if (selectedCols.includes("itemPagu"))
+              rowWithItem["Item: Pagu Per Item"] = item.paguPerItem || "-";
+            if (selectedCols.includes("itemHargaTayang"))
+              rowWithItem["Item: Harga Tayang"] = item.hargaTayang || "-";
+            if (selectedCols.includes("itemStatusAdmin"))
+              rowWithItem["Item: Status Barang (Admin)"] =
+                item.statusBarangAdmin || "Todo";
+            if (selectedCols.includes("itemTayangInaproc"))
+              rowWithItem["Item: Tayang Inaproc (Admin)"] =
+                item.tayangInaprocAdmin || "-";
+            if (selectedCols.includes("itemCatatan"))
+              rowWithItem["Item: Catatan Admin"] = item.catatanAdminItem || "-";
+            flattenedData.push(rowWithItem);
+          });
+        } else {
+          flattenedData.push(baseRow);
+        }
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(flattenedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_Response");
+      XLSX.writeFile(
+        workbook,
+        `Rekapitulasi_Response_${scope === "all" ? "All" : "Page"}.xlsx`,
+      );
+
+      setIsExportModalOpen(false);
+    } catch (e) {
+      console.error(e);
+      alert("Gagal export Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
       <div className="flex relative z-10">
@@ -166,11 +293,23 @@ export default function RekapitulasiResponsePage() {
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-            <h1 className="text-2xl font-extrabold pl-4 text-black">
-              REKAPITULASI RESPONSE
-            </h1>
-            <div className="mt-1 text-sm text-neutral-600">
-              Menampilkan request e-procurement yang sudah diambil admin.
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-extrabold pl-4 text-black">
+                  REKAPITULASI RESPONSE
+                </h1>
+                <div className="mt-1 pl-4 text-sm text-neutral-600">
+                  Menampilkan request e-procurement yang sudah diambil admin.
+                </div>
+              </div>
+              <div className="px-4">
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-green-700 hover:bg-green-700 transition"
+                >
+                  Export Excel
+                </button>
+              </div>
             </div>
 
             {/* Filter bar */}
@@ -285,6 +424,14 @@ export default function RekapitulasiResponsePage() {
           </div>
         </div>
       </div>
+
+      <ExportExcelModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        columns={exportColumns}
+        onExport={handleExport}
+        isLoading={isExporting}
+      />
     </div>
   );
 }

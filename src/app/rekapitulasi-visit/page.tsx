@@ -5,6 +5,11 @@ import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
+import ExportExcelModal, {
+  ExportColumn,
+  ExportScope,
+} from "@/components/modals/ExportExcelModal";
 
 type VisitRow = {
   _id: string;
@@ -125,6 +130,10 @@ export default function RekapitulasiVisitPage() {
   const [cityOptions, setCityOptions] = useState<string[]>([]);
   const [satkerOptions, setSatkerOptions] = useState<string[]>([]);
 
+  // ====== export modal ======
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
   // fetch meta (dropdown) sekali
   useEffect(() => {
     let mounted = true;
@@ -235,6 +244,111 @@ export default function RekapitulasiVisitPage() {
     setPage(1);
   };
 
+  const exportColumns: ExportColumn[] = [
+    { id: "namaSales", label: "Nama Sales" },
+    { id: "visitDate", label: "Visit Date" },
+    { id: "statusVisit", label: "Status Visit" },
+    { id: "satuanKerja", label: "Satuan Kerja" },
+    { id: "city", label: "City" },
+    { id: "picName", label: "PIC Name" },
+    { id: "picPhone", label: "PIC Phone" },
+    { id: "ring", label: "Ring" },
+    { id: "createdAt", label: "Created At" },
+    { id: "marketStatus", label: "Market Status" },
+    { id: "klpd", label: "KLPD" },
+    { id: "reschedule", label: "Reschedule" },
+    { id: "institusiKerja", label: "Institusi Kerja" },
+    { id: "picPosition", label: "PIC Position" },
+    { id: "picRole", label: "PIC Role" },
+    { id: "tindakLanjut", label: "Tindak Lanjut" },
+    { id: "kegiatanStatus", label: "Kegiatan Status" },
+    { id: "deskripsi", label: "Deskripsi Kegiatan" },
+  ];
+
+  const handleExport = async (selectedCols: string[], scope: ExportScope) => {
+    setIsExporting(true);
+    try {
+      let dataToProcess: VisitRow[] = [];
+
+      if (scope === "all") {
+        const qs = new URLSearchParams();
+        qs.set("limit", "999999");
+        qs.set("page", "1");
+
+        if (fSales !== "ALL") qs.set("sales", fSales);
+        if (fStatus !== "ALL") qs.set("status", fStatus);
+        if (fRing !== "ALL") qs.set("ring", fRing);
+        if (fCity !== "ALL") qs.set("city", fCity);
+        if (fSatker !== "ALL") qs.set("satker", fSatker);
+        if (fStart) qs.set("start", fStart);
+        if (fEnd) qs.set("end", fEnd);
+
+        const res = await fetch(`/api/visits?${qs.toString()}`);
+        if (!res.ok) throw new Error("Gagal mengambil data");
+        const json = await res.json();
+        dataToProcess = Array.isArray(json?.items) ? json.items : [];
+      } else {
+        dataToProcess = rows;
+      }
+
+      const flattenedData = dataToProcess.map((r) => {
+        const row: any = {};
+        if (selectedCols.includes("namaSales"))
+          row["Nama Sales"] = r.nama_sales || "-";
+        if (selectedCols.includes("visitDate"))
+          row["Visit Date"] = formatDateID(r.visit_date);
+        if (selectedCols.includes("statusVisit"))
+          row["Status Visit"] = r.status_visit || "-";
+        if (selectedCols.includes("satuanKerja"))
+          row["Satuan Kerja"] = r.satuan_kerja || "-";
+        if (selectedCols.includes("city")) row["City"] = r.city || "-";
+        if (selectedCols.includes("picName"))
+          row["PIC Name"] = r.pic_name || "-";
+        if (selectedCols.includes("picPhone"))
+          row["PIC Phone"] = r.pic_phone || "-";
+        if (selectedCols.includes("ring")) row["Ring"] = r.status_ring || "-";
+        if (selectedCols.includes("createdAt"))
+          row["Created At"] = formatDateID(r.created_at);
+        if (selectedCols.includes("marketStatus"))
+          row["Market Status"] = r.status_market || "-";
+        if (selectedCols.includes("klpd")) row["KLPD"] = r.klpd || "-";
+        if (selectedCols.includes("reschedule"))
+          row["Reschedule"] =
+            r.reschedule && r.reschedule !== "-"
+              ? formatDateID(r.reschedule)
+              : "-";
+        if (selectedCols.includes("institusiKerja"))
+          row["Institusi Kerja"] = r.institusi_kerja || "-";
+        if (selectedCols.includes("picPosition"))
+          row["PIC Position"] = r.pic_position || "-";
+        if (selectedCols.includes("picRole"))
+          row["PIC Role"] = r.pic_role || "-";
+        if (selectedCols.includes("tindakLanjut"))
+          row["Tindak Lanjut"] = r.tindak_lanjut || "-";
+        if (selectedCols.includes("kegiatanStatus"))
+          row["Kegiatan Status"] = r.kegiatan_status || "-";
+        if (selectedCols.includes("deskripsi"))
+          row["Deskripsi Kegiatan"] = r.descriptions || "-";
+        return row;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(flattenedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_Visit");
+      XLSX.writeFile(
+        workbook,
+        `Rekapitulasi_Visit_${scope === "all" ? "All" : "Page"}.xlsx`,
+      );
+
+      setIsExportModalOpen(false);
+    } catch (error) {
+      console.error("Failed to export Excel:", error);
+      alert("Gagal mengekspor data ke Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
@@ -242,10 +356,19 @@ export default function RekapitulasiVisitPage() {
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-            <h1 className="text-2xl font-extrabold pl-4 text-black">
-              REKAPITULASI VISIT
-            </h1>
-            <div className="px-6 pb-6"></div>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h1 className="text-2xl font-extrabold pl-4 text-black">
+                REKAPITULASI VISIT
+              </h1>
+              <div className="px-6 pb-4">
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-green-700 hover:bg-green-700 transition"
+                >
+                  Export Excel
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* FILTER CARD */}
@@ -700,6 +823,14 @@ export default function RekapitulasiVisitPage() {
           </section>
         </div>
       </div>
+
+      <ExportExcelModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        columns={exportColumns}
+        onExport={handleExport}
+        isLoading={isExporting}
+      />
     </div>
   );
 }

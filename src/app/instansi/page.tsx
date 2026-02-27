@@ -10,6 +10,7 @@ import HistoryInstansiModal from "@/components/modals/HistoryInstansiModal";
 import EditInstansiModal from "@/components/modals/EditInstansiModal";
 import { Search, Clock, Building2, Pen, Trash2, 
 ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight} from "lucide-react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Company = {
   _id: string;
