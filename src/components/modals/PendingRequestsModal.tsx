@@ -32,7 +32,7 @@ function Modal({
       />
       <div
         className={clsx(
-          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          "relative mt-16 w-[80%] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10",
           widthClass,
         )}
       >
@@ -48,10 +48,10 @@ function Modal({
 
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-xl font-black text-black hover:bg-black/10"
+            className="grid h-9 w-9 place-items-center rounded-lg bg-white text-xl font-bold text-black hover:bg-red-500"
             aria-label="Close"
           >
-            ×
+            X
           </button>
         </div>
 
@@ -129,7 +129,7 @@ export default function PendingRequestsModal({
                   ].map((h) => (
                     <th
                       key={h}
-                      className="whitespace-nowrap border-b border-black/10 px-4 py-3 text-left text-[11px] font-extrabold tracking-wide text-black/80"
+                      className="whitespace-nowrap border-b border-black/10 px-4 py-3 text-left text-md font-bold tracking-wide text-black"
                     >
                       {h}
                     </th>
@@ -168,14 +168,14 @@ export default function PendingRequestsModal({
                         <button
                           disabled={busyId === p._id}
                           onClick={() => approveRequest(p._id)}
-                          className="h-10 rounded-xl bg-black px-4 text-xs font-extrabold text-white hover:bg-black/90 disabled:opacity-50"
+                          className="h-10 rounded-xl bg-blue-500 px-4 text-xs font-extrabold text-white/95 hover:bg-blue-600 disabled:opacity-50"
                         >
                           {busyId === p._id ? "..." : "APPROVE"}
                         </button>
                         <button
                           disabled={busyId === p._id}
                           onClick={() => rejectRequest(p._id)}
-                          className="h-10 rounded-xl bg-white px-4 text-xs font-extrabold ring-1 ring-black/15 hover:bg-black/5 disabled:opacity-50"
+                          className="h-10 rounded-xl bg-red-500 px-4 text-xs font-extrabold text-white/95 hover:bg-red-600 disabled:opacity-50"
                         >
                           REJECT
                         </button>

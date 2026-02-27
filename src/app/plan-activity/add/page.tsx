@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
-import SearchableSelect from "@/components/ui/SearchableSelect";
+import { ChevronRight, ArrowLeft, Building } from "lucide-react";
 
 type Company = {
   _id: string;
@@ -346,19 +346,7 @@ function AddPlansContent() {
                   </button>
                 </li>
                 <li>
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
                 </li>
                 <li aria-current="page">
                   <span className="text-black font-extrabold">
@@ -375,19 +363,7 @@ function AddPlansContent() {
                   className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700 transition"
                   aria-label="Back"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                    />
-                  </svg>
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
                 <div className="flex flex-col">
                   <h1 className="text-2xl font-extrabold tracking-wide text-black">
@@ -405,21 +381,9 @@ function AddPlansContent() {
                 <button
                   type="button"
                   onClick={() => router.push("/tambah-instansi")}
-                  className="rounded-lg bg-blue-50 px-5 py-2.5 text-sm font-bold text-blue-700 shadow-sm ring-1 ring-blue-200 hover:bg-blue-100 hover:ring-blue-300 transition-all flex items-center gap-2"
+                  className="rounded-lg bg-blue-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm ring-1 ring-blue-200 hover:bg-blue-600 hover:ring-blue-300 transition-all flex items-center gap-2"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
+                  <Building className="w-4 h-4" />
                   REGISTER INSTANSI
                 </button>
               )}

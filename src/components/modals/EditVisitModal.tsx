@@ -137,16 +137,16 @@ export default function EditVisitModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-2xl rounded-2xl bg-gray-100 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-6xl rounded-2xl bg-white shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
-          <h3 className="text-lg font-bold text-black uppercase tracking-wide">
+          <h3 className="text-lg font-extrabold text-black uppercase tracking-wide">
             Edit Kunjungan
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="font-bold text-xl text-black select-none"
+            className="rounded-full bg-white px-4 py-2 font-bold text-xl text-black select-none hover:bg-red-500"
           >
             X
           </button>
@@ -162,7 +162,7 @@ export default function EditVisitModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
               {/* Row 1 */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Nama PIC
                 </label>
                 <input
@@ -171,15 +171,15 @@ export default function EditVisitModal({
                     setForm((prev) => ({ ...prev, pic_name: e.target.value }))
                   }
                   readOnly={!canEdit}
-                  className={`h-10 w-full bg-gray-300 border-none outline-none px-3 ${
+                  className={` rounded-lg h-10 w-full bg-white border border-gray-300 outline-none px-3 shadow-sm ${
                     canEdit
-                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                      : "text-gray-600 cursor-not-allowed"
+                      ? "focus:ring-1 focus:ring-blue-300 text-black"
+                      : "text-black cursor-not-allowed"
                   }`}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Nomor PIC
                 </label>
                 <input
@@ -189,17 +189,17 @@ export default function EditVisitModal({
                   }
                   placeholder="08XXX"
                   readOnly={!canEdit}
-                  className={`h-10 w-full bg-gray-300 border-none outline-none px-3 ${
+                  className={`rounded-lg h-10 w-full bg-white border border-gray-300 outline-none px-3 shadow-sm ${
                     canEdit
-                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                      : "text-gray-600 cursor-not-allowed"
+                      ? "focus:ring-1 focus:ring-blue-300 text-black"
+                      : "text-black cursor-not-allowed"
                   }`}
                 />
               </div>
 
               {/* Row 2 */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Jabatan
                 </label>
                 <input
@@ -208,15 +208,15 @@ export default function EditVisitModal({
                     setForm((prev) => ({ ...prev, pic_role: e.target.value }))
                   }
                   readOnly={!canEdit}
-                  className={`h-10 w-full bg-gray-300 border-none outline-none px-3 ${
+                  className={`rounded-lg h-10 w-full bg-white border border-gray-300 outline-none px-3 shadow-sm ${
                     canEdit
-                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                      : "text-gray-600 cursor-not-allowed"
+                      ? "focus:ring-1 focus:ring-blue-300 text-black"
+                      : "text-black cursor-not-allowed"
                   }`}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Posisi
                 </label>
                 <div className="relative">
@@ -229,10 +229,10 @@ export default function EditVisitModal({
                       }))
                     }
                     disabled={!canEdit}
-                    className={`h-10 w-full appearance-none bg-gray-300 border-none outline-none px-3 pr-8 ${
+                    className={`rounded-lg h-10 w-full appearance-none bg-white border border-gray-300 outline-none px-3 pr-8 shadow-sm ${
                       canEdit
-                        ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                        : "text-gray-600 cursor-not-allowed"
+                        ? "focus:ring-1 focus:ring-blue-300 text-black"
+                        : "text-black cursor-not-allowed"
                     }`}
                   >
                     <option value="">-</option>
@@ -250,7 +250,7 @@ export default function EditVisitModal({
 
               {/* Row 3 */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Status Kunjungan
                 </label>
                 <div className="relative">
@@ -263,10 +263,10 @@ export default function EditVisitModal({
                       }))
                     }
                     disabled={!canEdit}
-                    className={`h-10 w-full appearance-none bg-gray-300 border-none outline-none px-3 pr-8 ${
+                    className={`rounded-lg h-10 w-full appearance-none bg-white border border-gray-300 outline-none px-3 pr-8 shadow-sm ${
                       canEdit
-                        ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                        : "text-gray-600 cursor-not-allowed"
+                        ? "focus:ring-1 focus:ring-blue-300 text-black"
+                        : "text-black cursor-not-allowed"
                     }`}
                   >
                     <option value="">-</option>
@@ -282,7 +282,7 @@ export default function EditVisitModal({
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Kegiatan
                 </label>
                 <div className="relative">
@@ -295,10 +295,10 @@ export default function EditVisitModal({
                       }))
                     }
                     disabled={!canEdit}
-                    className={`h-10 w-full appearance-none bg-gray-300 border-none outline-none px-3 pr-8 ${
+                    className={`rounded-lg h-10 w-full appearance-none bg-white border border-gray-300 outline-none px-3 pr-8 shadow-sm ${
                       canEdit
-                        ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                        : "text-gray-600 cursor-not-allowed"
+                        ? "focus:ring-1 focus:ring-blue-300 text-black"
+                        : "text-black cursor-not-allowed"
                     }`}
                   >
                     <option value="">-</option>
@@ -316,7 +316,7 @@ export default function EditVisitModal({
 
               {/* Row 4 */}
               <div className="col-span-1 md:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Keterangan
                 </label>
                 <textarea
@@ -328,17 +328,17 @@ export default function EditVisitModal({
                     }))
                   }
                   readOnly={!canEdit}
-                  className={`h-28 w-full bg-gray-300 resize-none border-none outline-none p-3 ${
+                  className={`rounded-lg h-28 w-full bg-white resize-none border border-gray-300 outline-none p-3 ${
                     canEdit
-                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                      : "text-gray-600 cursor-not-allowed"
+                      ? "focus:ring-1 focus:ring-blue-300 text-black"
+                      : "text-black cursor-not-allowed"
                   }`}
                 />
               </div>
 
               {/* Row Tindak Lanjut */}
               <div className="col-span-1 md:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-gray-800">
+                <label className="mb-1 block text-sm font-bold text-black">
                   Tindak Lanjut
                 </label>
                 <textarea
@@ -350,10 +350,10 @@ export default function EditVisitModal({
                     }))
                   }
                   readOnly={!canEdit}
-                  className={`h-28 w-full bg-gray-300 resize-none border-none outline-none p-3 ${
+                  className={`rounded-lg h-28 w-full bg-white resize-none border border-gray-300 outline-none p-3 ${
                     canEdit
-                      ? "focus:ring-2 focus:ring-blue-300 text-gray-900"
-                      : "text-gray-600 cursor-not-allowed"
+                      ? "focus:ring-1 focus:ring-blue-300 text-black"
+                      : "text-black cursor-not-allowed"
                   }`}
                 />
               </div>
@@ -403,15 +403,15 @@ export default function EditVisitModal({
                   </div>
                 )}
 
-                <div className="flex items-center h-10 w-full bg-gray-300 px-2 rounded">
+                <div className="flex items-center h-10 w-full bg-white px-2 rounded">
                   <label
-                    className={`bg-gray-200 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-gray-400 text-black ${
+                    className={`bg-gray-100 px-3 py-1 rounded-lg text-sm font-bold ring-1 ring-gray-300 text-black ${
                       canEdit
-                        ? "cursor-pointer hover:bg-gray-300"
+                        ? "cursor-pointer hover:bg-gray-200"
                         : "opacity-50 cursor-not-allowed"
                     }`}
                   >
-                    CHOOSE FILE
+                    Choose File
                     <input
                       type="file"
                       accept="image/*"
@@ -439,7 +439,7 @@ export default function EditVisitModal({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="h-10 w-32 rounded-full bg-gray-300 text-black font-bold tracking-wide flex items-center justify-center hover:bg-gray-400 disabled:opacity-50"
+              className="h-10 w-32 rounded-full bg-blue-600 text-white font-bold tracking-wide flex items-center justify-center hover:bg-blue-700 disabled:opacity-50"
             >
               {saving ? "Saving..." : "Update"}
             </button>

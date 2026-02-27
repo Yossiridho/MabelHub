@@ -33,7 +33,7 @@ function Modal({
       />
       <div
         className={clsx(
-          "relative mt-16 w-[94%] rounded-2xl bg-[#f7f2f2] shadow-2xl ring-1 ring-black/10",
+          "relative mt-16 w-[94%] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10",
           widthClass,
         )}
       >
@@ -49,10 +49,10 @@ function Modal({
 
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-xl font-black text-black hover:bg-black/10"
+            className="grid h-9 w-9 place-items-center rounded-lg bg-white text-xl font-bold text-black hover:bg-red-500"
             aria-label="Close"
           >
-            ×
+            X
           </button>
         </div>
 
@@ -119,9 +119,8 @@ function PrimaryButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-6 text-md font-extrabold tracking-wide",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide",
         "bg-white ring-1 ring-black/15 shadow-sm hover:bg-black/5",
-        "disabled:opacity-50 disabled:hover:bg-white",
       )}
     >
       {children}
@@ -143,8 +142,8 @@ function SolidButton({
       disabled={disabled}
       onClick={onClick}
       className={clsx(
-        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white",
-        "bg-black hover:bg-black/90",
+        "h-11 rounded-full px-7 text-md font-extrabold tracking-wide text-white/95",
+        "bg-blue-500 hover:bg-blue-600",
         "disabled:opacity-50",
       )}
     >
@@ -419,8 +418,7 @@ export default function EditInstansiModal({
           </Field>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <PrimaryButton onClick={onClose}>BATAL</PrimaryButton>
+        <div className="mt-6 flex justify-end">
           <SolidButton onClick={submit} disabled={saving}>
             {saving ? "MENYIMPAN..." : "SUBMIT"}
           </SolidButton>

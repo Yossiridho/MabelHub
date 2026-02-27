@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 import { useSession } from "@/components/session/SessionProvider";
 import EditVisitModal from "@/components/modals/EditVisitModal";
+import {Pen, ChevronRight} from "lucide-react";
 
 type VisitRow = {
   _id: string;
@@ -283,16 +284,6 @@ export default function PlanActivityPage() {
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
-            {/* BREADCRUMB */}
-            <nav className="mb-4 pl-4 flex" aria-label="Breadcrumb">
-              <ol className="flex items-center space-x-2 text-sm font-medium text-gray-500">
-                <li aria-current="page">
-                  <span className="text-black font-extrabold cursor-default">
-                    Plan Activity
-                  </span>
-                </li>
-              </ol>
-            </nav>
 
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
@@ -355,7 +346,7 @@ export default function PlanActivityPage() {
 
             {/* TABLE */}
             <div className="w-full overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-black/5">
-              <div className="grid grid-cols-8 bg-gray-50/80 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">
+              <div className="grid grid-cols-8 bg-blue-100 px-4 py-3 text-sm font-semibold text-black uppercase tracking-wider border-b border-gray-200">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
@@ -367,7 +358,7 @@ export default function PlanActivityPage() {
               </div>
 
               {grouped.keys.length === 0 ? (
-                <div className="px-4 py-16 text-center text-gray-500 bg-gray-50/30">
+                <div className="px-4 py-16 text-center text-gray-600 bg-gray-50/30">
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
@@ -397,19 +388,8 @@ export default function PlanActivityPage() {
                         }`}
                       >
                         <span className="flex items-center gap-2">
-                          <svg
-                            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-90 text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
+                          <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? "rotate-90 text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                          />
                           {dateKey === "UNKNOWN"
                             ? "-"
                             : formatTanggalHeader(dateKey)}
@@ -503,19 +483,7 @@ export default function PlanActivityPage() {
                                   className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
                                   title="Edit Plan"
                                 >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                    />
-                                  </svg>
+                                  <Pen className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
