@@ -357,9 +357,12 @@ export default function RekapitulasiVisitPage() {
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <h1 className="text-2xl font-extrabold pl-4 text-black">
+              <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                 REKAPITULASI VISIT
               </h1>
+              <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                Rekapitulasi seluruh kunjungan sales ke pelanggan
+              </div>
               <div className="px-6 pb-4">
                 <button
                   onClick={() => setIsExportModalOpen(true)}

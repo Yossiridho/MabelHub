@@ -284,36 +284,42 @@ export default function PlanActivityPage() {
 
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="w-full max-w-none">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl font-extrabold pl-4 tracking-wide text-black">
-                PLAN ACTIVITY
-              </h2>
+  <div className="ml-4 px-4 pt-2 pb-4 space-y-1">
+    <h2 className="text-3xl font-extrabold text-black drop-shadow-sm">
+      PLAN ACTIVITY
+    </h2>
+    <p className="text-sm text-neutral-600">
+      Monitoring dan Pengelolaan Rencana Kunjungan Lapangan
+    </p>
+  </div>
 
-              <div className="relative w-full md:w-105">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search..."
-                  className="h-11 w-full rounded-full bg-white px-5 pr-11 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
-                />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M16.5 16.5 21 21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-              </div>
-            </div>
+  <div className="relative w-full md:w-80">
+    <input
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Search..."
+      className="h-11 w-full rounded-full bg-white px-5 pr-11 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
+    />
+    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M10.5 18.5a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M16.5 16.5 21 21"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  </div>
+</div>
+            
 
             {/* ACTIONS */}
             <div className="mb-6 flex items-center justify-between bg-white p-4 rounded-xl shadow-sm ring-1 ring-black/5">

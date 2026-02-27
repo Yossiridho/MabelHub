@@ -175,8 +175,9 @@ export default function TeamsPage() {
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-            <h1 className="text-2xl font-extrabold pl-4 text-black">TEAMS</h1>
-            <div className="mt-2 text-sm text-neutral-600">
+            <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+              TEAMS</h1>
+            <div className="mt-2 pl-4 text-sm text-neutral-600">
               Kelola Teams by (SUPERADMIN)
             </div>
           </div>

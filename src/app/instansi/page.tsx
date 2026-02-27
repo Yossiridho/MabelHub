@@ -481,12 +481,12 @@ export default function InstansiPage() {
             {/* Top */}
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex flex-col">
-                <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black uppercase">
-                  Daftar Instansi
+                <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                  DAFTAR INSTANSI
                 </h1>
-                <p className="text-xs text-black/60 font-medium mt-0.5">
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
                   Rekap data instansi yang sudah <b>APPROVED</b>
-                </p>
+                </div>
               </div>
 
               {role === "SUPERADMIN" ? (

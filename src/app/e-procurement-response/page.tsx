@@ -148,21 +148,20 @@ export default function EProcurementResponsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 relative selection:bg-indigo-100 selection:text-indigo-900">
-      {/* Decorative gradient background elements */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
-
+    <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
         <Sidebar />
 
         <div className="flex-1 p-6 h-screen overflow-y-auto">
           <div className="px-3 pt-2 pb-2">
-            <div>
-              <div className="text-3xl pl-4 font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
-                E-PROCUREMENT RESPONSE
-              </div>
-              <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
-                Request e-procurement yang bisa diambil admin.
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
+                  E-PROCUREMENT REQUEST
+                </div>
+                <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                  Request e-procurement yang bisa diambil admin.
+                </div>
               </div>
             </div>
 

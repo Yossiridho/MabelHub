@@ -638,10 +638,13 @@ export default function RekapitulasiEProcurementPage() {
         <div className="flex-1 h-screen overflow-y-auto p-6">
           <main className="mx-auto">
             {/* Header */}
-            <div className="mb-4 flex items-center justify-between gap-3 px-6 pt-2 pb-6">
-              <h1 className="text-2xl pl-3 font-extrabold tracking-wide text-black">
+            <div className="mb-4 flex-col items-center justify-between gap-3 px-4 pt-2 pb-4">
+              <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                 REKAPITULASI E-PROCUREMENT
               </h1>
+              <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                Rekapitulasi seluruh request e-procurement
+                </div>
               <button
                 onClick={() => {
                   console.log("EXPORT BUTTON CLICKED");
