@@ -14,6 +14,8 @@ export default function Sidebar() {
   const router = useRouter();
   const { user, loading } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [sidebarScrollProgress, setSidebarScrollProgress] = useState(0);
+  const navRef = useRef<HTMLElement>(null);
 
   // Swipe gesture tracking
   const touchStartX = useRef(0);
@@ -53,6 +55,29 @@ export default function Sidebar() {
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = navRef.current;
+      if (!el) return;
+      const totalHeight = el.scrollHeight - el.clientHeight;
+      if (totalHeight <= 0) {
+        setSidebarScrollProgress(0);
+        return;
+      }
+      const progress = (el.scrollTop / totalHeight) * 100;
+      setSidebarScrollProgress(progress);
+    };
+
+    const el = navRef.current;
+    if (el) {
+      el.addEventListener("scroll", handleScroll);
+      handleScroll();
+    }
+    return () => {
+      if (el) el.removeEventListener("scroll", handleScroll);
+    };
+  }, [sections]);
 
   if (loading) {
     return (
@@ -150,7 +175,7 @@ export default function Sidebar() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 left-0 z-50 h-screen w-[260px] bg-white border-r transition-transform duration-300 ease-in-out lg:sticky lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-screen w-[260px] bg-white border-r transition-transform duration-300 ease-in-out lg:sticky lg:translate-x-0 flex flex-col ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -171,12 +196,20 @@ export default function Sidebar() {
               </div>
               <div className="text-lg text-gray-600">{user.fullName}</div>
             </div>
-            <div className="mt-4 h-px w-full bg-gray-400" />
+            <div className="mt-4 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden relative">
+              <div 
+                className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-150 ease-out shadow-[0_0_8px_rgba(37,99,235,0.4)]"
+                style={{ width: `${sidebarScrollProgress}%` }}
+              />
+            </div>
           </div>
         </div>
 
         {/* MENU */}
-        <nav className="flex-1 overflow-y-auto px-4 pb-4">
+        <nav 
+          ref={navRef}
+          className="flex-1 overflow-y-auto px-4 pb-4 relative scroll-smooth"
+        >
           <div className="space-y-4">
             {sections.map((section) => (
               <div

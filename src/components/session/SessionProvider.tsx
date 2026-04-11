@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 export type SessionUser = {
   _id: string;
@@ -21,6 +22,8 @@ const SessionCtx = createContext<SessionState | null>(null);
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   async function refresh() {
     setLoading(true);
@@ -30,7 +33,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
       const json = await res.json().catch(() => ({}));
-      setUser(json?.user ?? null);
+      
+      const sessionUser = json?.user ?? null;
+      setUser(sessionUser);
+      
+      if (!sessionUser && pathname !== "/") {
+        router.replace("/");
+      }
     } finally {
       setLoading(false);
     }

@@ -30,3 +30,13 @@ body {
 html {
   font-size: 11px;
 }
+
+/* Custom Sleek Scrollbar - Hiding it entirely for progression bar */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

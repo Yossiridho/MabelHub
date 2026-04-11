@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import NotificationMenu from "@/components/modals/NotificationMenu";
 import { Search, X, Filter } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
@@ -325,10 +325,10 @@ export default function DashboardRequestPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
         {/* CONTENT */}
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           {/* TOP BAR */}
           <div className="mb-4 px-4 pt-2 pb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>

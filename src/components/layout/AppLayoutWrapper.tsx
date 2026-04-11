@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/sidebar/sidebar";
 
@@ -16,18 +16,17 @@ export default function AppLayoutWrapper({
     setMounted(true);
   }, []);
 
-  // Show nothing until mounted to prevent hydration errors if needed, or just allow server render.
-  // Actually, standard server rendering is fine since Sidebar handles user session conditionally.
-
   // Halaman login utama "/" dieksklusi dari Sidebar
   if (pathname === "/") {
     return <>{children}</>;
   }
 
   return (
-    <div className="flex min-h-screen bg-transparent">
+    <div className="flex h-[100dvh] bg-blue-50 overflow-hidden relative">
       <Sidebar />
-      <div className="flex-1 w-full min-w-0">
+      <div 
+        className="flex-1 w-full min-w-0 h-[100dvh] overflow-y-auto relative"
+      >
         {children}
       </div>
     </div>

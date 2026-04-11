@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, Fragment } from "react";
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import SearchableSelect from "@/components/ui/SearchableSelect";
 
 // Tipe Data sesuai E-Procurement
@@ -602,7 +602,7 @@ export default function FinancePage() {
   };
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar />
+      
       <main className="flex-1 overflow-y-auto relative p-4 lg:p-8 font-sans">
         <div className="mx-auto max-w-7xl">
           {/* Header Section */}

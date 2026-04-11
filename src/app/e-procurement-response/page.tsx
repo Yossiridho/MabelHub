@@ -3,7 +3,7 @@
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { ArrowLeft } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
 import ConfirmModal from "@/components/modals/ConfirmModal";
@@ -150,9 +150,9 @@ export default function EProcurementResponsePage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
-        <Sidebar />
+        
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           <div className="px-3 pt-2 pb-2">
             <div className="flex items-center justify-between">
               <div>

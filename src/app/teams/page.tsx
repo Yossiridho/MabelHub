@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 
@@ -171,9 +171,9 @@ export default function TeamsPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           <div className="px-3 pt-2 pb-2">
             <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
               TEAMS</h1>

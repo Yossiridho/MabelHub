@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
 import React, { useMemo, useState, useEffect } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -125,14 +125,14 @@ export default function EProcurementRequestPage() {
   }, [selectedRing, paramSegmen]);
 
   // ===== ID info (footer) =====
-  const [infoId, setInfoId] = useState("REQ-");
+  const [infoId, setInfoId] = useState('REQ-')
 
   // ===== Products state =====
   const [items, setItems] = useState<ProductItem[]>([
     {
-      id: "1",
-      merek: "",
-      subKategori: "",
+      id: '1',
+      merek: '',
+      subKategori: '',
       qty: 1,
       spesifikasi: "",
       paguPerItem: "",
@@ -140,9 +140,9 @@ export default function EProcurementRequestPage() {
       linkInaproc: "",
       linkEcom: "",
     },
-  ]);
+  ])
 
-  const totalProduk = useMemo(() => items.length, [items]);
+  const totalProduk = useMemo(() => items.length, [items])
 
   // ===== Modal state =====
   const [openRevisi, setOpenRevisi] = useState(false);
@@ -267,8 +267,8 @@ export default function EProcurementRequestPage() {
         linkInaproc: "",
         linkEcom: "",
       },
-    ]);
-  };
+    ])
+  }
 
   const removeItem = (id: string) => {
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, qty: 0 } : x)));
@@ -281,16 +281,16 @@ export default function EProcurementRequestPage() {
   ) => {
     setItems((prev) =>
       prev.map((it) => (it.id === id ? { ...it, [key]: value } : it)),
-    );
-  };
+    )
+  }
 
   const closeModal = () => {
-    setOpenRevisi(false);
-    setOpenUpload(false);
-  };
+    setOpenRevisi(false)
+    setOpenUpload(false)
+  }
 
-  const handleRevisi = () => setOpenRevisi(true);
-  const handleUploadProduk = () => setOpenUpload(true);
+  const handleRevisi = () => setOpenRevisi(true)
+  const handleUploadProduk = () => setOpenUpload(true)
 
   const handleLoadId = async () => {
     try {
@@ -321,9 +321,9 @@ export default function EProcurementRequestPage() {
   };
 
   const handlePickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] ?? null;
-    setUploadFile(f);
-  };
+    const f = e.target.files?.[0] ?? null
+    setUploadFile(f)
+  }
 
   const handleSubmitUpload = () => {
     if (!uploadFile) {
@@ -408,9 +408,9 @@ export default function EProcurementRequestPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           <div className="px-3 pt-2 pb-2">
             <h1 className="text-3xl font-extrabold pl-4 text-black drop-shadow-sm">
               E-PROCUREMENT
@@ -424,7 +424,7 @@ export default function EProcurementRequestPage() {
           <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
-                <label className="text-sm font-semibold text-blue-600">
+                <label className='text-sm font-semibold text-blue-600'>
                   REQUESTOR
                 </label>
 
@@ -463,13 +463,13 @@ export default function EProcurementRequestPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-blue-600">
+                <label className='text-sm font-semibold text-blue-600'>
                   PEMOHON (ENTITY)
                 </label>
                 <input
                   value={pemohon}
                   onChange={(e) => setPemohon(e.target.value)}
-                  className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
 
@@ -519,38 +519,38 @@ export default function EProcurementRequestPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-blue-600">
+                <label className='text-sm font-semibold text-blue-600'>
                   DEADLINE USULAN
                 </label>
-                <div className="relative mt-2">
+                <div className='relative mt-2'>
                   <input
-                    type="date"
+                    type='date'
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                    className='h-12 w-full rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-blue-600">
+                <label className='text-sm font-semibold text-blue-600'>
                   LOKASI
                 </label>
                 <input
                   value={lokasi}
                   onChange={(e) => setLokasi(e.target.value)}
-                  className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-blue-600">
+                <label className='text-sm font-semibold text-blue-600'>
                   CATATAN HEADER
                 </label>
                 <input
                   value={catatanHeader}
                   onChange={(e) => setCatatanHeader(e.target.value)}
-                  className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
             </div>
@@ -561,22 +561,22 @@ export default function EProcurementRequestPage() {
               <h2 className="text-3xl my-6 font-semibold text-black">
                 Daftar Produk
               </h2>
-              <span className="grid h-10 min-w-10 place-items-center rounded-xl bg-gray-600 px-3 text-white">
+              <span className='grid h-10 min-w-10 place-items-center rounded-xl bg-gray-600 px-3 text-white'>
                 {totalProduk}
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className='flex flex-wrap gap-3'>
               <button
                 onClick={handleRevisi}
-                className="h-11 rounded-full bg-red-600 px-5 text-sm font-semibold text-white ring-1 ring-black/10 hover:bg-red-700"
+                className='h-11 rounded-full bg-red-600 px-5 text-sm font-semibold text-white ring-1 ring-black/10 hover:bg-red-700'
               >
                 Load/Revisi
               </button>
 
               <button
                 onClick={handleUploadProduk}
-                className="h-11 rounded-full bg-green-600 px-5 text-sm font-semibold text-white ring-1 ring-black/10 hover:bg-green-700"
+                className='h-11 rounded-full bg-green-600 px-5 text-sm font-semibold text-white ring-1 ring-black/10 hover:bg-green-700'
               >
                 Upload Produk
               </button>
@@ -627,28 +627,28 @@ export default function EProcurementRequestPage() {
                         disabled={it.qty === 0}
                         value={it.merek}
                         onChange={(e) =>
-                          updateItem(it.id, "merek", e.target.value)
+                          updateItem(it.id, 'merek', e.target.value)
                         }
-                        className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                       />
                     </div>
 
-                    <div className="md:col-span-4">
-                      <label className="text-sm font-semibold text-blue-600">
+                    <div className='md:col-span-4'>
+                      <label className='text-sm font-semibold text-blue-600'>
                         SUB-KATEGORI
                       </label>
                       <input
                         disabled={it.qty === 0}
                         value={it.subKategori}
                         onChange={(e) =>
-                          updateItem(it.id, "subKategori", e.target.value)
+                          updateItem(it.id, 'subKategori', e.target.value)
                         }
-                        className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                       />
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="text-sm font-semibold text-blue-600">
+                    <div className='md:col-span-2'>
+                      <label className='text-sm font-semibold text-blue-600'>
                         QTY
                       </label>
                       <input
@@ -665,24 +665,24 @@ export default function EProcurementRequestPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6">
-                    <label className="text-sm font-semibold text-blue-600">
+                  <div className='mt-6'>
+                    <label className='text-sm font-semibold text-blue-600'>
                       SPESIFIKASI DETAIL
                     </label>
                     <textarea
                       disabled={it.qty === 0}
                       value={it.spesifikasi}
                       onChange={(e) =>
-                        updateItem(it.id, "spesifikasi", e.target.value)
+                        updateItem(it.id, 'spesifikasi', e.target.value)
                       }
                       rows={4}
-                      className="mt-2 w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                      className='mt-2 w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
                   </div>
 
-                  <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-12">
-                    <div className="md:col-span-3">
-                      <label className="text-sm font-semibold text-blue-600">
+                  <div className='mt-6 grid grid-cols-1 gap-6 md:grid-cols-12'>
+                    <div className='md:col-span-3'>
+                      <label className='text-sm font-semibold text-blue-600'>
                         PAGU PER ITEM
                       </label>
                       <input
@@ -696,12 +696,12 @@ export default function EProcurementRequestPage() {
                             Number(e.target.value),
                           )
                         }
-                        className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="text-sm font-semibold text-blue-600">
+                    <div className='md:col-span-3'>
+                      <label className='text-sm font-semibold text-blue-600'>
                         HARGA TAYANG
                       </label>
                       <input
@@ -716,35 +716,35 @@ export default function EProcurementRequestPage() {
                             Number(e.target.value),
                           )
                         }
-                        className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="text-sm font-semibold text-blue-600">
+                    <div className='md:col-span-3'>
+                      <label className='text-sm font-semibold text-blue-600'>
                         LINK INAPROC
                       </label>
                       <input
                         disabled={it.qty === 0}
                         value={it.linkInaproc}
                         onChange={(e) =>
-                          updateItem(it.id, "linkInaproc", e.target.value)
+                          updateItem(it.id, 'linkInaproc', e.target.value)
                         }
-                        className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="text-sm font-semibold text-blue-600">
+                    <div className='md:col-span-3'>
+                      <label className='text-sm font-semibold text-blue-600'>
                         LINK E-COM
                       </label>
                       <input
                         disabled={it.qty === 0}
                         value={it.linkEcom}
                         onChange={(e) =>
-                          updateItem(it.id, "linkEcom", e.target.value)
+                          updateItem(it.id, 'linkEcom', e.target.value)
                         }
-                        className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                       />
                     </div>
                   </div>
@@ -782,25 +782,25 @@ export default function EProcurementRequestPage() {
         </div>
 
         {openRevisi && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className='fixed inset-0 z-50 flex items-center justify-center'>
             <div
-              className="absolute inset-0 bg-black/35"
+              className='absolute inset-0 bg-black/35'
               onClick={closeModal}
             />
-            <div className="relative w-180 max-w-[92vw] rounded-2xl bg-white p-7 shadow-xl">
-              <div className="text-sm font-semibold tracking-wide text-gray-900">
+            <div className='relative w-180 max-w-[92vw] rounded-2xl bg-white p-7 shadow-xl'>
+              <div className='text-sm font-semibold tracking-wide text-gray-900'>
                 MASUKAN ID
               </div>
 
-              <div className="mt-4 flex overflow-hidden rounded-xl bg-gray-300/70">
+              <div className='mt-4 flex overflow-hidden rounded-xl bg-gray-300/70'>
                 <input
                   value={revisiId}
                   onChange={(e) => setRevisiId(e.target.value)}
-                  className="h-12 flex-1 bg-transparent px-4 text-sm outline-none"
+                  className='h-12 flex-1 bg-transparent px-4 text-sm outline-none'
                 />
                 <button
                   onClick={handleLoadId}
-                  className="h-12 bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700"
+                  className='h-12 bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700'
                 >
                   LOAD ID
                 </button>
@@ -810,54 +810,54 @@ export default function EProcurementRequestPage() {
         )}
 
         {openUpload && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className='fixed inset-0 z-50 flex items-center justify-center'>
             <div
-              className="absolute inset-0 bg-black/35"
+              className='absolute inset-0 bg-black/35'
               onClick={closeModal}
             />
-            <div className="relative w-180 max-w-[92vw] rounded-2xl bg-white p-7 shadow-xl">
-              <div className="text-sm font-semibold tracking-wide text-gray-900">
+            <div className='relative w-180 max-w-[92vw] rounded-2xl bg-white p-7 shadow-xl'>
+              <div className='text-sm font-semibold tracking-wide text-gray-900'>
                 UPLOAD EXCEL
               </div>
 
-              <div className="mt-4 rounded-xl bg-gray-300/70 px-4 py-3">
-                <label className="flex cursor-pointer items-center justify-center gap-3 rounded-lg py-2 text-sm font-semibold text-gray-700 hover:bg-black/5">
+              <div className='mt-4 rounded-xl bg-gray-300/70 px-4 py-3'>
+                <label className='flex cursor-pointer items-center justify-center gap-3 rounded-lg py-2 text-sm font-semibold text-gray-700 hover:bg-black/5'>
                   <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
+                    type='file'
+                    accept='.xlsx,.xls,.csv'
+                    className='hidden'
                     onChange={handlePickFile}
                   />
                   PILIH FILE
                   {uploadFile && (
-                    <span className="ml-2 text-xs font-medium text-gray-600">
+                    <span className='ml-2 text-xs font-medium text-gray-600'>
                       ({uploadFile.name})
                     </span>
                   )}
                 </label>
               </div>
 
-              <div className="mt-3 text-center text-sm text-gray-800">
-                Unduh Template?{" "}
+              <div className='mt-3 text-center text-sm text-gray-800'>
+                Unduh Template?{' '}
                 <a
-                  href="/templates/template-eproc.xlsx"
-                  className="font-semibold text-blue-600 hover:underline"
+                  href='/templates/template-eproc.xlsx'
+                  className='font-semibold text-blue-600 hover:underline'
                   download
                 >
                   download
                 </a>
               </div>
 
-              <div className="mt-5 flex justify-end gap-2">
+              <div className='mt-5 flex justify-end gap-2'>
                 <button
                   onClick={closeModal}
-                  className="h-10 rounded-lg bg-white px-4 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-50"
+                  className='h-10 rounded-lg bg-white px-4 text-sm font-semibold ring-1 ring-black/10 hover:bg-gray-50'
                 >
                   BATAL
                 </button>
                 <button
                   onClick={handleSubmitUpload}
-                  className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                  className='h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700'
                 >
                   UPLOAD
                 </button>
@@ -867,5 +867,5 @@ export default function EProcurementRequestPage() {
         )}
       </div>
     </div>
-  );
+  )
 }

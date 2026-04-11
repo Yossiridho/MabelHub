@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/modals/ConfirmModal";
@@ -270,7 +270,7 @@ export default function ParameterPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
-        <Sidebar />
+        
 
         <div className="flex-1 p-6">
           <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 pt-2 pb-4">

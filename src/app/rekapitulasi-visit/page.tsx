@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useRouter } from "next/navigation";
@@ -352,8 +352,8 @@ export default function RekapitulasiVisitPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 h-screen overflow-y-auto p-6">
+        
+        <div className="flex-1  p-6">
           <main className="mx-auto">
             <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 pt-2 pb-4">
               <div>
