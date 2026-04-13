@@ -669,10 +669,6 @@ export default function DashboardRequestPage() {
                         onClick={(data: any) => {
                           const name = data?.name;
                           if (typeof name === "string") {
-                            // Market Coverage bar contains Sales, Satker, City but we can't filter by those meta-categories directly.
-                            // However, we shouldn't make them clickable if they do nothing.
-                            // Since this is a summary count, clicking Sales/Satker/City text doesn't map to a specific field.
-                            // I will keep the visual without click-to-filter for this particular overview chart.
                           }
                         }}
                       />
@@ -682,7 +678,7 @@ export default function DashboardRequestPage() {
               </div>
             </div>
 
-            {/* Ring Distribution Chart (KANAN BAWAH) */}
+            {/* Ring Distribution Chart */}
             <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
               <h3 className="mb-4 text-md font-bold text-black">
                 RING DISTRIBUTION
