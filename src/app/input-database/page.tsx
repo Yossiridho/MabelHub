@@ -4,6 +4,8 @@ import Sidebar from "@/components/sidebar/sidebar";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useState } from "react";
 import { useSession } from "@/components/session/SessionProvider";
+import { Building, Plus, Trash2, Save } from "lucide-react";
+import router from "next/router";
 
 type TeamMember = {
     userId: string;
@@ -36,15 +38,113 @@ export default function InputDatabasePage() {
     const [assignedToUserId, setAssignedToUserId] = useState("");
     const [requestor, setRequestor] = useState("");
     const [segmen, setSegmen] = useState<string>("");
-    const [deadline, setDeadline] = useState<string>("");
-    const [lokasi, setLokasi] = useState("");
-    const [catatanHeader, setCatatanHeader] = useState("");
+    const [kota, setKota] = useState<string>("");
+    const [alamat, setAlamat] = useState("");
+
+    const [nama, setNama] = useState("");
+    const [noTelp, setNoTelp] = useState("");
+    const [jabatan, setJabatan] = useState("");
+    const [email, setEmail] = useState("");
+    const [tipeKontak, setTipeKontak] = useState("");
+
+    const [bidangPerusahaan, setBidangPerusahaan] = useState("");
+    const [segmentasi, setSegmentasi] = useState("");
+    const [produkRelevan, setProdukRelevan] = useState("");
+    const [merekTayang, setMerekTayang] = useState("");
+    const [brandOwner, setBrandOwner] = useState("");
+    const [sumberData, setSumberData] = useState("");
+    const [linkProduk, setLinkProduk] = useState("");
+    const [linkToko, setLinkToko] = useState("");
+
+    const [items, setItems] = useState<{
+        id: string;
+        nama: string;
+        jabatan: string;
+        tipeKontak: string;
+        noTelp: string;
+        email: string;
+    }[]>([{
+        id: crypto.randomUUID(),
+        nama: "",
+        jabatan: "",
+        tipeKontak: "",
+        noTelp: "",
+        email: "",
+    }]);
+
+    const addItem = () => {
+        setItems((prev) => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                nama: "",
+                jabatan: "",
+                tipeKontak: "",
+                noTelp: "",
+                email: "",
+            },
+        ]);
+    };
+
+    const updateItem = (index: number, field: string, value: string) => {
+        setItems((prev) => {
+            const newItems = [...prev];
+            newItems[index] = { ...newItems[index], [field]: value };
+            return newItems;
+        });
+    };
+
+    const removeItem = (index: number) => {
+        if (items.length > 1) {
+            setItems((prev) => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleKirim = async () => {
+        try {
+            const payload = {
+                header: {
+                    requestor: requestor,
+                    assignedToUserId: assignedToUserId,
+                    segmen: segmen,
+                    kota: kota,
+                    alamat: alamat,
+                    bidangPerusahaan: bidangPerusahaan,
+                    segmentasi: segmentasi,
+                    produkRelevan: produkRelevan,
+                    merekTayang: merekTayang,
+                    brandOwner: brandOwner,
+                    sumberData: sumberData,
+                    linkProduk: linkProduk,
+                    linkToko: linkToko,
+                },
+                items: items,
+            };
+
+            const res = await fetch("/api/company-requests", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData?.error || "Gagal menyimpan database");
+            }
+
+            alert("Database berhasil disimpan!");
+            router.push("/input-database");
+            router.refresh();
+        } catch (error) {
+            console.error("Error saving database:", error);
+            alert(error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan database");
+        }
+    };
 
     return (
         <div className="min-h-screen bg-blue-50">
             <div className="flex">
                 <Sidebar />
-
                 <div className="flex-1 p-6 h-screen overflow-y-auto">
                     <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex flex-col">
@@ -56,7 +156,27 @@ export default function InputDatabasePage() {
                             </div>
                         </div>
                     </div>
-                    <section className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
+                    <section className="mt-2 rounded-2xl bg-white p-4 pl-7 h-24 shadow-sm ring-1 ring-black/5">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="flex flex-col">
+                                <h2 className="text-xl pl-1 font-bold text-gray-700">Cari Kode Untuk Revisi</h2>
+                                <input
+                                className="h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                                placeholder="Masukkan Kode"
+
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mt-4 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Building className="text-white bg-blue-600 rounded-2xl p-1 px-2" size={38} />
+                            <div className="flex flex-col">
+                                <h2 className="text-xl font-bold text-gray-700">Informasi Entitas</h2>
+                                <p className="text-sm font-medium text-gray-500">Data Perusahaan atau Organisasi</p>
+                            </div>
+                        </div>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                             <div>
                                 <label className='text-sm font-semibold text-blue-600'>
@@ -121,6 +241,7 @@ export default function InputDatabasePage() {
                                 <input
                                     value={namaPerusahaan}
                                     onChange={(e) => setNamaPerusahaan(e.target.value)}
+                                    placeholder='Ketik Nama Perusahaan...'
                                     className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                                 />
                             </div>
@@ -129,14 +250,303 @@ export default function InputDatabasePage() {
                                 <label className='text-sm font-semibold text-blue-600'>
                                     PROVINSI
                                 </label>
-                                <input
+                                <SearchableSelect
                                     value={provinsi}
-                                    onChange={(e) => setProvinsi(e.target.value)}
+                                    onChange={(val: string) => setProvinsi(val)}
+                                    options={[
+                                        { value: "", label: "-- Pilih --" },
+                                        { value: "Aceh", label: "Aceh" },
+                                        { value: "Sumatera Utara", label: "Sumatera Utara" },
+                                        { value: "Sumatera Barat", label: "Sumatera Barat" },
+                                        { value: "Riau", label: "Riau" },
+                                        { value: "Jambi", label: "Jambi" },
+                                        { value: "Sumatera Selatan", label: "Sumatera Selatan" },
+                                        { value: "Bengkulu", label: "Bengkulu" },
+                                        { value: "Lampung", label: "Lampung" },
+                                        { value: "Kepulauan Bangka Belitung", label: "Kepulauan Bangka Belitung" },
+                                        { value: "Kepulauan Riau", label: "Kepulauan Riau" },
+                                        { value: "DKI Jakarta", label: "DKI Jakarta" },
+                                        { value: "Jawa Barat", label: "Jawa Barat" },
+                                        { value: "Jawa Tengah", label: "Jawa Tengah" },
+                                        { value: "DI Yogyakarta", label: "DI Yogyakarta" },
+                                        { value: "Jawa Timur", label: "Jawa Timur" },
+                                        { value: "Banten", label: "Banten" },
+                                        { value: "Bali", label: "Bali" },
+                                        { value: "Nusa Tenggara Barat", label: "Nusa Tenggara Barat" },
+                                        { value: "Nusa Tenggara Timur", label: "Nusa Tenggara Timur" },
+                                        { value: "Kalimantan Barat", label: "Kalimantan Barat" },
+                                        { value: "Kalimantan Tengah", label: "Kalimantan Tengah" },
+                                        { value: "Kalimantan Selatan", label: "Kalimantan Selatan" },
+                                        { value: "Kalimantan Timur", label: "Kalimantan Timur" },
+                                        { value: "Kalimantan Utara", label: "Kalimantan Utara" },
+                                        { value: "Sulawesi Utara", label: "Sulawesi Utara" },
+                                        { value: "Sulawesi Tengah", label: "Sulawesi Tengah" },
+                                        { value: "Sulawesi Selatan", label: "Sulawesi Selatan" },
+                                        { value: "Sulawesi Tenggara", label: "Sulawesi Tenggara" },
+                                        { value: "Gorontalo", label: "Gorontalo" },
+                                        { value: "Sulawesi Barat", label: "Sulawesi Barat" },
+                                        { value: "Maluku", label: "Maluku" },
+                                        { value: "Maluku Utara", label: "Maluku Utara" },
+                                        { value: "Papua", label: "Papua" },
+                                        { value: "Papua Barat", label: "Papua Barat" },
+                                        { value: "Papua Selatan", label: "Papua Selatan" },
+                                        { value: "Papua Tengah", label: "Papua Tengah" },
+                                        { value: "Papua Pegunungan", label: "Papua Pegunungan" },
+                                        { value: "Papua Barat Daya", label: "Papua Barat Daya" },
+                                    ]}
+                                    className="border-0 bg-white"
+                                    placeholder="Pilih Provinsi..."
+                                />
+                            </div>
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>KOTA/KABUPATEN</label>
+                                <SearchableSelect
+                                    value={kota}
+                                    onChange={(val: string) => setKota(val)}
+                                    isDisabled={!provinsi}
+                                    options={[
+                                        { value: "", label: "-- Pilih --" },
+                                        { value: "Aceh", label: "Aceh" },
+                                        { value: "Sumatera Utara", label: "Sumatera Utara" },
+                                        { value: "Sumatera Barat", label: "Sumatera Barat" },
+                                        { value: "Riau", label: "Riau" },
+                                        { value: "Jambi", label: "Jambi" },
+                                        { value: "Sumatera Selatan", label: "Sumatera Selatan" },
+                                        { value: "Bengkulu", label: "Bengkulu" },
+                                        { value: "Lampung", label: "Lampung" },
+                                        { value: "Kepulauan Bangka Belitung", label: "Kepulauan Bangka Belitung" },
+                                        { value: "Kepulauan Riau", label: "Kepulauan Riau" },
+                                        { value: "DKI Jakarta", label: "DKI Jakarta" },
+                                        { value: "Jawa Barat", label: "Jawa Barat" },
+                                        { value: "Jawa Tengah", label: "Jawa Tengah" },
+                                        { value: "DI Yogyakarta", label: "DI Yogyakarta" },
+                                        { value: "Jawa Timur", label: "Jawa Timur" },
+                                        { value: "Banten", label: "Banten" },
+                                        { value: "Bali", label: "Bali" },
+                                        { value: "Nusa Tenggara Barat", label: "Nusa Tenggara Barat" },
+                                        { value: "Nusa Tenggara Timur", label: "Nusa Tenggara Timur" },
+                                        { value: "Kalimantan Barat", label: "Kalimantan Barat" },
+                                        { value: "Kalimantan Tengah", label: "Kalimantan Tengah" },
+                                        { value: "Kalimantan Selatan", label: "Kalimantan Selatan" },
+                                        { value: "Kalimantan Timur", label: "Kalimantan Timur" },
+                                        { value: "Kalimantan Utara", label: "Kalimantan Utara" },
+                                        { value: "Sulawesi Utara", label: "Sulawesi Utara" },
+                                        { value: "Sulawesi Tengah", label: "Sulawesi Tengah" },
+                                        { value: "Sulawesi Selatan", label: "Sulawesi Selatan" },
+                                        { value: "Sulawesi Tenggara", label: "Sulawesi Tenggara" },
+                                        { value: "Gorontalo", label: "Gorontalo" },
+                                        { value: "Sulawesi Barat", label: "Sulawesi Barat" },
+                                        { value: "Maluku", label: "Maluku" },
+                                        { value: "Maluku Utara", label: "Maluku Utara" },
+                                        { value: "Papua", label: "Papua" },
+                                        { value: "Papua Barat", label: "Papua Barat" },
+                                        { value: "Papua Selatan", label: "Papua Selatan" },
+                                        { value: "Papua Tengah", label: "Papua Tengah" },
+                                        { value: "Papua Pegunungan", label: "Papua Pegunungan" },
+                                        { value: "Papua Barat Daya", label: "Papua Barat Daya" },
+                                    ]}
+                                    className="border-0 bg-white"
+                                    placeholder="Pilih Kota/Kabupaten..."
+                                />
+                            </div>
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>
+                                    ALAMAT
+                                </label>
+                                <input
+                                    type="text"
+                                    value={alamat}
+                                    onChange={(e) => setAlamat(e.target.value)}
+                                    placeholder='Jalan Contoh No. 123'
                                     className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                                 />
                             </div>
                         </div>
                     </section>
+                    <section className="mt-6 rounded-2xl bg-white p-7 shadow-sm ring-1 ring-black/5">
+                        <div className="flex items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">Informasi Kontak</h2>
+                                <p className="text-sm font-medium text-gray-500">Data kontak person perusahaan</p>
+                            </div>
+                            <button
+                                onClick={addItem}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                <Plus className="w-4 h-4" /> <p className='text-xs font-semibold'>Tambah Kontak</p>
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-4">
+                            {items.map((item, index) => (
+                                <div key={item.id} className="relative grid grid-cols-1 gap-3 md:grid-cols-5 p-4 border border-gray-100 rounded-xl bg-gray-50/50">
+                                    {items.length > 1 && (
+                                        <button
+                                            onClick={() => removeItem(index)}
+                                            className="absolute -top-2 -right-2 bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 transition-colors z-10 shadow-sm"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <div>
+                                        <label className='text-sm font-semibold text-blue-600'>NAMA LENGKAP</label>
+                                        <input
+                                            type="text"
+                                            value={item.nama}
+                                            onChange={(e) => updateItem(index, 'nama', e.target.value)}
+                                            placeholder='Masukkan Nama'
+                                            className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm font-semibold text-blue-600'>JABATAN</label>
+                                        <input
+                                            type="text"
+                                            value={item.jabatan}
+                                            onChange={(e) => updateItem(index, 'jabatan', e.target.value)}
+                                            placeholder='Masukkan Jabatan'
+                                            className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm font-semibold text-blue-600'>TIPE KONTAK</label>
+                                        <select
+                                            value={item.tipeKontak}
+                                            onChange={(e) => updateItem(index, 'tipeKontak', e.target.value)}
+                                            className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                        >
+                                            <option className="text-gray-600" value="">Pilih...</option>
+                                            <option value="Whatsapp">Whatsapp</option>
+                                            <option value="Office">Office</option>
+                                            <option value="Phone Call">Phone Call</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className='text-sm font-semibold text-blue-600'>NO KONTAK</label>
+                                        <input
+                                            type="text"
+                                            value={item.noTelp}
+                                            onChange={(e) => updateItem(index, 'noTelp', e.target.value)}
+                                            placeholder='6281234567890'
+                                            className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm font-semibold text-blue-600'>EMAIL</label>
+                                        <input
+                                            type="text"
+                                            value={item.email}
+                                            onChange={(e) => updateItem(index, 'email', e.target.value)}
+                                            placeholder='email@example.com'
+                                            className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                    <section className="mt-6 rounded-2xl bg-white p-7 shadow-sm ring-1 ring-black/5">
+                        <div className="flex items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">Sumber Data & Produk</h2>
+                                <p className="text-sm font-medium text-gray-500">Informasi sumber data dan produk yang relevan</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>BIDANG USAHA</label>
+                                <input
+                                    type="text"
+                                    value={bidangPerusahaan}
+                                    onChange={(e) => setBidangPerusahaan(e.target.value)}
+                                    placeholder='Masukkan Bidang Usaha'
+                                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                />
+                            </div>
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>SEGMENTASI</label>
+                                <input
+                                    type="text"
+                                    value={segmentasi}
+                                    onChange={(e) => setSegmentasi(e.target.value)}
+                                    placeholder='Masukkan Segmentasi'
+                                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                />
+                            </div>
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>PRODUK RELEVAN</label>
+                                <input
+                                    type="text"
+                                    value={produkRelevan}
+                                    onChange={(e) => setProdukRelevan(e.target.value)}
+                                    placeholder='Masukkan Segmentasi'
+                                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                />
+                            </div>
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>MEREK TAYANG</label>
+                                <input
+                                    type="text"
+                                    value={merekTayang}
+                                    onChange={(e) => setMerekTayang(e.target.value)}
+                                    placeholder='Masukkan Segmentasi'
+                                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                />
+                            </div>
+                            <div>
+                                <label className='text-sm font-semibold text-blue-600'>BRAND OWNER</label>
+                                <input
+                                    type="text"
+                                    value={brandOwner}
+                                    onChange={(e) => setBrandOwner(e.target.value)}
+                                    placeholder='Masukkan Segmentasi'
+                                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                                />
+                            </div>
+                        </div>
+                        <div className='grid grid-cols-1 gap-3 md:grid-cols-3 mt-6'>
+                        <div>
+                            <label className='text-sm font-semibold text-blue-600'>SUMBER DATA</label>
+                            <input
+                                type="text"
+                                value={sumberData}
+                                onChange={(e) => setSumberData(e.target.value)}
+                                placeholder='Masukkan Segmentasi'
+                                className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                            />
+                        </div>
+                        <div>
+                            <label className='text-sm font-semibold text-blue-600'>LINK PRODUK</label>
+                            <input
+                                type="text"
+                                value={linkProduk}
+                                onChange={(e) => setLinkProduk(e.target.value)}
+                                placeholder='Masukkan Segmentasi'
+                                className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                            />
+                        </div>
+                        <div>
+                            <label className='text-sm font-semibold text-blue-600'>LINK TOKO</label>
+                            <input
+                                type="text"
+                                value={linkToko}
+                                onChange={(e) => setLinkToko(e.target.value)}
+                                placeholder='Masukkan Segmentasi'
+                                className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                            />
+                        </div>
+                        </div>
+                    </section>
+                    <div className="mt-6">
+                        <div className="flex items-center justify-center gap-4 mb-6">
+                            <button
+                                onClick={() => {}}
+                                className="flex h-10 items-center justify-center gap-2 cursor-pointer rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 transition-all"
+                            >
+                                <Save className="w-5 h-5" />
+                                Simpan Database
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

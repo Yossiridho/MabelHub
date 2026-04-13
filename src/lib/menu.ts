@@ -54,7 +54,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "Dashboard", href: "/dashboard-response" },
         { label: "E-Procurement Request", href: "/e-procurement-response" },
         { label: "Rekapitulasi", href: "/rekapitulasi-response" },
-        { label: "Tim Database", href: "/tm-database" },
+        { label: "TM Database", href: "/tm-database" },
       ],
     },
   ],
