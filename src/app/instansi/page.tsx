@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useRouter } from "next/navigation";
 import type { Role } from "@/lib/menu";
 import PendingRequestsModal from "@/components/modals/PendingRequestsModal";
@@ -473,9 +473,9 @@ export default function InstansiPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           <main className="mx-auto pt-4 max-w-none">
 
             {/* Top */}

@@ -1,6 +1,6 @@
 "use client";
 
-import Sidebar from "@/components/sidebar/sidebar";
+
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useState } from "react";
 import { useSession } from "@/components/session/SessionProvider";
@@ -144,8 +144,8 @@ export default function InputDatabasePage() {
     return (
         <div className="min-h-screen bg-blue-50">
             <div className="flex">
-                <Sidebar />
-                <div className="flex-1 p-6 h-screen overflow-y-auto">
+                
+                <div className="flex-1 p-6 ">
                     <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex flex-col">
                             <h1 className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">

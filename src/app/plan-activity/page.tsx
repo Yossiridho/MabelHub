@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import EditVisitModal from "@/components/modals/EditVisitModal";
 import {Pen, ChevronRight} from "lucide-react";
@@ -280,9 +280,9 @@ export default function PlanActivityPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
-        <div className="flex-1 h-screen overflow-y-auto p-6">
+        <div className="flex-1  p-6">
           <main className="w-full max-w-none">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 

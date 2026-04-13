@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import { FileUp, Upload } from "lucide-react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
@@ -337,9 +337,9 @@ export default function AddInstansiPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
-        <div className="flex-1 p-6 min-h-screen overflow-y-auto">
+        <div className="flex-1 p-6 min-">
           <main className="w-full max-w-none">
             {/* BREADCRUMB */}
             <nav className="mb-4 flex" aria-label="Breadcrumb">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
@@ -57,6 +57,13 @@ type EProcRow = {
 
   tanggalPembayaran?: string;
   nominalPembayaran?: number;
+
+  history?: {
+    action: string;
+    actor: string;
+    timestamp: string | Date;
+    details: string[];
+  }[];
 };
 
 function fmtDate(d: string | Date) {
@@ -344,9 +351,9 @@ export default function RekapitulasiResponsePage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
-        <Sidebar />
+        
 
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           <div className="px-8 pt-4 space-y-1">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -519,10 +526,12 @@ function FragmentRow({
     catatanAdmin: string;
     statusAkhir: string;
     items: ProductItem[];
+    activeTab?: "items" | "history";
   }>({
     catatanAdmin: r.catatanAdmin ?? "",
     statusAkhir: r.statusAkhir ?? "",
     items: r.items ? JSON.parse(JSON.stringify(r.items)) : [], // deep copy items
+    activeTab: "items",
   });
 
   const [companies, setCompanies] = useState<string[]>([]);

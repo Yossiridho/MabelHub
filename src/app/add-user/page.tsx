@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
@@ -291,7 +291,7 @@ export default function AddUserPage() {
     return (
       <div className="min-h-screen bg-neutral-200">
         <div className="flex">
-          <Sidebar />
+          
           <div className="flex-1 p-6 text-sm text-gray-600">Loading...</div>
         </div>
       </div>
@@ -301,9 +301,9 @@ export default function AddUserPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
-        <div className="flex-1 h-screen overflow-y-auto w-full p-6">
+        <div className="flex-1  w-full p-6">
           <div className="px-7 pt-2 pb-2">
               <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
                 ADD USER

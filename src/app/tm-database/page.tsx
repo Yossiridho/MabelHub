@@ -1,6 +1,6 @@
 "use client";
 
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useRouter } from "next/navigation";
 
 export default function TmDatabasePage() {
@@ -44,7 +44,7 @@ export default function TmDatabasePage() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
+      
       <div
         className="flex-1 flex flex-col items-center justify-center overflow-y-auto"
         style={{

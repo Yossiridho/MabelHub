@@ -80,7 +80,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
 
-  const limit = clamp(Number(searchParams.get("limit") || 25), 1, 100);
+  const limit = clamp(Number(searchParams.get("limit") || 25), 1, 100000);
   const page = Math.max(Number(searchParams.get("page") || 1), 1);
   const skip = (page - 1) * limit;
 
@@ -156,7 +156,7 @@ export async function GET(req: Request) {
   if (satker) match.satuan_kerja = satker;
   if (klpd) match.klpd = klpd;
 
-  // Partial date matching from clicked trend chart (e.g. "15 Jan")
+  // Partial date matching from clicked trend chart
   if (dateStr) {
     const parts = dateStr.split(" ");
     if (parts.length >= 2) {
@@ -255,18 +255,6 @@ export async function GET(req: Request) {
   });
 }
 
-/**
- * POST /api/visits
- * body:
- *  - tanggal (yyyy-mm-dd)
- *  - status_ring
- *  - institusi_kerja
- *  - kota_kab
- *  - klpd
- *  - satuan_kerja
- * Optional (leader/admin):
- *  - assignedToUserId (buat plan untuk anggota)
- */
 export async function POST(req: Request) {
   const auth = assertLoggedIn(req);
   if (!auth.ok) {

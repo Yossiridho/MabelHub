@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import NotificationMenu from "@/components/modals/NotificationMenu";
 import { Search, X, Filter } from "lucide-react";
 import { useSession } from "@/components/session/SessionProvider";
@@ -325,10 +325,10 @@ export default function DashboardRequestPage() {
   return (
     <div className="min-h-screen bg-blue-50">
       <div className="flex">
-        <Sidebar />
+        
 
         {/* CONTENT */}
-        <div className="flex-1 p-6 h-screen overflow-y-auto">
+        <div className="flex-1 p-6 ">
           {/* TOP BAR */}
           <div className="mb-4 px-4 pt-2 pb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -669,10 +669,6 @@ export default function DashboardRequestPage() {
                         onClick={(data: any) => {
                           const name = data?.name;
                           if (typeof name === "string") {
-                            // Market Coverage bar contains Sales, Satker, City but we can't filter by those meta-categories directly.
-                            // However, we shouldn't make them clickable if they do nothing.
-                            // Since this is a summary count, clicking Sales/Satker/City text doesn't map to a specific field.
-                            // I will keep the visual without click-to-filter for this particular overview chart.
                           }
                         }}
                       />
@@ -682,7 +678,7 @@ export default function DashboardRequestPage() {
               </div>
             </div>
 
-            {/* Ring Distribution Chart (KANAN BAWAH) */}
+            {/* Ring Distribution Chart */}
             <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
               <h3 className="mb-4 text-md font-bold text-black">
                 RING DISTRIBUTION

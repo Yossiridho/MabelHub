@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import Sidebar from "@/components/sidebar/sidebar";
+
 import { useSession } from "@/components/session/SessionProvider";
 import { useRouter } from "next/navigation";
 import NotificationMenu from "@/components/modals/NotificationMenu";
@@ -240,8 +240,10 @@ export default function DashboardResponsePage() {
 
   // Guard: dashboard response untuk ADMIN/SUPERADMIN saja (opsional tapi masuk akal)
   useEffect(() => {
-    if (!sessionLoading && user) {
-      if (user.role !== "SUPERADMIN" && user.role !== "ADMIN") {
+    if (!sessionLoading) {
+      if (!user) {
+        router.replace("/");
+      } else if (user.role !== "SUPERADMIN" && user.role !== "ADMIN") {
         router.replace("/dashboard-request");
       }
     }
@@ -419,7 +421,10 @@ export default function DashboardResponsePage() {
     let mounted = true;
     (async () => {
       if (sessionLoading) return;
-      if (!user) return;
+      if (!user) {
+        if (mounted) setLoadingRows(false);
+        return;
+      }
 
       setLoadingRows(true);
       const [takeableData, entireData] = await Promise.all([
@@ -517,10 +522,10 @@ export default function DashboardResponsePage() {
     <div className="min-h-screen bg-blue-50">
       <div className="flex relative z-10">
         {/* Sidebar */}
-        <Sidebar />
+        
 
         {/* Content */}
-        <div className="flex-1 h-screen overflow-y-auto">
+        <div className="flex-1 ">
           <div className="w-full px-5 py-6">
             <div className="ml-4 pt-2 pb-4  flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
@@ -756,7 +761,7 @@ export default function DashboardResponsePage() {
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <OverviewCard title="PERUSAHAAN" className="lg:col-span-2">
                   <div className="h-[280px] w-full text-xs">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
                       <BarChart
                         data={summary.byCompany}
                         layout="vertical"
@@ -830,7 +835,7 @@ export default function DashboardResponsePage() {
 
                 <OverviewCard title="TOTAL REQUEST" className="lg:row-span-2">
                   <div className="h-[400px] w-full flex justify-center items-center text-xs mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
                       <RechartsPieChart>
                         <Pie
                           // @ts-ignore
@@ -894,7 +899,7 @@ export default function DashboardResponsePage() {
 
                 <OverviewCard title="STATUS" className="lg:col-span-2">
                   <div className="h-[280px] w-full text-xs">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
                       <BarChart
                         data={summary.byStatus}
                         margin={{ top: 20, right: 30, left: 0, bottom: 60 }}
@@ -965,7 +970,7 @@ export default function DashboardResponsePage() {
                 <div className="mt-4">
                   <OverviewCard title="ADMIN PERFORMANCE (SUPERADMIN ONLY)">
                     <div className="h-[280px] w-full text-xs">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
                         <BarChart
                           data={summary.byAdmin}
                           layout="vertical"
