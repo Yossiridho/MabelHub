@@ -179,7 +179,7 @@ export default function Sidebar() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 left-0 z-50 h-screen bg-blue-900 text-white transition-all duration-300 ease-in-out flex flex-col group 
+        className={`fixed top-0 left-0 z-50 h-screen bg-[#1D80D9] text-white transition-all duration-300 ease-in-out flex flex-col group 
           ${isOpen ? "translate-x-0 w-[255px] shadow-2xl shadow-blue-950/50" : "-translate-x-full lg:translate-x-0 w-20 lg:hover:w-[255px] lg:hover:shadow-2xl lg:hover:shadow-blue-950/50"}
         `}
       >
@@ -189,8 +189,8 @@ export default function Sidebar() {
              <Icons.ShieldCheck className="w-6 h-6 text-blue-900" />
           </div>
           <div className="ml-4 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-            <span className="text-sm font-black text-white tracking-[0.2em]">TRACKING REPORT</span>
-            <span className="text-[10px] text-blue-100 font-medium whitespace-nowrap">Sales Visit System</span>
+            <span className="text-sm font-black text-white tracking-[0.1em]">MabelHub</span>
+            <span className="text-[10px] text-blue-100 font-medium whitespace-nowrap">Customer Relationship Management</span>
           </div>
           
           {/* Close Button Mobile */}
