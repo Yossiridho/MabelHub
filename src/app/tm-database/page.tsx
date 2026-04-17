@@ -46,9 +46,8 @@ export default function TmDatabasePage() {
     <div className="flex h-screen">
       
       <div
-        className="flex-1 flex flex-col items-center justify-center overflow-y-auto"
+        className="flex-1 flex flex-col items-center justify-center overflow-y-auto bg-blue-200"
         style={{
-          background: "#F8FAFC",
           minHeight: "100vh",
         }}
       >
