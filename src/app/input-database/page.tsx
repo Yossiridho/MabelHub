@@ -1,7 +1,7 @@
 'use client'
 
 import SearchableSelect from '@/components/ui/SearchableSelect'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from '@/components/session/SessionProvider'
 import { Building, Plus, Trash2, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -11,6 +11,15 @@ type TeamMember = {
   fullName: string
   username: string
   role: string
+}
+
+type KontakItem = {
+  id: string
+  nama: string
+  jabatan: string
+  tipeKontak: string
+  noTelp: string
+  email: string
 }
 
 function displayName(m: {
@@ -25,22 +34,43 @@ function displayName(m: {
 }
 
 export default function InputDatabasePage() {
+  const [ticketCode, setTicketCode] = useState('')
+  const handleGenerate = () => {
+    const prefix = "D" + user?.role.substring(0, 2)
+    const date = new Date();
+
+    // Format DDMMYY
+    const dmy = date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    }).replace(/\//g, '');
+
+    const counter = "0001";
+
+    setTicketCode(`${prefix}-${dmy}-${counter}`);
+  }
   const router = useRouter()
-  const [provinsi, setProvinsi] = useState('')
-  const [namaPerusahaan, setNamaPerusahaan] = useState('')
   const { user, loading: sessionLoading } = useSession()
+  // Auto-isi requestor dari session user yang sedang login
+  useEffect(() => {
+    if (user) {
+      // Isi requestor dengan nama lengkap user yang login
+      setRequestor(user.fullName.trim() || user.username.trim())
+    }
+  }, [user])
   const canPickAssignee =
     user?.role === 'LEADER' ||
     user?.role === 'SUPERADMIN' ||
     user?.role === 'ADMIN'
-
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([])
   const [assignedToUserId, setAssignedToUserId] = useState('')
   const [requestor, setRequestor] = useState('')
   const [segmen, setSegmen] = useState<string>('')
   const [kota, setKota] = useState<string>('')
   const [alamat, setAlamat] = useState('')
-
+  const [namaPerusahaan, setNamaPerusahaan] = useState('')
+  const [provinsi, setProvinsi] = useState('')
   const [nama, setNama] = useState('')
   const [noTelp, setNoTelp] = useState('')
   const [jabatan, setJabatan] = useState('')
@@ -54,6 +84,37 @@ export default function InputDatabasePage() {
   const [sumberData, setSumberData] = useState('')
   const [linkProduk, setLinkProduk] = useState('')
   const [linkToko, setLinkToko] = useState('')
+
+  const [options, setOptions] = useState<{
+
+    nama: string[]
+    jabatan: string[]
+    tipeKontak: string[]
+    noTelp: string[]
+    email: string[]
+    bidangPerusahaan: string[]
+    segmentasi: string[]
+    produkRelevan: string[]
+    merekTayang: string[]
+    brandOwner: string[]
+    sumberData: string[]
+    linkProduk: string[]
+    linkToko: string[]
+  }>({
+    nama: [],
+    jabatan: [],
+    tipeKontak: [],
+    noTelp: [],
+    email: [],
+    bidangPerusahaan: [],
+    segmentasi: [],
+    produkRelevan: [],
+    merekTayang: [],
+    brandOwner: [],
+    sumberData: [],
+    linkProduk: [],
+    linkToko: [],
+  })
 
   const [items, setItems] = useState<
     {
@@ -88,6 +149,19 @@ export default function InputDatabasePage() {
       },
     ])
   }
+  
+  const [rows, setRows] = useState<string[][]>([]);
+  const newKontak: KontakItem[] = rows
+    .map((row, index) => ({
+      id: String(Date.now() + index),
+      nama: row[0] ? String(row[0]).trim() : "",
+      jabatan: row[1] ? String(row[1]).trim() : "",
+      tipeKontak: row[2] ? String(row[2]).trim() : "",
+      noTelp: row[3] ? String(row[3]).trim() : "",
+      email: row[4] ? String(row[4]).trim() : "",
+    }))
+
+
 
   const updateItem = (index: number, field: string, value: string) => {
     setItems((prev) => {
@@ -105,11 +179,23 @@ export default function InputDatabasePage() {
 
   const handleKirim = async () => {
     try {
+      // Generate ticket code sinkron sebelum payload dibuat
+      const prefix = 'D' + (user?.role?.substring(0, 2) ?? 'XX')
+      const date = new Date()
+      const dmy = date
+        .toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
+        .replace(/\//g, '')
+      const generatedCode = `${prefix}-${dmy}-${String(Date.now()).slice(-4)}`
+      setTicketCode(generatedCode)
+
       const payload = {
         header: {
-          requestor: requestor,
-          assignedToUserId: assignedToUserId,
+          ticketCode: generatedCode,
+          requestor: requestor || user?.fullName || user?.username || user?.userId || '',
+          assignedToUserId: assignedToUserId || user?.userId || '',
           segmen: segmen,
+          namaPerusahaan: namaPerusahaan,
+          provinsi: provinsi,
           kota: kota,
           alamat: alamat,
           bidangPerusahaan: bidangPerusahaan,
@@ -121,10 +207,18 @@ export default function InputDatabasePage() {
           linkProduk: linkProduk,
           linkToko: linkToko,
         },
-        items: items,
+        // Gunakan state kontak global (nama, jabatan, dll) bukan array items
+        items: [{
+          id: crypto.randomUUID(),
+          nama: nama,
+          jabatan: jabatan,
+          tipeKontak: tipeKontak,
+          noTelp: noTelp,
+          email: email,
+        }],
       }
 
-      const res = await fetch('/api/company-requests', {
+      const res = await fetch('/api/input-database', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -203,8 +297,9 @@ export default function InputDatabasePage() {
                       value={assignedToUserId}
                       onChange={(val: string) => setAssignedToUserId(val)}
                       options={[
-                        { value: '', label: '(Diri sendiri)' },
-                        ...assigneeOptions.map((m) => ({
+                        { value: user?.userId, label: displayName(user) },
+                        { value: 'Ramadan', label: 'Ramadan'},
+                        { value: '', label: 'Isi Sendiri'},                        ...assigneeOptions.map((m) => ({
                           value: m.userId,
                           label: displayName(m),
                         })),
@@ -334,56 +429,58 @@ export default function InputDatabasePage() {
                   isDisabled={!provinsi}
                   options={[
                     { value: '', label: '-- Pilih --' },
-                    { value: 'Aceh', label: 'Aceh' },
-                    { value: 'Sumatera Utara', label: 'Sumatera Utara' },
-                    { value: 'Sumatera Barat', label: 'Sumatera Barat' },
-                    { value: 'Riau', label: 'Riau' },
-                    { value: 'Jambi', label: 'Jambi' },
-                    { value: 'Sumatera Selatan', label: 'Sumatera Selatan' },
-                    { value: 'Bengkulu', label: 'Bengkulu' },
-                    { value: 'Lampung', label: 'Lampung' },
+                    { value: 'Kota Bandung', label: 'Kota Bandung' },
+                    { value: 'Kota Cimahi', label: 'Kota Cimahi' },
+                    { value: 'Kabupaten Bandung', label: 'Kabupaten Bandung' },
+                    { value: 'Kabupaten Bandung Barat', label: 'Kabupaten Bandung Barat' },
+                    { value: 'Kabupaten Sumedang', label: 'Kabupaten Sumedang' },
+                    { value: 'Kabupaten Garut', label: 'Kabupaten Garut' },
+                    { value: 'Kabupaten Tasikmalaya', label: 'Kabupaten Tasikmalaya' },
+                    { value: 'Kabupaten Ciamis', label: 'Kabupaten Ciamis' },
+                    { value: 'Kabupaten Cianjur', label: 'Kabupaten Cianjur' },
                     {
-                      value: 'Kepulauan Bangka Belitung',
-                      label: 'Kepulauan Bangka Belitung',
+                      value: 'Kabupaten Karawang',
+                      label: 'Kabupaten Karawang',
                     },
-                    { value: 'Kepulauan Riau', label: 'Kepulauan Riau' },
-                    { value: 'DKI Jakarta', label: 'DKI Jakarta' },
-                    { value: 'Jawa Barat', label: 'Jawa Barat' },
-                    { value: 'Jawa Tengah', label: 'Jawa Tengah' },
-                    { value: 'DI Yogyakarta', label: 'DI Yogyakarta' },
-                    { value: 'Jawa Timur', label: 'Jawa Timur' },
-                    { value: 'Banten', label: 'Banten' },
-                    { value: 'Bali', label: 'Bali' },
+                    { value: 'Kabupaten Bekasi', label: 'Kabupaten Bekasi' },
+                    { value: 'Kota Depok', label: 'Kota Depok' },
+                    { value: 'Kota Bekasi', label: 'Kota Bekasi' },
+                    { value: 'Kota Bogor', label: 'Kota Bogor' },
+                    { value: 'Kota Depok', label: 'Kota Depok' },
+                    { value: 'Kota Tasikmalaya', label: 'Kota Tasikmalaya' },
+                    { value: 'Kabupaten Purwakarta', label: 'Kabupaten Purwakarta' },
                     {
-                      value: 'Nusa Tenggara Barat',
-                      label: 'Nusa Tenggara Barat',
+                      value: 'Kabupaten Subang',
+                      label: 'Kabupaten Subang',
                     },
                     {
-                      value: 'Nusa Tenggara Timur',
-                      label: 'Nusa Tenggara Timur',
+                      value: 'Kabupaten Indramayu',
+                      label: 'Kabupaten Indramayu',
                     },
-                    { value: 'Kalimantan Barat', label: 'Kalimantan Barat' },
-                    { value: 'Kalimantan Tengah', label: 'Kalimantan Tengah' },
+                    { value: 'Kabupaten Kuningan', label: 'Kabupaten Kuningan' },
+                    { value: 'Kabupaten Majalengka', label: 'Kabupaten Majalengka' },
                     {
-                      value: 'Kalimantan Selatan',
-                      label: 'Kalimantan Selatan',
+                      value: 'Kabupaten Cirebon',
+                      label: 'Kabupaten Cirebon',
                     },
-                    { value: 'Kalimantan Timur', label: 'Kalimantan Timur' },
-                    { value: 'Kalimantan Utara', label: 'Kalimantan Utara' },
-                    { value: 'Sulawesi Utara', label: 'Sulawesi Utara' },
-                    { value: 'Sulawesi Tengah', label: 'Sulawesi Tengah' },
-                    { value: 'Sulawesi Selatan', label: 'Sulawesi Selatan' },
-                    { value: 'Sulawesi Tenggara', label: 'Sulawesi Tenggara' },
-                    { value: 'Gorontalo', label: 'Gorontalo' },
-                    { value: 'Sulawesi Barat', label: 'Sulawesi Barat' },
-                    { value: 'Maluku', label: 'Maluku' },
-                    { value: 'Maluku Utara', label: 'Maluku Utara' },
-                    { value: 'Papua', label: 'Papua' },
-                    { value: 'Papua Barat', label: 'Papua Barat' },
-                    { value: 'Papua Selatan', label: 'Papua Selatan' },
-                    { value: 'Papua Tengah', label: 'Papua Tengah' },
-                    { value: 'Papua Pegunungan', label: 'Papua Pegunungan' },
-                    { value: 'Papua Barat Daya', label: 'Papua Barat Daya' },
+                    { value: 'Kota Cirebon', label: 'Kota Cirebon' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kota Sukabumi', label: 'Kota Sukabumi' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kabupaten Serang', label: 'Kabupaten Serang' },
+                    { value: 'Kabupaten Tangerang', label: 'Kabupaten Tangerang' },
+                    { value: 'Kabupaten Lebak', label: 'Kabupaten Lebak' },
+                    { value: 'Kabupaten Pandeglang', label: 'Kabupaten Pandeglang' },
+                    { value: 'Kabupaten Serang', label: 'Kabupaten Serang' },
+                    { value: 'Kabupaten Tangerang', label: 'Kabupaten Tangerang' },
+                    { value: 'Kabupaten Lebak', label: 'Kabupaten Lebak' },
+                    { value: 'Kabupaten Pandeglang', label: 'Kabupaten Pandeglang' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
+                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
                   ]}
                   className='border-0 bg-white'
                   placeholder='Pilih Kota/Kabupaten...'
@@ -441,10 +538,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={item.nama}
-                      onChange={(e) =>
-                        updateItem(index, 'nama', e.target.value)
-                      }
+                      value={nama}
+                      onChange={(e) => setNama(e.target.value)}
                       placeholder='Masukkan Nama'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -455,10 +550,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={item.jabatan}
-                      onChange={(e) =>
-                        updateItem(index, 'jabatan', e.target.value)
-                      }
+                      value={jabatan}
+                      onChange={(e) => setJabatan(e.target.value)}
                       placeholder='Masukkan Jabatan'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -468,10 +561,8 @@ export default function InputDatabasePage() {
                       TIPE KONTAK
                     </label>
                     <select
-                      value={item.tipeKontak}
-                      onChange={(e) =>
-                        updateItem(index, 'tipeKontak', e.target.value)
-                      }
+                      value={tipeKontak}
+                      onChange={(e) => setTipeKontak(e.target.value)}
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     >
                       <option className='text-gray-600' value=''>
@@ -488,10 +579,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={item.noTelp}
-                      onChange={(e) =>
-                        updateItem(index, 'noTelp', e.target.value)
-                      }
+                      value={noTelp}
+                      onChange={(e) => setNoTelp(e.target.value)}
                       placeholder='6281234567890'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -502,10 +591,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={item.email}
-                      onChange={(e) =>
-                        updateItem(index, 'email', e.target.value)
-                      }
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder='email@example.com'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -558,7 +645,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={produkRelevan}
                   onChange={(e) => setProdukRelevan(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
+                  placeholder='Masukkan Produk Relevan'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -570,7 +657,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={merekTayang}
                   onChange={(e) => setMerekTayang(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
+                  placeholder='Masukkan Merek Tayang'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -582,7 +669,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={brandOwner}
                   onChange={(e) => setBrandOwner(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
+                  placeholder='Masukkan Brand Owner'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -596,7 +683,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={sumberData}
                   onChange={(e) => setSumberData(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
+                  placeholder='Masukkan Sumber Data'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -608,7 +695,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={linkProduk}
                   onChange={(e) => setLinkProduk(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
+                  placeholder='Masukkan Link Produk'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -620,7 +707,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={linkToko}
                   onChange={(e) => setLinkToko(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
+                  placeholder='Masukkan Link Toko'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -629,7 +716,7 @@ export default function InputDatabasePage() {
           <div className='mt-6'>
             <div className='flex items-center justify-center gap-4 mb-6'>
               <button
-                onClick={() => {}}
+                onClick={handleKirim}
                 className='flex h-10 items-center justify-center gap-2 cursor-pointer rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 transition-all'
               >
                 <Save className='w-5 h-5' />
