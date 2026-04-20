@@ -46,7 +46,6 @@ export default function InputDatabasePage() {
   const [jabatan, setJabatan] = useState('')
   const [email, setEmail] = useState('')
   const [tipeKontak, setTipeKontak] = useState('')
-
   const [bidangPerusahaan, setBidangPerusahaan] = useState('')
   const [segmentasi, setSegmentasi] = useState('')
   const [produkRelevan, setProdukRelevan] = useState('')

@@ -15,6 +15,15 @@ export type MenuSection = {
 export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
   SUPERADMIN: [
     {
+      title : "TELEMARKETING",
+      icon : "Bot",
+      items: [
+        { label: "Input Database", href: "/input-database", icon: "Bot"},
+        { label: "Tracking Database", href: "/tracking-database", icon: "Database"},
+        { label: "Tracking Broadcast", href: "/tracking-broadcast", icon: "MessageCircleCode"},
+      ]
+    },
+    {
       title: "ACTIVITY REQUEST",
       icon: "Edit3",
       items: [
@@ -33,8 +42,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "E-Procurement Request", href: "/e-procurement-response", icon: "ClipboardList" },
         { label: "Rekapitulasi", href: "/rekapitulasi-response", icon: "BarChart" },
         { label: "Finance", href: "/finance", icon: "Banknote" },
-        { label: "Instansi", href: "/instansi", icon: "Building2" },
-        { label: "TM Database", href: "/tm-database", icon: "Database" },
+        { label: "Instansi", href: "/instansi", icon: "Building2" }
       ],
     },
     {
