@@ -34,7 +34,7 @@ function displayName(m: {
 }
 
 export default function InputDatabasePage() {
-  const [ticketCode, setTicketCode] = useState('')
+  const [codeInput, setcodeInput] = useState('')
   const handleGenerate = () => {
     const prefix = "D" + user?.role.substring(0, 2)
     const date = new Date();
@@ -48,7 +48,7 @@ export default function InputDatabasePage() {
 
     const counter = "0001";
 
-    setTicketCode(`${prefix}-${dmy}-${counter}`);
+    setcodeInput(`${prefix}-${dmy}-${counter}`);
   }
   const router = useRouter()
   const { user, loading: sessionLoading } = useSession()
@@ -71,11 +71,7 @@ export default function InputDatabasePage() {
   const [alamat, setAlamat] = useState('')
   const [namaPerusahaan, setNamaPerusahaan] = useState('')
   const [provinsi, setProvinsi] = useState('')
-  const [nama, setNama] = useState('')
-  const [noTelp, setNoTelp] = useState('')
-  const [jabatan, setJabatan] = useState('')
-  const [email, setEmail] = useState('')
-  const [tipeKontak, setTipeKontak] = useState('')
+
   const [bidangPerusahaan, setBidangPerusahaan] = useState('')
   const [segmentasi, setSegmentasi] = useState('')
   const [produkRelevan, setProdukRelevan] = useState('')
@@ -186,11 +182,11 @@ export default function InputDatabasePage() {
         .toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
         .replace(/\//g, '')
       const generatedCode = `${prefix}-${dmy}-${String(Date.now()).slice(-4)}`
-      setTicketCode(generatedCode)
+      setcodeInput(generatedCode)
 
       const payload = {
         header: {
-          ticketCode: generatedCode,
+          codeInput: generatedCode,
           requestor: requestor || user?.fullName || user?.username || user?.userId || '',
           assignedToUserId: assignedToUserId || user?.userId || '',
           segmen: segmen,
@@ -207,15 +203,15 @@ export default function InputDatabasePage() {
           linkProduk: linkProduk,
           linkToko: linkToko,
         },
-        // Gunakan state kontak global (nama, jabatan, dll) bukan array items
-        items: [{
-          id: crypto.randomUUID(),
-          nama: nama,
-          jabatan: jabatan,
-          tipeKontak: tipeKontak,
-          noTelp: noTelp,
-          email: email,
-        }],
+        // maping untuk insert to Array ke database
+        items: items.map((item) => ({
+          id: item.id,
+          nama: item.nama,
+          jabatan: item.jabatan,
+          tipeKontak: item.tipeKontak,
+          noTelp: item.noTelp,
+          email: item.email,
+        })),
       }
 
       const res = await fetch('/api/input-database', {
@@ -524,6 +520,7 @@ export default function InputDatabasePage() {
                   key={item.id}
                   className='relative grid grid-cols-1 gap-3 md:grid-cols-5 p-4 border border-gray-100 rounded-xl bg-gray-50/50'
                 >
+                  
                   {items.length > 1 && (
                     <button
                       onClick={() => removeItem(index)}
@@ -538,8 +535,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={nama}
-                      onChange={(e) => setNama(e.target.value)}
+                      value={item.nama}
+                      onChange={(e) => updateItem(index, 'nama', e.target.value)}
                       placeholder='Masukkan Nama'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -550,8 +547,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={jabatan}
-                      onChange={(e) => setJabatan(e.target.value)}
+                      value={item.jabatan}
+                      onChange={(e) => updateItem(index, 'jabatan', e.target.value)}
                       placeholder='Masukkan Jabatan'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -561,8 +558,8 @@ export default function InputDatabasePage() {
                       TIPE KONTAK
                     </label>
                     <select
-                      value={tipeKontak}
-                      onChange={(e) => setTipeKontak(e.target.value)}
+                      value={item.tipeKontak}
+                      onChange={(e) => updateItem(index, 'tipeKontak', e.target.value)}
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     >
                       <option className='text-gray-600' value=''>
@@ -579,8 +576,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={noTelp}
-                      onChange={(e) => setNoTelp(e.target.value)}
+                      value={item.noTelp}
+                      onChange={(e) => updateItem(index, 'noTelp', e.target.value)}
                       placeholder='6281234567890'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -591,8 +588,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={item.email}
+                      onChange={(e) => updateItem(index, 'email', e.target.value)}
                       placeholder='email@example.com'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -617,13 +614,30 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   BIDANG USAHA
                 </label>
-                <input
-                  type='text'
+                <select
                   value={bidangPerusahaan}
                   onChange={(e) => setBidangPerusahaan(e.target.value)}
-                  placeholder='Masukkan Bidang Usaha'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                <option className='text-gray-600' value=''>
+                  Pilih Sumber Data
+                </option>
+                <option value="Energi & Pertambangan">FMCG</option>
+                <option value="Jasa Profesional">Ritel Makanan Minuman</option>
+                <option value="Jasa Umum & Lainnya">Elektronik</option>
+                <option value="Kesehatan">Pakaian & Aksesori</option>
+                <option value="Keuangan & Asuransi">Rumah & Furnitur</option>
+                <option value="Konstruksi & Properti">Otomotif</option>
+                <option value="Kreatif & Media">Kesehatan & Kecantikan</option>
+                <option value="Manufaktur & Industri">Mainan & Hobi</option>
+                <option value="Pemerintahan & BUMN">Lainnya</option>
+                <option value="Pendidikan">Lainnya</option>
+                <option value="Perdagangan (Trading)">Lainnya</option>
+                <option value="Perhotelan & Pariwisata">Lainnya</option>
+                <option value="Pertanian, Perkebunan & Perikanan">Lainnya</option>
+                <option value="Teknologi & Digital">Lainnya</option>
+                <option value="UMKM & Industri Rumah Tangga">Lainnya</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>

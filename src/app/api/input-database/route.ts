@@ -38,34 +38,33 @@ export async function POST(req: Request) {
             email: string
         }) => ({
             // Data identifikasi
-            ticket_code:        header.ticketCode        || "",
-            requestor:          header.requestor         || "",
-            assigned_to:        header.assignedToUserId  || "",
+            code_input: header.codeInput || "",
+            requestor: header.requestor || "",
+            assigned_to: header.assignedToUserId || "",
             // Data perusahaan
-            segmen:             header.segmen            || "",
-            nama_perusahaan:    header.namaPerusahaan    || "",
-            provinsi:           header.provinsi          || "",
-            kota:               header.kota              || "",
-            alamat:             header.alamat            || "",
-            bidang_perusahaan:  header.bidangPerusahaan  || "",
-            segmentasi:         header.segmentasi        || "",
-            produk_relevan:     header.produkRelevan     || "",
-            merek_tayang:       header.merekTayang       || "",
-            brand_owner:        header.brandOwner        || "",
-            sumber_data:        header.sumberData        || "",
-            link_produk:        header.linkProduk        || "",
-            link_toko:          header.linkToko          || "",
+            segmen: header.segmen || "",
+            nama_perusahaan: header.namaPerusahaan || "",
+            provinsi: header.provinsi || "",
+            kota: header.kota || "",
+            alamat: header.alamat || "",
+            bidang_perusahaan: header.bidangPerusahaan || "",
+            segmentasi: header.segmentasi || "",
+            produk_relevan: header.produkRelevan || "",
+            merek_tayang: header.merekTayang || "",
+            brand_owner: header.brandOwner || "",
+            sumber_data: header.sumberData || "",
+            link_produk: header.linkProduk || "",
+            link_toko: header.linkToko || "",
             // Data kontak
-            nama:               item.nama       || "",
-            jabatan:            item.jabatan    || "",
-            tipe_kontak:        item.tipeKontak || "",
-            no_telp:            item.noTelp     || "",
-            email:              item.email      || "",
+            nama: item.nama || "",
+            jabatan: item.jabatan || "",
+            tipe_kontak: item.tipeKontak || "",
+            no_telp: item.noTelp || "",
+            email: item.email || "",
             // Metadata
             created_at: now,
             updated_at: now,
         }))
-        const items: KontakItem[] = Array.isArray(body?.items) ? body.items : [];
         const result = await col.insertMany(docs)
 
         return NextResponse.json(
