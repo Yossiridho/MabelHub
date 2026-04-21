@@ -145,7 +145,7 @@ export default function InputDatabasePage() {
       },
     ])
   }
-  
+
   const [rows, setRows] = useState<string[][]>([]);
   const newKontak: KontakItem[] = rows
     .map((row, index) => ({
@@ -170,6 +170,59 @@ export default function InputDatabasePage() {
   const removeItem = (index: number) => {
     if (items.length > 1) {
       setItems((prev) => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleCariKode = async () => {
+    try {
+      if (!codeInput.trim()) {
+        alert('Masukkan kode terlebih dahulu')
+        return
+      }
+
+      const res = await fetch(`/api/input-database/${codeInput}`)
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        alert(errData?.error || 'Data tidak ditemukan untuk kode tersebut')
+        return
+      }
+
+      const data = await res.json()
+
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        alert('Data tidak ditemukan')
+        return
+      }
+
+      // Support both response shapes: { header, items } or raw array
+      const header = data?.header ?? data
+      const kontakItems = data?.items ?? (Array.isArray(data) ? data : [])
+
+      if (kontakItems.length > 0) {
+        setItems(kontakItems)
+      }
+
+      setSegmen(header?.segmen ?? '')
+      setNamaPerusahaan(header?.namaPerusahaan ?? '')
+      setProvinsi(header?.provinsi ?? '')
+      setKota(header?.kota ?? '')
+      setAlamat(header?.alamat ?? '')
+      setBidangPerusahaan(header?.bidangPerusahaan ?? '')
+      setSegmentasi(header?.segmentasi ?? '')
+      setProdukRelevan(header?.produkRelevan ?? '')
+      setMerekTayang(header?.merekTayang ?? '')
+      setBrandOwner(header?.brandOwner ?? '')
+      setSumberData(header?.sumberData ?? '')
+      setLinkProduk(header?.linkProduk ?? '')
+      setLinkToko(header?.linkToko ?? '')
+    } catch (error) {
+      console.error('Error mencari kode:', error)
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kesalahan saat mengambil data'
+      )
     }
   }
 
@@ -253,7 +306,7 @@ export default function InputDatabasePage() {
             </div>
           </div>
           <section className='mt-2 rounded-2xl bg-white p-4 pl-7 h-24 shadow-sm ring-1 ring-black/5'>
-            <div className='flex items-center gap-3 mb-6'>
+            <div className='flex items-center justify-between gap-3 mb-6'>
               <div className='flex flex-col'>
                 <h2 className='text-xl pl-1 font-bold text-gray-700'>
                   Cari Kode Untuk Revisi
@@ -261,8 +314,16 @@ export default function InputDatabasePage() {
                 <input
                   className='h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                   placeholder='Masukkan Kode'
+                  value={codeInput}
+                  onChange={(e) => setcodeInput(e.target.value)}
                 />
               </div>
+              <button
+                onClick={handleCariKode}
+                className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+              >
+                Cari Kode
+              </button>
             </div>
           </section>
 
@@ -294,8 +355,8 @@ export default function InputDatabasePage() {
                       onChange={(val: string) => setAssignedToUserId(val)}
                       options={[
                         { value: user?.userId, label: displayName(user) },
-                        { value: 'Ramadan', label: 'Ramadan'},
-                        { value: '', label: 'Isi Sendiri'},                        ...assigneeOptions.map((m) => ({
+                        { value: 'Ramadan', label: 'Ramadan' },
+                        { value: '', label: 'Isi Sendiri' }, ...assigneeOptions.map((m) => ({
                           value: m.userId,
                           label: displayName(m),
                         })),
@@ -520,7 +581,7 @@ export default function InputDatabasePage() {
                   key={item.id}
                   className='relative grid grid-cols-1 gap-3 md:grid-cols-5 p-4 border border-gray-100 rounded-xl bg-gray-50/50'
                 >
-                  
+
                   {items.length > 1 && (
                     <button
                       onClick={() => removeItem(index)}
@@ -619,73 +680,98 @@ export default function InputDatabasePage() {
                   onChange={(e) => setBidangPerusahaan(e.target.value)}
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 >
-                <option className='text-gray-600' value=''>
-                  Pilih Sumber Data
-                </option>
-                <option value="Energi & Pertambangan">FMCG</option>
-                <option value="Jasa Profesional">Ritel Makanan Minuman</option>
-                <option value="Jasa Umum & Lainnya">Elektronik</option>
-                <option value="Kesehatan">Pakaian & Aksesori</option>
-                <option value="Keuangan & Asuransi">Rumah & Furnitur</option>
-                <option value="Konstruksi & Properti">Otomotif</option>
-                <option value="Kreatif & Media">Kesehatan & Kecantikan</option>
-                <option value="Manufaktur & Industri">Mainan & Hobi</option>
-                <option value="Pemerintahan & BUMN">Lainnya</option>
-                <option value="Pendidikan">Lainnya</option>
-                <option value="Perdagangan (Trading)">Lainnya</option>
-                <option value="Perhotelan & Pariwisata">Lainnya</option>
-                <option value="Pertanian, Perkebunan & Perikanan">Lainnya</option>
-                <option value="Teknologi & Digital">Lainnya</option>
-                <option value="UMKM & Industri Rumah Tangga">Lainnya</option>
+                  <option className='text-gray-600' value=''>
+                    Pilih Sumber Data
+                  </option>
+                  <option value="Energi & Pertambangan">Energi & Pertambangan</option>
+                  <option value="Jasa Profesional">Jasa Profesional</option>
+                  <option value="Jasa Umum & Lainnya">Jasa Umum & Lainnya</option>
+                  <option value="Kesehatan">Kesehatan</option>
+                  <option value="Keuangan & Asuransi">Keuangan & Asuransi</option>
+                  <option value="Konstruksi & Properti">Konstruksi & Properti</option>
+                  <option value="Kreatif & Media">Kreatif & Media</option>
+                  <option value="Manufaktur & Industri">Manufaktur & Industri</option>
+                  <option value="Pemerintahan & BUMN">Pemerintahan & BUMN</option>
+                  <option value="Pendidikan">Pendidikan</option>
+                  <option value="Perdagangan (Trading)">Perdagangan (Trading)</option>
+                  <option value="Perhotelan & Pariwisata">Perhotelan & Pariwisata</option>
+                  <option value="Pertanian, Perkebunan & Perikanan">Pertanian, Perkebunan & Perikanan</option>
+                  <option value="Teknologi & Digital">Teknologi & Digital</option>
+                  <option value="UMKM & Industri Rumah Tangga">UMKM & Industri Rumah Tangga</option>
                 </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   SEGMENTASI
                 </label>
-                <input
-                  type='text'
+                <select
                   value={segmentasi}
                   onChange={(e) => setSegmentasi(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    Pilih Segmentasi
+                  </option>
+                  <option value="B2G-R1">B2G-R1</option>
+                  <option value="B2G-R2">B2G-R2</option>
+                  <option value="B2G-R3">B2G-R3</option>
+                  <option value="B2B">B2B</option>
+                  <option value="B2C">B2C</option>
+                  <option value="C2C">C2C</option>
+                  <option value="C2B">C2B</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   PRODUK RELEVAN
                 </label>
-                <input
-                  type='text'
+                <select
                   value={produkRelevan}
                   onChange={(e) => setProdukRelevan(e.target.value)}
-                  placeholder='Masukkan Produk Relevan'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    Pilih Produk Relevan
+                  </option>
+                  <option value="IFP">IFP</option>
+                  <option value="MRS">MRS</option>
+                  <option value="VIDEOTRON">VIDEOTRON</option>
+                  <option value="AIO">AIO</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   MEREK TAYANG
                 </label>
-                <input
-                  type='text'
+                <select
                   value={merekTayang}
                   onChange={(e) => setMerekTayang(e.target.value)}
-                  placeholder='Masukkan Merek Tayang'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    Pilih Merek Tayang
+                  </option>
+                  <option value="HDe">HDe</option>
+                  <option value="MABO POWER">MABO POWER</option>
+                  <option value="MOBO POWER">MOBO POWER</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   BRAND OWNER
                 </label>
-                <input
-                  type='text'
+                <select
                   value={brandOwner}
                   onChange={(e) => setBrandOwner(e.target.value)}
-                  placeholder='Masukkan Brand Owner'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    --Pilih--
+                  </option>
+                  <option value="YA">YA</option>
+                  <option value="TIDAK">TIDAK</option>
+                </select>
               </div>
             </div>
             <div className='grid grid-cols-1 gap-3 md:grid-cols-3 mt-6'>
@@ -693,13 +779,25 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   SUMBER DATA
                 </label>
-                <input
-                  type='text'
+                <select
                   value={sumberData}
                   onChange={(e) => setSumberData(e.target.value)}
-                  placeholder='Masukkan Sumber Data'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    Pilih Sumber Data
+                  </option>
+                  <option value="e-Katalog LKPP">e-Katalog LKPP</option>
+                  <option value="INAPROC">INAPROC</option>
+                  <option value="PaDi UMKM">PaDi UMKM</option>
+                  <option value="Mbizmarket">Mbizmarket</option>
+                  <option value="SIPLah">SIPLah</option>
+                  <option value="SPSE Pemda">SPSE Pemda</option>
+                  <option value="Sistem Internal Instansi">Sistem Internal Instansi</option>
+                  <option value="Sales Internal">Sales Internal</option>
+                  <option value="Swasta">Swasta</option>
+                  <option value="Belum Terdaftar">Belum Terdaftar</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
@@ -709,7 +807,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={linkProduk}
                   onChange={(e) => setLinkProduk(e.target.value)}
-                  placeholder='Masukkan Link Produk'
+                  placeholder='https:// atau contoh.com'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -721,7 +819,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={linkToko}
                   onChange={(e) => setLinkToko(e.target.value)}
-                  placeholder='Masukkan Link Toko'
+                  placeholder='https:// atau contoh.com'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -739,7 +837,7 @@ export default function InputDatabasePage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
