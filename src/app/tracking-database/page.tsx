@@ -41,8 +41,31 @@ export default function TrackingDatabasePage() {
     { id: 'Tipe', icon: Users, label: 'Tipe Kontak' },
   ]
 
+  // filter state
   const [isFilterOpen, setIsFilterOpen] = useState(true)
   const [isFilterOpen2, setIsFilterOpen2] = useState(true)
+
+  // filter value
+  const [bulan, setBulan] = useState('ALL');
+  const [produk, setProduk] = useState('ALL');
+  const [merek, setMerek] = useState('ALL');
+  const [perusahaan, setPerusahaan] = useState('ALL');
+  const [provinsi, setProvinsi] = useState('ALL');
+  const [kota, setKota] = useState('ALL');
+  const [tipe, setTipe] = useState('ALL');
+
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const [kode_input, setKodeInput] = useState('');
+  const datePart = kode_input.split('-')[1];
+
+  // konversi ke format Date 
+  const year = `20${datePart?.substring(0, 2)}`;
+  const month = datePart?.substring(2, 4);
+  const day = datePart?.substring(4, 6);
+  const formattedDate = `${year}-${month}-${day}`;
+  console.log(formattedDate)
 
   // data
   const [loading, setLoading] = useState(true)
@@ -118,14 +141,20 @@ export default function TrackingDatabasePage() {
                   Tanggal Input:
                 </div>
                 <div className='flex items-center gap-2'>
-                  <DatePicker
+                  <input
+                    type='date'
                     className='w-40 text-xs h-8 shadow-none'
                     placeholder='mm/dd/yyyy'
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
                   />
                   <span className='text-gray-400 font-semibold'>-</span>
-                  <DatePicker
+                  <input
+                    type='date'
                     className='w-40 text-xs h-8 shadow-none'
                     placeholder='mm/dd/yyyy'
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
                   />
                 </div>
               </div>
@@ -685,36 +714,36 @@ export default function TrackingDatabasePage() {
 
                 <tbody className='divide-y divide-gray-300'>
                   {/* {loading ? (
-                                        <tr>
-                                            <td
-                                                colSpan={12}
-                                                className="px-6 py-12 text-center text-sm text-gray-700"
-                                            >
-                                                <div className="flex justtify-center items-center gap-2">
-                                                    <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                                                    <span>Memuat Data...</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        resp?.map((row) => (
-                                            // <tr key={row.kode} className="hover:bg-green-50/50 transition-colors cursor-pointer">
-                                            //     <td className="px-2 py-1.5 text-[10px] text-slate-400">{row.kode}</td>
-                                            //     <td className="px-2 py-1.5 text-[10px] text-slate-700 font-medium">{row.nama_perusahaan}</td>
-                                            //     <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                            //         <div className="flex items-center gap-1.5">
-                                            //             <span>{row.kota}</span>
-                                            //             <div className="flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden">
-                                            //                 <div className="bg-green-500 h-full rounded-full"/>
-                                            //             </div>
-                                            //         </div>
-                                            //     </td>
-                                            //     <td className="px-2 py-1.5 text-right">
-                                            //         <span className="inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-600 text-white"></span>
-                                            //     </td>
-                                            // </tr>
-                                        ))
-                                    )} */}
+                    <tr>
+                      <td
+                        colSpan={12}
+                        className="px-6 py-12 text-center text-sm text-gray-700"
+                      >
+                        <div className="flex justtify-center items-center gap-2">
+                          <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                          <span>Memuat Data...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    resp?.map((row) => (
+                      <tr key={row.kode} className="hover:bg-green-50/50 transition-colors cursor-pointer">
+                        <td className="px-2 py-1.5 text-[10px] text-slate-400">{row.kode}</td>
+                        <td className="px-2 py-1.5 text-[10px] text-slate-700 font-medium">{row.nama_perusahaan}</td>
+                        <td className="px-2 py-1.5 text-[10px] text-slate-600">
+                          <div className="flex items-center gap-1.5">
+                            <span>{row.kota}</span>
+                            <div className="flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden">
+                              <div className="bg-green-500 h-full rounded-full" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <span className="inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-600 text-white"></span>
+                        </td>
+                      </tr>
+                    ))
+                  )} */}
                   {Array.from({ length: 10 }).map((_, i) => (
                     <tr
                       key={i}

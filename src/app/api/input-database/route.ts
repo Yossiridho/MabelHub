@@ -10,6 +10,37 @@ type KontakItem = {
     email: string
 }
 
+// Mengembalikan counter berikutnya (misal "0003") berdasarkan jumlah kode unik yang sudah ada
+export async function GET(req: Request) {
+    try {
+        const { searchParams } = new URL(req.url)
+        const prefix = searchParams.get('prefix') || ''
+        const dmy = searchParams.get('dmy') || ''
+
+        if (!prefix || !dmy) {
+            return NextResponse.json({ counter: '0001' })
+        }
+
+        const client = await clientPromise
+        const db = client.db("MabelHub")
+        const col = db.collection("input_database")
+
+        // Hitung jumlah kode unik yang sudah pakai prefix+dmy ini
+        const pattern = `^${prefix}-${dmy}-`
+        const distinct = await col.distinct("code_input", {
+            code_input: { $regex: pattern }
+        })
+
+        const next = distinct.length + 1
+        const counter = String(next).padStart(4, '0')
+
+        return NextResponse.json({ counter })
+    } catch (error) {
+        console.error("[GET /api/input-database] Error:", error)
+        return NextResponse.json({ counter: '0001' })
+    }
+}
+
 export async function POST(req: Request) {
     try {
         const body = await req.json()
@@ -29,14 +60,7 @@ export async function POST(req: Request) {
         const now = new Date()
 
         // Setiap item kontak disimpan sebagai dokumen terpisah bersama data header
-        const docs = items.map((item: {
-            id: string
-            nama: string
-            jabatan: string
-            tipeKontak: string
-            noTelp: string
-            email: string
-        }) => ({
+        const docs = items.map((item: KontakItem) => ({
             // Data identifikasi
             code_input: header.codeInput || "",
             requestor: header.requestor || "",
@@ -65,6 +89,7 @@ export async function POST(req: Request) {
             created_at: now,
             updated_at: now,
         }))
+
         const result = await col.insertMany(docs)
 
         return NextResponse.json(

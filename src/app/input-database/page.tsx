@@ -3,7 +3,7 @@
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import { useState, useEffect } from 'react'
 import { useSession } from '@/components/session/SessionProvider'
-import { Building, Plus, Trash2, Save } from 'lucide-react'
+import { Building, Plus, Trash2, Save, Loader2, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 type TeamMember = {
@@ -35,23 +35,9 @@ function displayName(m: {
 
 export default function InputDatabasePage() {
   const [codeInput, setcodeInput] = useState('')
-  const handleGenerate = () => {
-    const prefix = "D" + user?.role.substring(0, 2)
-    const date = new Date();
-
-    // Format DDMMYY
-    const dmy = date.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    }).replace(/\//g, '');
-
-    const counter = "0001";
-
-    setcodeInput(`${prefix}-${dmy}-${counter}`);
-  }
   const router = useRouter()
   const { user, loading: sessionLoading } = useSession()
+  const [ isLoading, setIsLoading] = useState(false)
   // Auto-isi requestor dari session user yang sedang login
   useEffect(() => {
     if (user) {
@@ -66,6 +52,39 @@ export default function InputDatabasePage() {
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([])
   const [assignedToUserId, setAssignedToUserId] = useState('')
   const [requestor, setRequestor] = useState('')
+
+  const handleGenerate = async () => {
+    // Prefix = 3 huruf pertama nama user, uppercase (misal "Aliya" → "ALY")
+    const namaUser = user?.fullName?.trim() || user?.username?.trim() || ''
+    const prefix = namaUser.substring(0, 4).toUpperCase() || 'XXX'
+
+    const date = new Date()
+    // Format DDMMYY
+    const dmy = date
+      .toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+      })
+      .replace(/\//g, '')
+
+    // Fetch counter berikutnya dari database (0001, 0002, dst.)
+    let counter = '0001'
+    try {
+      const res = await fetch(`/api/input-database?prefix=${prefix}&dmy=${dmy}`)
+      if (res.ok) {
+        const data = await res.json()
+        counter = data.counter || '0001'
+      }
+    } catch {
+      // fallback ke 0001 jika gagal
+    }
+
+    setcodeInput(`${prefix}-${dmy}-${counter}`)
+
+    // Isi juga field PENGINPUT dengan nama user yang sedang login
+    if (namaUser) setRequestor(namaUser)
+  }
   const [segmen, setSegmen] = useState<string>('')
   const [kota, setKota] = useState<string>('')
   const [alamat, setAlamat] = useState('')
@@ -179,7 +198,8 @@ export default function InputDatabasePage() {
         alert('Masukkan kode terlebih dahulu')
         return
       }
-
+      setIsLoading(true)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       const res = await fetch(`/api/input-database/${codeInput}`)
 
       if (!res.ok) {
@@ -189,6 +209,7 @@ export default function InputDatabasePage() {
       }
 
       const data = await res.json()
+      console.log('Data ditemukan:', data)
 
       if (!data || (Array.isArray(data) && data.length === 0)) {
         alert('Data tidak ditemukan')
@@ -202,7 +223,7 @@ export default function InputDatabasePage() {
       if (kontakItems.length > 0) {
         setItems(kontakItems)
       }
-
+      setRequestor(header?.requestor ?? user?.fullName ?? user?.username ?? user?.userId ?? '')
       setSegmen(header?.segmen ?? '')
       setNamaPerusahaan(header?.namaPerusahaan ?? '')
       setProvinsi(header?.provinsi ?? '')
@@ -223,19 +244,21 @@ export default function InputDatabasePage() {
           ? error.message
           : 'Terjadi kesalahan saat mengambil data'
       )
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleKirim = async () => {
     try {
-      // Generate ticket code sinkron sebelum payload dibuat
-      const prefix = 'D' + (user?.role?.substring(0, 2) ?? 'XX')
+      // Gunakan kode yang sudah di-generate manual; fallback auto-generate jika masih kosong
+      const namaReq = requestor.trim() || user?.fullName?.trim() || user?.username?.trim() || ''
+      const prefixFallback = namaReq.substring(0, 3).toUpperCase() || 'XXX'
       const date = new Date()
       const dmy = date
         .toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
         .replace(/\//g, '')
-      const generatedCode = `${prefix}-${dmy}-${String(Date.now()).slice(-4)}`
-      setcodeInput(generatedCode)
+      const generatedCode = codeInput.trim() || `${prefixFallback}-${dmy}-${String(Date.now()).slice(-4)}`
 
       const payload = {
         header: {
@@ -320,9 +343,10 @@ export default function InputDatabasePage() {
               </div>
               <button
                 onClick={handleCariKode}
+                disabled={isLoading}
                 className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
               >
-                Cari Kode
+                {isLoading ? <Loader2 className="animate-spin" size={20}/> : 'Cari Kode'}
               </button>
             </div>
           </section>
@@ -347,32 +371,24 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   PENGINPUT
                 </label>
-
-                <div className='relative mt-2'>
-                  {canPickAssignee ? (
-                    <SearchableSelect
-                      value={assignedToUserId}
-                      onChange={(val: string) => setAssignedToUserId(val)}
-                      options={[
-                        { value: user?.userId, label: displayName(user) },
-                        { value: 'Ramadan', label: 'Ramadan' },
-                        { value: '', label: 'Isi Sendiri' }, ...assigneeOptions.map((m) => ({
-                          value: m.userId,
-                          label: displayName(m),
-                        })),
-                      ]}
-                      className='border-0 bg-white'
-                      placeholder='Pilih Assignee...'
-                    />
-                  ) : (
-                    // SALES: requestor tampil auto (boleh edit manual kalau mau)
-                    <input
-                      value={requestor}
-                      onChange={(e) => setRequestor(e.target.value)}
-                      className='h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                      placeholder='Nama requestor'
-                    />
-                  )}
+                <div className='mt-2'>
+                  <SearchableSelect
+                    value={requestor}
+                    onChange={(val: string) => setRequestor(val)}
+                    options={(() => {
+                      const base = [
+                        { value: '', label: 'Pilih requestor' },
+                        { value: 'Aliya', label: 'Aliya' },
+                      ]
+                      // Jika requestor dari database belum ada di list, tambahkan otomatis
+                      if (requestor && !base.find((o) => o.value === requestor)) {
+                        base.push({ value: requestor, label: requestor })
+                      }
+                      return base
+                    })()}
+                    className='w-full'
+                    placeholder='Pilih requestor...'
+                  />
                 </div>
               </div>
 
@@ -618,18 +634,23 @@ export default function InputDatabasePage() {
                     <label className='text-sm font-semibold text-blue-600'>
                       TIPE KONTAK
                     </label>
-                    <select
+                    <SearchableSelect
                       value={item.tipeKontak}
-                      onChange={(e) => updateItem(index, 'tipeKontak', e.target.value)}
-                      className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                    >
-                      <option className='text-gray-600' value=''>
-                        Pilih...
-                      </option>
-                      <option value='Whatsapp'>Whatsapp</option>
-                      <option value='Office'>Office</option>
-                      <option value='Phone Call'>Phone Call</option>
-                    </select>
+                      onChange={(value) => updateItem(index, 'tipeKontak', value as string)}
+                      options={(() => {
+                        const base = [
+                          { value: '', label: '-Pilih-' },
+                          { value: 'WhatsApp', label: 'WhatsApp' },
+                          { value: 'Office', label: 'TELP' },
+                          { value: 'Phone Call', label: 'SMS' },
+                        ]
+                       if (item.tipeKontak && !base.find((o) => o.value === item.tipeKontak)) {
+                         base.push({ value : item.tipeKontak, label : item.tipeKontak})
+                       }
+                       return base;
+                      })()}
+                      className='w-full'
+                    />
                   </div>
                   <div>
                     <label className='text-sm font-semibold text-blue-600'>
@@ -725,53 +746,68 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   PRODUK RELEVAN
                 </label>
-                <select
+                <SearchableSelect
                   value={produkRelevan}
-                  onChange={(e) => setProdukRelevan(e.target.value)}
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                >
-                  <option className='text-gray-600' value=''>
-                    Pilih Produk Relevan
-                  </option>
-                  <option value="IFP">IFP</option>
-                  <option value="MRS">MRS</option>
-                  <option value="VIDEOTRON">VIDEOTRON</option>
-                  <option value="AIO">AIO</option>
-                </select>
+                  onChange={(value) => setProdukRelevan(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Produk Relevan' },
+                      { value: 'IFP', label: 'IFP' },
+                      { value: 'MRS', label: 'MRS' },
+                      { value: 'VIDEOTRON', label: 'VIDEOTRON' },
+                      { value: 'AIO', label: 'AIO' },
+                    ]
+                    if (produkRelevan && !base.find((o) => o.value === produkRelevan)) {
+                      base.push({ value: produkRelevan, label: produkRelevan })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
+                />
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   MEREK TAYANG
                 </label>
-                <select
+                <SearchableSelect
                   value={merekTayang}
-                  onChange={(e) => setMerekTayang(e.target.value)}
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                >
-                  <option className='text-gray-600' value=''>
-                    Pilih Merek Tayang
-                  </option>
-                  <option value="HDe">HDe</option>
-                  <option value="MABO POWER">MABO POWER</option>
-                  <option value="MOBO POWER">MOBO POWER</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
+                  onChange={(value) => setMerekTayang(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Merek Tayang' },
+                      { value: 'HDe', label: 'HDe' },
+                      { value: 'MABO POWER', label: 'MABO POWER' },
+                      { value: 'MOBO POWER', label: 'MOBO POWER' },
+                      { value: 'Lainnya', label: 'Lainnya' },
+                    ]
+                    if (merekTayang && !base.find((o) => o.value === merekTayang)) {
+                      base.push({ value: merekTayang, label: merekTayang })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
+                />
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   BRAND OWNER
                 </label>
-                <select
+                <SearchableSelect
                   value={brandOwner}
-                  onChange={(e) => setBrandOwner(e.target.value)}
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                >
-                  <option className='text-gray-600' value=''>
-                    --Pilih--
-                  </option>
-                  <option value="YA">YA</option>
-                  <option value="TIDAK">TIDAK</option>
-                </select>
+                  onChange={(value) => setBrandOwner(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Brand Owner' },
+                      { value: 'YA', label: 'YA' },
+                      { value: 'TIDAK', label: 'TIDAK' },
+                    ]
+                    if (brandOwner && !base.find((o) => o.value === brandOwner)) {
+                      base.push({ value: brandOwner, label: brandOwner })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
+                />
               </div>
             </div>
             <div className='grid grid-cols-1 gap-3 md:grid-cols-3 mt-6'>
@@ -779,25 +815,27 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   SUMBER DATA
                 </label>
-                <select
+                <SearchableSelect
                   value={sumberData}
-                  onChange={(e) => setSumberData(e.target.value)}
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                >
-                  <option className='text-gray-600' value=''>
-                    Pilih Sumber Data
-                  </option>
-                  <option value="e-Katalog LKPP">e-Katalog LKPP</option>
-                  <option value="INAPROC">INAPROC</option>
-                  <option value="PaDi UMKM">PaDi UMKM</option>
-                  <option value="Mbizmarket">Mbizmarket</option>
-                  <option value="SIPLah">SIPLah</option>
-                  <option value="SPSE Pemda">SPSE Pemda</option>
-                  <option value="Sistem Internal Instansi">Sistem Internal Instansi</option>
-                  <option value="Sales Internal">Sales Internal</option>
-                  <option value="Swasta">Swasta</option>
-                  <option value="Belum Terdaftar">Belum Terdaftar</option>
-                </select>
+                  onChange={(value) => setSumberData(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Sumber Data' },
+                      { value: 'e-Katalog LKPP', label: 'e-Katalog LKPP' },
+                      { value: 'INAPROC', label: 'INAPROC' },
+                      { value: 'PaDi UMKM', label: 'PaDi UMKM' },
+                      { value: 'Mbizmarket', label: 'Mbizmarket' },
+                      { value: 'SIPLah', label: 'SIPLah' },
+                      { value: 'SPSE Pemda', label: 'SPSE Pemda' },
+                      { value: 'Sistem Internal Instansi', label: 'Sistem Internal Instansi' },
+                    ]
+                    if (sumberData && !base.find((o) => o.value === sumberData)) {
+                      base.push({ value: sumberData, label: sumberData })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
+                />
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
