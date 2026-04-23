@@ -32,6 +32,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "E-Procurement", href: "/e-procurement", icon: "ShoppingCart" },
         { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
+        { label: "Tindak Lanjut Sales", href: "/tindak-lanjut-sales", icon: "User"},
       ],
     },
     {

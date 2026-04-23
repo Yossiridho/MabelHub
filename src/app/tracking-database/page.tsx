@@ -3,6 +3,7 @@
 import {
   Filter,
   ChevronUp,
+  ChevronDown,
   Calendar,
   CalendarDays,
   Package,
@@ -14,11 +15,20 @@ import {
   Users,
   PhoneCallIcon,
   BarChart2,
+  X,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import DatePicker from '@/components/ui/DatePicker'
 
-type ApiResp = {
+type ProvinsiKotaRow = {
+  no: number
+  provinsi: string
+  kota: string
+  unik: number
+  pct: number
+}
+
+type TrackingRow = {
   kode: string
   nama_perusahaan: string
   kota: string
@@ -28,6 +38,42 @@ type ApiResp = {
   jabatan: string
   telp: string
   tipe: string
+}
+
+type ApiStats = {
+  total_no_telp: number
+  total_provinsi: number
+  total_kota: number
+  total_nama: number
+  total_kontak_unik: number
+  total_wa_unik: number
+  provinsi_kota: ProvinsiKotaRow[]
+  wa_provinsi_kota: ProvinsiKotaRow[]
+}
+
+type FilterOptions = {
+  bulan: string[]
+  produk: string[]
+  merek: string[]
+  perusahaan: string[]
+  provinsi: string[]
+  kota: string[]
+  tipe: string[]
+}
+
+function getPageWindow(current: number, totalPages: number, size: number) {
+  if (totalPages <= size)
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const half = Math.floor(size / 2);
+  let start = Math.max(1, current - half);
+  let end = start + size - 1;
+
+  if (end > totalPages) {
+    end = totalPages;
+    start = end - size + 1;
+  }
+  return Array.from({ length: size }, (_, i) => start + i);
 }
 
 export default function TrackingDatabasePage() {
@@ -45,48 +91,173 @@ export default function TrackingDatabasePage() {
   const [isFilterOpen, setIsFilterOpen] = useState(true)
   const [isFilterOpen2, setIsFilterOpen2] = useState(true)
 
-  // filter value
-  const [bulan, setBulan] = useState('ALL');
-  const [produk, setProduk] = useState('ALL');
-  const [merek, setMerek] = useState('ALL');
-  const [perusahaan, setPerusahaan] = useState('ALL');
-  const [provinsi, setProvinsi] = useState('ALL');
-  const [kota, setKota] = useState('ALL');
-  const [tipe, setTipe] = useState('ALL');
+  // filter value — multi-select arrays (empty = no filter)
+  const [bulan,      setBulan]      = useState<string[]>([])
+  const [produk,     setProduk]     = useState<string[]>([])
+  const [merek,      setMerek]      = useState<string[]>([])
+  const [perusahaan, setPerusahaan] = useState<string[]>([])
+  const [provinsi,   setProvinsi]   = useState<string[]>([])
+  const [kota,       setKota]       = useState<string[]>([])
+  const [tipe,       setTipe]       = useState<string[]>([])
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState('')
+  const [endDate,   setEndDate]   = useState('')
 
-  const [kode_input, setKodeInput] = useState('');
-  const datePart = kode_input.split('-')[1];
+  // dropdown filter
+  const [openDropdown, setOpenDropdown]   = useState<string | null>(null)
+  const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    bulan: [], produk: [], merek: [], perusahaan: [], provinsi: [], kota: [], tipe: [],
+  })
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // konversi ke format Date 
-  const year = `20${datePart?.substring(0, 2)}`;
-  const month = datePart?.substring(2, 4);
-  const day = datePart?.substring(4, 6);
-  const formattedDate = `${year}-${month}-${day}`;
-  console.log(formattedDate)
+  // pagination
+  const [pageSize, setPageSize] = useState(25)
+  const [page,     setPage]     = useState(1)
+  const [rows,     setRows]     = useState<TrackingRow[]>([])
+  const [loadingRows, setLoadingRows] = useState(true)
+  const [total,      setTotal]      = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [selected,   setSelected]   = useState<TrackingRow | null>(null)
 
-  // data
+  // data — statistik & analitik
   const [loading, setLoading] = useState(true)
-  const [resp, setResp] = useState<ApiResp[] | null>(null)
+  const [stats,   setStats]   = useState<ApiStats | null>(null)
 
+  // Fetch distinct filter options
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          'http://localhost:3000/api/tracking-database',
-        )
-        const data = await response.json()
-        setResp(data)
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
+    fetch('/api/tracking-database/filters')
+      .then(r => r.json())
+      .then((data: FilterOptions) => setFilterOptions(data))
+      .catch(() => {})
   }, [])
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
+        setOpenDropdown(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // ---- filter helpers ----
+  const getFilterArr = useCallback((id: string): string[] => {
+    switch (id) {
+      case 'Bulan':      return bulan
+      case 'Produk':     return produk
+      case 'Merek':      return merek
+      case 'Perusahaan': return perusahaan
+      case 'Provinsi':   return provinsi
+      case 'Kota':       return kota
+      case 'Tipe':       return tipe
+      default: return []
+    }
+  }, [bulan, produk, merek, perusahaan, provinsi, kota, tipe])
+
+  const setFilterArr = useCallback((id: string, vals: string[]) => {
+    switch (id) {
+      case 'Bulan':      setBulan(vals);      break
+      case 'Produk':     setProduk(vals);     break
+      case 'Merek':      setMerek(vals);      break
+      case 'Perusahaan': setPerusahaan(vals); break
+      case 'Provinsi':   setProvinsi(vals);   break
+      case 'Kota':       setKota(vals);       break
+      case 'Tipe':       setTipe(vals);       break
+    }
+    setPage(1); setSelected(null)
+  }, [])
+
+  const toggleFilterVal = useCallback((id: string, val: string) => {
+    const cur = getFilterArr(id)
+    setFilterArr(id, cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val])
+  }, [getFilterArr, setFilterArr])
+
+  const clearFilterArr = useCallback((id: string) => {
+    setFilterArr(id, [])
+    setOpenDropdown(null)
+  }, [setFilterArr])
+
+  const selectAllFilter = useCallback((id: string, opts: string[]) => {
+    setFilterArr(id, [...opts])
+  }, [setFilterArr])
+
+  const getOptions = useCallback((id: string): string[] => {
+    switch (id) {
+      case 'Bulan':      return filterOptions.bulan
+      case 'Produk':     return filterOptions.produk
+      case 'Merek':      return filterOptions.merek
+      case 'Perusahaan': return filterOptions.perusahaan
+      case 'Provinsi':   return filterOptions.provinsi
+      case 'Kota':       return filterOptions.kota
+      case 'Tipe':       return filterOptions.tipe
+      default: return []
+    }
+  }, [filterOptions])
+
+  // ---- main data fetch (stats + paginated rows) ----
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      setLoadingRows(true)
+      if (!mounted) return
+      setLoading(true)
+
+      const qs = new URLSearchParams()
+      qs.set('limit', String(pageSize))
+      qs.set('page', String(page))
+
+      bulan.forEach(v      => qs.append('bulan',      v))
+      produk.forEach(v     => qs.append('produk',     v))
+      merek.forEach(v      => qs.append('merek',      v))
+      perusahaan.forEach(v => qs.append('perusahaan', v))
+      provinsi.forEach(v   => qs.append('provinsi',   v))
+      kota.forEach(v       => qs.append('kota',       v))
+      tipe.forEach(v       => qs.append('tipe',       v))
+      if (startDate) qs.set('startDate', startDate)
+      if (endDate)   qs.set('endDate',   endDate)
+
+      try {
+        const res  = await fetch(`/api/tracking-database?${qs.toString()}`, { cache: 'no-store' })
+        const json = await res.json().catch(() => ({}))
+        if (!mounted) return
+
+        if (json?.total_kontak_unik !== undefined) {
+          setStats({
+            total_no_telp:    json.total_no_telp    ?? 0,
+            total_provinsi:   json.total_provinsi   ?? 0,
+            total_kota:       json.total_kota       ?? 0,
+            total_nama:       json.total_nama       ?? 0,
+            total_kontak_unik: json.total_kontak_unik ?? 0,
+            total_wa_unik:    json.total_wa_unik    ?? 0,
+            provinsi_kota:    Array.isArray(json.provinsi_kota)    ? json.provinsi_kota    : [],
+            wa_provinsi_kota: Array.isArray(json.wa_provinsi_kota) ? json.wa_provinsi_kota : [],
+          })
+        }
+
+        setRows(Array.isArray(json?.items) ? json.items : [])
+        const pg = json?.pagination ?? {}
+        setTotal(Number(pg?.total ?? 0))
+        setTotalPages(Number(pg?.totalPages ?? 1))
+        setSelected(null)
+      } catch {
+        if (!mounted) return
+        setRows([]); setTotal(0); setTotalPages(1); setSelected(null)
+      } finally {
+        if (mounted) { setLoadingRows(false); setLoading(false) }
+      }
+    })()
+    return () => { mounted = false }
+  }, [page, pageSize, bulan, produk, merek, perusahaan, provinsi, kota, tipe, startDate, endDate])
+
+  const safePage = useMemo(
+    () => Math.min(Math.max(1, page), Math.max(1, totalPages)),
+    [page, totalPages],
+  )
+  const showingFrom = total === 0 ? 0 : (safePage - 1) * pageSize + 1
+  const showingTo   = Math.min(total, safePage * pageSize)
+  const gotoPage    = (p: number) => setPage(Math.min(Math.max(1, p), Math.max(1, totalPages)))
 
   return (
     <div className='min-h-screen bg-blue-50'>
@@ -143,41 +314,151 @@ export default function TrackingDatabasePage() {
                 <div className='flex items-center gap-2'>
                   <input
                     type='date'
-                    className='w-40 text-xs h-8 shadow-none'
+                    className='w-30 text-xs h-8 shadow-none border-1 border-slate-300 rounded-lg'
                     placeholder='mm/dd/yyyy'
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => { setStartDate(e.target.value); setPage(1); setSelected(null); }}
                   />
                   <span className='text-gray-400 font-semibold'>-</span>
                   <input
                     type='date'
-                    className='w-40 text-xs h-8 shadow-none'
+                    className='w-30 items-center justify-between text-xs h-8 shadow-none border-1 border-slate-300 rounded-lg'
                     placeholder='mm/dd/yyyy'
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => { setEndDate(e.target.value); setPage(1); setSelected(null); }}
                   />
                 </div>
               </div>
 
-              {/* Baris 2: Tombol Filter (Bulan, Produk, Merek, dll) */}
-              <div className='flex flex-wrap lg:flex-nowrap gap-2 w-full mt-1'>
-                {filterButtons.map((btn, idx) => {
+              {/* Baris 2: Tombol Filter dengan Dropdown */}
+              <div ref={dropdownRef} className='flex flex-wrap lg:flex-nowrap gap-2 w-full mt-1'>
+                {filterButtons.map((btn) => {
                   const IconComponent = btn.icon
+                  const activeArr = getFilterArr(btn.id)
+                  const count     = activeArr.length
+                  const isActive  = count > 0
+                  const opts      = getOptions(btn.id)
+                  const search    = dropdownSearch[btn.id] ?? ''
+                  const filtered  = search ? opts.filter(o => o.toLowerCase().includes(search.toLowerCase())) : opts
+                  const allSelected = opts.length > 0 && opts.every(o => activeArr.includes(o))
                   return (
-                    <button
-                      key={idx}
-                      className='flex flex-1 items-center justify-center gap-1.5 py-[7px] px-2 text-xs font-semibold border-[1.5px] border-[#ced4da] rounded-lg bg-white cursor-pointer text-[#495057] transition-all duration-150 select-none box-border truncate hover:bg-slate-50 hover:border-slate-400 min-w-[120px]'
-                    >
-                      <IconComponent
-                        size={10}
-                        className='text-slate-500 shrink-0'
-                        strokeWidth={2}
-                      />
-                      <span className='truncate'>{btn.label}</span>
-                    </button>
+                    <div key={btn.id} className='relative flex-1 min-w-[110px]'>
+                      {/* ---- Trigger button ---- */}
+                      <button
+                        type='button'
+                        onClick={() => setOpenDropdown(openDropdown === btn.id ? null : btn.id)}
+                        className={`w-full flex items-center justify-between gap-1 py-[7px] px-2 text-xs font-semibold border-[1.5px] rounded-lg cursor-pointer transition-all duration-150 select-none box-border ${
+                          isActive
+                            ? 'border-blue-500 bg-white text-blue-700'
+                            : 'border-[#ced4da] bg-white text-[#495057] hover:bg-slate-50 hover:border-slate-400'
+                        }`}
+                      >
+                        <span className='flex items-center gap-1 min-w-0'>
+                          <IconComponent size={10} className='shrink-0' strokeWidth={2} />
+                          <span className='truncate text-[10px]'>{btn.label}</span>
+                        </span>
+                        <span className='flex items-center gap-0.5 shrink-0'>
+                          {isActive && (
+                            <span className='inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-white text-[9px] font-bold'>
+                              {count}
+                            </span>
+                          )}
+                          <ChevronDown size={10} className={`ml-0.5 transition-transform ${openDropdown === btn.id ? 'rotate-180' : ''}`} />
+                        </span>
+                      </button>
+
+                      {/* ---- Dropdown panel ---- */}
+                      {openDropdown === btn.id && (
+                        <div className='absolute top-full left-0 z-[999] mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col overflow-hidden'>
+                          {/* Search */}
+                          <div className='px-2 pt-2 pb-1'>
+                            <input
+                              autoFocus
+                              type='text'
+                              placeholder='Cari...'
+                              value={search}
+                              onChange={e => setDropdownSearch(prev => ({ ...prev, [btn.id]: e.target.value }))}
+                              className='w-full text-[11px] px-2 py-1.5 border border-gray-300 rounded-lg outline-none focus:ring-1 focus:ring-blue-300'
+                            />
+                          </div>
+                          {/* Semua / Hapus */}
+                          <div className='flex items-center gap-1 px-2 pb-1'>
+                            <button
+                              type='button'
+                              onClick={() => selectAllFilter(btn.id, opts)}
+                              className='flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 px-1'
+                            >
+                              ✓ Semua
+                            </button>
+                            <span className='text-gray-300'>|</span>
+                            <button
+                              type='button'
+                              onClick={() => clearFilterArr(btn.id)}
+                              className='flex items-center gap-1 text-[10px] font-semibold text-red-500 hover:text-red-700 px-1'
+                            >
+                              ✕ Hapus
+                            </button>
+                          </div>
+                          {/* Option list */}
+                          <div className='max-h-48 overflow-y-auto border-t border-gray-100'>
+                            {filtered.length === 0 ? (
+                              <div className='px-3 py-2 text-[10px] text-slate-400 text-center'>Tidak ada data</div>
+                            ) : filtered.map(opt => {
+                              const checked = activeArr.includes(opt)
+                              return (
+                                <label
+                                  key={opt}
+                                  className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-blue-50 ${checked ? 'bg-blue-50/60' : ''}`}
+                                >
+                                  <input
+                                    type='checkbox'
+                                    checked={checked}
+                                    onChange={() => toggleFilterVal(btn.id, opt)}
+                                    className='accent-blue-600 w-3.5 h-3.5 shrink-0'
+                                  />
+                                  <span className={`text-[11px] truncate ${checked ? 'font-semibold text-blue-700' : 'text-slate-700'}`}>
+                                    {opt}
+                                  </span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
               </div>
+
+              {/* ---- Chips row: active selections ---- */}
+              {filterButtons.some(b => getFilterArr(b.id).length > 0) && (
+                <div className='flex flex-wrap gap-1 mt-1.5'>
+                  {filterButtons.flatMap(btn =>
+                    getFilterArr(btn.id).map(val => (
+                      <span
+                        key={`${btn.id}-${val}`}
+                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200'
+                      >
+                        {btn.label}: {val}
+                        <button
+                          type='button'
+                          onClick={() => toggleFilterVal(btn.id, val)}
+                          className='hover:text-red-500 ml-0.5'
+                        >
+                          <X size={9} />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                  <button
+                    type='button'
+                    onClick={() => filterButtons.forEach(b => clearFilterArr(b.id))}
+                    className='text-[10px] text-red-500 hover:text-red-700 font-semibold ml-1'
+                  >
+                    Reset Semua
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 
@@ -231,7 +512,7 @@ export default function TrackingDatabasePage() {
                             className='font-bold text-[1.8rem] leading-none text-blue-600'
                             id='statTotalUnik'
                           >
-                            14
+                            {loading ? '...' : (stats?.total_kontak_unik ?? 0)}
                           </div>
                           <div className='text-[10px] text-slate-500'>
                             kontak unik
@@ -272,17 +553,28 @@ export default function TrackingDatabasePage() {
                             className='font-bold text-[1.8rem] leading-none text-green-600'
                             id='statWaUnik'
                           >
-                            14
+                            {loading ? '...' : (stats?.total_wa_unik ?? 0)}
                           </div>
                           <div className='text-[10px] text-slate-500'>
-                            <span id='statWaPct'>14</span>% dari total
+                            <span id='statWaPct'>
+                              {loading || !stats
+                                ? '...'
+                                : stats.total_kontak_unik > 0
+                                  ? Math.round((stats.total_wa_unik / stats.total_kontak_unik) * 100)
+                                  : 0}
+                            </span>% dari total
                           </div>
                         </div>
                       </div>
                       <div className='w-full bg-green-200 rounded-full h-[3px] mt-2 flex'>
                         <div
-                          className='bg-green-600 h-[3px] rounded-full w-0'
+                          className='bg-green-600 h-[3px] rounded-full transition-all duration-700'
                           id='progWaUnik'
+                          style={{
+                            width: loading || !stats || stats.total_kontak_unik === 0
+                              ? '0%'
+                              : `${Math.round((stats.total_wa_unik / stats.total_kontak_unik) * 100)}%`
+                          }}
                         ></div>
                       </div>
                     </div>
@@ -319,7 +611,7 @@ export default function TrackingDatabasePage() {
                       id='statProvinsiRows'
                       className='font-semibold text-blue-700'
                     >
-                      14
+                      {loading ? '...' : (stats?.provinsi_kota.length ?? 0)}
                     </span>
                     <span>baris</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
@@ -327,7 +619,7 @@ export default function TrackingDatabasePage() {
                       id='statProvinsiTotal'
                       className='font-semibold text-blue-700'
                     >
-                      14
+                      {loading ? '...' : (stats?.total_kontak_unik ?? 0)}
                     </span>
                     <span>total</span>
                   </div>
@@ -355,115 +647,38 @@ export default function TrackingDatabasePage() {
                       id='tbodyProvinsiUnik'
                       className='divide-y divide-gray-100'
                     >
-                      {[
-                        {
-                          no: 1,
-                          prov: 'Aceh',
-                          kota: 'Kabupaten Pidie',
-                          unik: 1,
-                          pct: 4,
-                        },
-                        {
-                          no: 2,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 36,
-                          pct: 90,
-                        },
-                        {
-                          no: 3,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Badung',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 4,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Gianyar',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 5,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Jembrana',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 6,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Klungkung',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 7,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 5,
-                        },
-                        {
-                          no: 8,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 3,
-                          pct: 8,
-                        },
-                        {
-                          no: 9,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 5,
-                          pct: 13,
-                        },
-                        {
-                          no: 10,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 5,
-                        },
-                        {
-                          no: 11,
-                          prov: 'Banten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 23,
-                        },
-                        {
-                          no: 12,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Pusat',
-                          unik: 4,
-                          pct: 10,
-                        },
-                        {
-                          no: 13,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Selatan',
-                          unik: 6,
-                          pct: 15,
-                        },
-                        {
-                          no: 14,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Utara',
-                          unik: 2,
-                          pct: 5,
-                        },
-                      ].map((row) => (
+                      {loading ? (
+                        <tr>
+                          <td colSpan={4} className='px-2 py-4 text-center text-[10px] text-slate-400'>
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : (stats?.provinsi_kota ?? []).length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className='px-2 py-4 text-center text-[10px] text-slate-400'>
+                            Tidak ada data
+                          </td>
+                        </tr>
+                      ) : (stats?.provinsi_kota ?? []).map((row) => (
                         <tr
                           key={row.no}
-                          className='hover:bg-blue-50/50 transition-colors cursor-pointer'
+                          onClick={() => {
+                            setProvinsi([row.provinsi])
+                            setKota([row.kota])
+                            setPage(1)
+                            setSelected(null)
+                          }}
+                          className={`transition-colors cursor-pointer ${
+                            provinsi.includes(row.provinsi) && kota.includes(row.kota)
+                              ? 'bg-blue-100 ring-1 ring-inset ring-blue-400'
+                              : 'hover:bg-blue-50/70'
+                          }`}
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
                             {row.no}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.prov}
+                            {row.provinsi}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-600'>
                             <div className='flex items-center gap-1.5'>
@@ -513,7 +728,7 @@ export default function TrackingDatabasePage() {
                       id='statWaProvinsiRows'
                       className='font-semibold text-green-700'
                     >
-                      14
+                      {loading ? '...' : (stats?.wa_provinsi_kota.length ?? 0)}
                     </span>
                     <span>baris</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
@@ -521,7 +736,7 @@ export default function TrackingDatabasePage() {
                       id='statWaProvinsiTotal'
                       className='font-semibold text-green-700'
                     >
-                      14
+                      {loading ? '...' : (stats?.total_wa_unik ?? 0)}
                     </span>
                     <span>total</span>
                   </div>
@@ -549,115 +764,39 @@ export default function TrackingDatabasePage() {
                       id='tbodyWaProvinsi'
                       className='divide-y divide-gray-100'
                     >
-                      {[
-                        {
-                          no: 1,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 2,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 3,
-                          prov: 'Bali',
-                          kota: 'Kota Denpasar',
-                          unik: 4,
-                          pct: 40,
-                        },
-                        {
-                          no: 4,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 5,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 3,
-                          pct: 30,
-                        },
-                        {
-                          no: 6,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 7,
-                          prov: 'Danten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 90,
-                        },
-                        {
-                          no: 8,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 9,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 10,
-                          prov: 'Bali',
-                          kota: 'Kota Denpasar',
-                          unik: 4,
-                          pct: 40,
-                        },
-                        {
-                          no: 11,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 12,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 3,
-                          pct: 30,
-                        },
-                        {
-                          no: 13,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 14,
-                          prov: 'Danten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 90,
-                        },
-                      ].map((row) => (
+                      {loading ? (
+                        <tr>
+                          <td colSpan={4} className='px-2 py-4 text-center text-[10px] text-slate-400'>
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : (stats?.wa_provinsi_kota ?? []).length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className='px-2 py-4 text-center text-[10px] text-slate-400'>
+                            Tidak ada data
+                          </td>
+                        </tr>
+                      ) : (stats?.wa_provinsi_kota ?? []).map((row) => (
                         <tr
                           key={row.no}
-                          className='hover:bg-green-50/50 transition-colors cursor-pointer'
+                          onClick={() => {
+                            setProvinsi([row.provinsi])
+                            setKota([row.kota])
+                            setTipe(['WhatsApp'])
+                            setPage(1)
+                            setSelected(null)
+                          }}
+                          className={`transition-colors cursor-pointer ${
+                            provinsi.includes(row.provinsi) && kota.includes(row.kota) && tipe.includes('WhatsApp')
+                              ? 'bg-green-100 ring-1 ring-inset ring-green-400'
+                              : 'hover:bg-green-50/70'
+                          }`}
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
                             {row.no}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.prov}
+                            {row.provinsi}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-600'>
                             <div className='flex items-center gap-1.5'>
@@ -686,7 +825,7 @@ export default function TrackingDatabasePage() {
           {/* {Table 2} */}
           <div className='mt-4 overflow-hidden rounded-2xl bg-blue shadow-sm ring-1 ring-gray-200'>
             <div className='overflow-x-auto'>
-              <table className='min-w-full text-sm text-left items-center'>
+              <table className='min-w-full text-sm text-left items-center bg-white'>
                 <thead className='bg-blue-600 justify-center'>
                   <tr>
                     {[
@@ -713,74 +852,64 @@ export default function TrackingDatabasePage() {
                 </thead>
 
                 <tbody className='divide-y divide-gray-300'>
-                  {/* {loading ? (
+                  {loadingRows ? (
                     <tr>
-                      <td
-                        colSpan={12}
-                        className="px-6 py-12 text-center text-sm text-gray-700"
-                      >
-                        <div className="flex justtify-center items-center gap-2">
-                          <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                      <td colSpan={11} className='px-6 py-8 text-center text-[10px] text-gray-500'>
+                        <div className='flex justify-center items-center gap-2'>
+                          <span className='w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin'></span>
                           <span>Memuat Data...</span>
                         </div>
                       </td>
                     </tr>
-                  ) : (
-                    resp?.map((row) => (
-                      <tr key={row.kode} className="hover:bg-green-50/50 transition-colors cursor-pointer">
-                        <td className="px-2 py-1.5 text-[10px] text-slate-400">{row.kode}</td>
-                        <td className="px-2 py-1.5 text-[10px] text-slate-700 font-medium">{row.nama_perusahaan}</td>
-                        <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                          <div className="flex items-center gap-1.5">
-                            <span>{row.kota}</span>
-                            <div className="flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden">
-                              <div className="bg-green-500 h-full rounded-full" />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-1.5 text-right">
-                          <span className="inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-600 text-white"></span>
-                        </td>
-                      </tr>
-                    ))
-                  )} */}
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <tr
-                      key={i}
-                      className='hover:bg-green-50/50 transition-colors cursor-pointer border-b border-gray-200'
-                    >
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        {i + 1}
+                  ) : rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className='px-6 py-8 text-center text-[10px] text-gray-500'>
+                        Tidak ada data
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                    </tr>
+                  ) : rows.map((row, i) => (
+                    <tr
+                      key={row.kode + i}
+                      className='hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200'
+                    >
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-500'>
+                        {(safePage - 1) * pageSize + i + 1}
+                      </td>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-medium cursor-pointer hover:underline'>
                         Hapus
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        YTK-011225-0001
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-mono'>
+                        {row.kode}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        ASRI PRATAMA MANDIRI
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
+                        {row.nama_perusahaan}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        Kota Palembang
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                        {row.kota}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        Sumatera Selatan
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                        {row.provinsi}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        GENSET
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                        {row.produk}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        Rama
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
+                        {row.pic}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        Kepala IT
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                        {row.jabatan}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        090789793232
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600 font-mono'>
+                        {row.telp}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
-                        Whatsapp
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px]'>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                          row.tipe === 'WhatsApp'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {row.tipe}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -788,8 +917,96 @@ export default function TrackingDatabasePage() {
               </table>
             </div>
           </div>
+          {/* Pagination */}
+          <section className='mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between'>
+            <div className='text-sm text-gray-500 font-medium'>
+              <p className='font-medium text-gray-700'>
+                Showing <strong>{showingFrom}</strong> to{' '}
+                <strong>{showingTo}</strong> of <strong>{total}</strong>{' '}
+                entries
+              </p>
+              <div className='flex flex-wrap items-center gap-3'>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className='h-10 rounder-xl border border-blue-100 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                >
+                  <option value={10}>10 / Halaman</option>
+                  <option value={20}>20 / Halaman</option>
+                  <option value={50}>50 / Halaman</option>
+                  <option value={100}>100 / Halaman</option>
+                </select>
+                <div className='flex items-center gap-2'>
+                  <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
+                    ⏮
+                  </PageBtn>
+                  <PageBtn onClick={() => gotoPage(page - 1)} ariaLabel="Previous">
+                    ◀
+                  </PageBtn>
+
+                  {getPageWindow(safePage, totalPages, 5).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => gotoPage(p)}
+                      aria-label={p.toString()}
+                      className="grid h-10 w-10 place-items-center rounded-xl border border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40"
+                    >
+                      {p}
+                    </button>
+                  ))}
+
+                  <PageBtn onClick={() => gotoPage(page + 1)} ariaLabel="Next">
+                    ▶
+                  </PageBtn>
+                  <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">
+                    ⏭
+                  </PageBtn>
+
+                </div>
+              </div>
+            </div>
+            <div></div>
+          </section>
         </div>
       </div>
     </div>
   )
+}
+
+function PageBtn({
+  children,
+  onClick,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="grid h-10 w-10 place-items-center rounded-xl border border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40"
+    >
+      {children}
+    </button>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs font-extrabold tracking-wider text-gray-500">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-semibold text-gray-900">
+        {value || "-"}
+      </div>
+    </div>
+  );
 }
