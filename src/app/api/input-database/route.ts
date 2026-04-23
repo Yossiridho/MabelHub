@@ -65,7 +65,6 @@ export async function POST(req: Request) {
             created_at: now,
             updated_at: now,
         }))
-        const items: KontakItem[] = Array.isArray(body?.items) ? body.items : [];
         const result = await col.insertMany(docs)
 
         return NextResponse.json(

@@ -19,15 +19,18 @@ import { useState, useEffect } from 'react'
 import DatePicker from '@/components/ui/DatePicker'
 
 type ApiResp = {
-  kode: string
-  nama_perusahaan: string
+  _id: string
+  perusahaan: string
   kota: string
   provinsi: string
   produk: string
-  pic: string
-  jabatan: string
-  telp: string
-  tipe: string
+  kontak_pic: {
+    nama: string
+    jabatan: string
+    no_telp: string
+  }
+  status_wa: string
+  to_sales: string
 }
 
 export default function TrackingDatabasePage() {
@@ -51,11 +54,12 @@ export default function TrackingDatabasePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(
-          'http://localhost:3000/api/tracking-database',
-        )
-        const data = await response.json()
-        setResp(data)
+        const response = await fetch('/api/marketing/telemarketing/database')
+        if (!response.ok) {
+          throw new Error('Failed to fetch tracking data: ' + response.statusText)
+        }
+        const result = await response.json()
+        setResp(result.data || [])
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -684,73 +688,42 @@ export default function TrackingDatabasePage() {
                 </thead>
 
                 <tbody className='divide-y divide-gray-300'>
-                  {/* {loading ? (
-                                        <tr>
-                                            <td
-                                                colSpan={12}
-                                                className="px-6 py-12 text-center text-sm text-gray-700"
-                                            >
-                                                <div className="flex justtify-center items-center gap-2">
-                                                    <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                                                    <span>Memuat Data...</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        resp?.map((row) => (
-                                            // <tr key={row.kode} className="hover:bg-green-50/50 transition-colors cursor-pointer">
-                                            //     <td className="px-2 py-1.5 text-[10px] text-slate-400">{row.kode}</td>
-                                            //     <td className="px-2 py-1.5 text-[10px] text-slate-700 font-medium">{row.nama_perusahaan}</td>
-                                            //     <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                            //         <div className="flex items-center gap-1.5">
-                                            //             <span>{row.kota}</span>
-                                            //             <div className="flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden">
-                                            //                 <div className="bg-green-500 h-full rounded-full"/>
-                                            //             </div>
-                                            //         </div>
-                                            //     </td>
-                                            //     <td className="px-2 py-1.5 text-right">
-                                            //         <span className="inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-600 text-white"></span>
-                                            //     </td>
-                                            // </tr>
-                                        ))
-                                    )} */}
                   {Array.from({ length: 10 }).map((_, i) => (
                     <tr
                       key={i}
                       className='hover:bg-green-50/50 transition-colors cursor-pointer border-b border-gray-200'
                     >
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         {i + 1}
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-semibold cursor-pointer hover:underline'>
                         Hapus
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         YTK-011225-0001
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700 font-medium'>
                         ASRI PRATAMA MANDIRI
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         Kota Palembang
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         Sumatera Selatan
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         GENSET
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         Rama
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         Kepala IT
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         090789793232
                       </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-black-400'>
+                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-gray-700'>
                         Whatsapp
                       </td>
                     </tr>
