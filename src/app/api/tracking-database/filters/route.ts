@@ -7,30 +7,50 @@ export async function GET() {
         const db = client.db("MabelHub");
         const col = db.collection("input_database");
 
-        const [produk, merek, perusahaan, provinsi, kota, tipe, bulanRaw] = await Promise.all([
+        // Ambil distinct values untuk filter (non-date fields)
+        const [produk, merek, perusahaan, provinsi, kota, tipe] = await Promise.all([
             col.distinct("produk_relevan", { produk_relevan: { $nin: ["", null] } }),
-            col.distinct("merek", { merek: { $nin: ["", null] } }),
+            col.distinct("merek_tayang", { merek_tayang: { $nin: ["", null] } }),
             col.distinct("nama_perusahaan", { nama_perusahaan: { $nin: ["", null] } }),
             col.distinct("provinsi", { provinsi: { $nin: ["", null] } }),
             col.distinct("kota", { kota: { $nin: ["", null] } }),
             col.distinct("tipe_kontak", { tipe_kontak: { $nin: ["", null] } }),
-            col.distinct("created_at", { created_at: { $ne: null } }),
         ]);
 
-        // Extract unique YYYY-MM months from created_at dates
-        const bulanSet = new Set<string>();
-        for (const d of bulanRaw) {
-            try {
-                const date = new Date(d);
-                if (!isNaN(date.getTime())) {
-                    // Convert UTC to WIB (+7) for display
-                    const wibDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-                    const ym = `${wibDate.getUTCFullYear()}-${String(wibDate.getUTCMonth() + 1).padStart(2, '0')}`;
-                    bulanSet.add(ym);
+        // Ekstrak bulan unik dari code_input (format: PREFIX-DDMMYY-COUNTER)
+        // Contoh: YTK-011225-0012 → middle="011225" → DD=01, MM=12, YY=25 → "2025-12"
+        const bulanAgg = await col.aggregate([
+            { $match: { code_input: { $exists: true, $ne: "" } } },
+            {
+                $project: {
+                    mid: { $arrayElemAt: [{ $split: ["$code_input", "-"] }, 1] }
                 }
-            } catch { /* skip invalid */ }
-        }
-        const bulan = Array.from(bulanSet).sort().reverse();
+            },
+            {
+                $match: {
+                    mid: { $exists: true },
+                    $expr: { $eq: [{ $strLenCP: "$mid" }, 6] } // pastikan 6 digit
+                }
+            },
+            {
+                $project: {
+                    yearMonth: {
+                        $concat: [
+                            "20",
+                            { $substr: ["$mid", 4, 2] }, // YY
+                            "-",
+                            { $substr: ["$mid", 2, 2] }  // MM
+                        ]
+                    }
+                }
+            },
+            { $group: { _id: "$yearMonth" } },
+            { $sort: { _id: -1 } }
+        ]).toArray();
+
+        const bulan = bulanAgg
+            .map(r => r._id as string)
+            .filter(b => /^\d{4}-\d{2}$/.test(b));
 
         return NextResponse.json({
             bulan,

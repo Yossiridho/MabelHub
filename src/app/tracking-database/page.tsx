@@ -16,9 +16,16 @@ import {
   PhoneCallIcon,
   BarChart2,
   X,
+  Pen,
+  Pencil,
+  PenBoxIcon,
+  LucidePenBox,
+  EyeIcon,
 } from 'lucide-react'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import DatePicker from '@/components/ui/DatePicker'
+import React from 'react'
+import { useRouter } from 'next/navigation'
 
 type ProvinsiKotaRow = {
   no: number
@@ -29,8 +36,11 @@ type ProvinsiKotaRow = {
 }
 
 type TrackingRow = {
+  _id: string;
   kode: string
   nama_perusahaan: string
+  segmen: string
+  segmentasi: string
   kota: string
   provinsi: string
   produk: string
@@ -38,6 +48,15 @@ type TrackingRow = {
   jabatan: string
   telp: string
   tipe: string
+  bidang_perusahaan: string
+  sumber_date: string
+  merek_tayang: string
+  brand_owner: string
+  email: string
+  link_produk: string
+  link_toko: string
+  updated_at: string
+  alamat: string
 }
 
 type ApiStats = {
@@ -45,6 +64,7 @@ type ApiStats = {
   total_provinsi: number
   total_kota: number
   total_nama: number
+  total_merek: number
   total_kontak_unik: number
   total_wa_unik: number
   provinsi_kota: ProvinsiKotaRow[]
@@ -59,6 +79,10 @@ type FilterOptions = {
   provinsi: string[]
   kota: string[]
   tipe: string[]
+}
+
+function cn(...s: Array<string | false | null | undefined>) {
+  return s.filter(Boolean).join(" ");
 }
 
 function getPageWindow(current: number, totalPages: number, size: number) {
@@ -76,7 +100,33 @@ function getPageWindow(current: number, totalPages: number, size: number) {
   return Array.from({ length: size }, (_, i) => start + i);
 }
 
+// Helper: "2026-04" → "April-2026"
+const BULAN_NAMES: Record<string, string> = {
+  '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+  '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+  '09': 'September', '10': 'October', '11': 'November', '12': 'December',
+}
+function formatBulan(val: string): string {
+  const [yyyy, mm] = val.split('-')
+  if (!yyyy || !mm) return val
+  return `${BULAN_NAMES[mm] ?? mm}-${yyyy}`
+}
+
+// ---- DetailItem sub-component ----
+function DetailItem({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className='flex flex-col gap-0.5'>
+      <span className='text-[10px] font-semibold text-slate-400 uppercase tracking-wide'>{label}</span>
+      <span className='text-[11px] text-slate-700 font-medium break-words'>
+        {value && value.trim() !== '' ? value : <span className='italic text-slate-300'>—</span>}
+      </span>
+    </div>
+  )
+}
+
 export default function TrackingDatabasePage() {
+  const router = useRouter()
+
   const filterButtons = [
     { id: 'Bulan', icon: CalendarDays, label: 'Bulan' },
     { id: 'Produk', icon: Package, label: 'Produk' },
@@ -92,19 +142,19 @@ export default function TrackingDatabasePage() {
   const [isFilterOpen2, setIsFilterOpen2] = useState(true)
 
   // filter value — multi-select arrays (empty = no filter)
-  const [bulan,      setBulan]      = useState<string[]>([])
-  const [produk,     setProduk]     = useState<string[]>([])
-  const [merek,      setMerek]      = useState<string[]>([])
+  const [bulan, setBulan] = useState<string[]>([])
+  const [produk, setProduk] = useState<string[]>([])
+  const [merek, setMerek] = useState<string[]>([])
   const [perusahaan, setPerusahaan] = useState<string[]>([])
-  const [provinsi,   setProvinsi]   = useState<string[]>([])
-  const [kota,       setKota]       = useState<string[]>([])
-  const [tipe,       setTipe]       = useState<string[]>([])
+  const [provinsi, setProvinsi] = useState<string[]>([])
+  const [kota, setKota] = useState<string[]>([])
+  const [tipe, setTipe] = useState<string[]>([])
 
   const [startDate, setStartDate] = useState('')
-  const [endDate,   setEndDate]   = useState('')
+  const [endDate, setEndDate] = useState('')
 
   // dropdown filter
-  const [openDropdown, setOpenDropdown]   = useState<string | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     bulan: [], produk: [], merek: [], perusahaan: [], provinsi: [], kota: [], tipe: [],
@@ -113,23 +163,23 @@ export default function TrackingDatabasePage() {
 
   // pagination
   const [pageSize, setPageSize] = useState(25)
-  const [page,     setPage]     = useState(1)
-  const [rows,     setRows]     = useState<TrackingRow[]>([])
+  const [page, setPage] = useState(1)
+  const [rows, setRows] = useState<TrackingRow[]>([])
   const [loadingRows, setLoadingRows] = useState(true)
-  const [total,      setTotal]      = useState(0)
+  const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [selected,   setSelected]   = useState<TrackingRow | null>(null)
+  const [selected, setSelected] = useState<TrackingRow | null>(null)
 
   // data — statistik & analitik
   const [loading, setLoading] = useState(true)
-  const [stats,   setStats]   = useState<ApiStats | null>(null)
+  const [stats, setStats] = useState<ApiStats | null>(null)
 
   // Fetch distinct filter options
   useEffect(() => {
     fetch('/api/tracking-database/filters')
       .then(r => r.json())
       .then((data: FilterOptions) => setFilterOptions(data))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   // Close dropdown on click outside
@@ -145,26 +195,26 @@ export default function TrackingDatabasePage() {
   // ---- filter helpers ----
   const getFilterArr = useCallback((id: string): string[] => {
     switch (id) {
-      case 'Bulan':      return bulan
-      case 'Produk':     return produk
-      case 'Merek':      return merek
+      case 'Bulan': return bulan
+      case 'Produk': return produk
+      case 'Merek': return merek
       case 'Perusahaan': return perusahaan
-      case 'Provinsi':   return provinsi
-      case 'Kota':       return kota
-      case 'Tipe':       return tipe
+      case 'Provinsi': return provinsi
+      case 'Kota': return kota
+      case 'Tipe': return tipe
       default: return []
     }
   }, [bulan, produk, merek, perusahaan, provinsi, kota, tipe])
 
   const setFilterArr = useCallback((id: string, vals: string[]) => {
     switch (id) {
-      case 'Bulan':      setBulan(vals);      break
-      case 'Produk':     setProduk(vals);     break
-      case 'Merek':      setMerek(vals);      break
+      case 'Bulan': setBulan(vals); break
+      case 'Produk': setProduk(vals); break
+      case 'Merek': setMerek(vals); break
       case 'Perusahaan': setPerusahaan(vals); break
-      case 'Provinsi':   setProvinsi(vals);   break
-      case 'Kota':       setKota(vals);       break
-      case 'Tipe':       setTipe(vals);       break
+      case 'Provinsi': setProvinsi(vals); break
+      case 'Kota': setKota(vals); break
+      case 'Tipe': setTipe(vals); break
     }
     setPage(1); setSelected(null)
   }, [])
@@ -185,13 +235,13 @@ export default function TrackingDatabasePage() {
 
   const getOptions = useCallback((id: string): string[] => {
     switch (id) {
-      case 'Bulan':      return filterOptions.bulan
-      case 'Produk':     return filterOptions.produk
-      case 'Merek':      return filterOptions.merek
+      case 'Bulan': return filterOptions.bulan
+      case 'Produk': return filterOptions.produk
+      case 'Merek': return filterOptions.merek
       case 'Perusahaan': return filterOptions.perusahaan
-      case 'Provinsi':   return filterOptions.provinsi
-      case 'Kota':       return filterOptions.kota
-      case 'Tipe':       return filterOptions.tipe
+      case 'Provinsi': return filterOptions.provinsi
+      case 'Kota': return filterOptions.kota
+      case 'Tipe': return filterOptions.tipe
       default: return []
     }
   }, [filterOptions])
@@ -199,55 +249,56 @@ export default function TrackingDatabasePage() {
   // ---- main data fetch (stats + paginated rows) ----
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      setLoadingRows(true)
-      if (!mounted) return
-      setLoading(true)
-
-      const qs = new URLSearchParams()
-      qs.set('limit', String(pageSize))
-      qs.set('page', String(page))
-
-      bulan.forEach(v      => qs.append('bulan',      v))
-      produk.forEach(v     => qs.append('produk',     v))
-      merek.forEach(v      => qs.append('merek',      v))
-      perusahaan.forEach(v => qs.append('perusahaan', v))
-      provinsi.forEach(v   => qs.append('provinsi',   v))
-      kota.forEach(v       => qs.append('kota',       v))
-      tipe.forEach(v       => qs.append('tipe',       v))
-      if (startDate) qs.set('startDate', startDate)
-      if (endDate)   qs.set('endDate',   endDate)
-
-      try {
-        const res  = await fetch(`/api/tracking-database?${qs.toString()}`, { cache: 'no-store' })
-        const json = await res.json().catch(() => ({}))
+      ; (async () => {
+        setLoadingRows(true)
         if (!mounted) return
+        setLoading(true)
 
-        if (json?.total_kontak_unik !== undefined) {
-          setStats({
-            total_no_telp:    json.total_no_telp    ?? 0,
-            total_provinsi:   json.total_provinsi   ?? 0,
-            total_kota:       json.total_kota       ?? 0,
-            total_nama:       json.total_nama       ?? 0,
-            total_kontak_unik: json.total_kontak_unik ?? 0,
-            total_wa_unik:    json.total_wa_unik    ?? 0,
-            provinsi_kota:    Array.isArray(json.provinsi_kota)    ? json.provinsi_kota    : [],
-            wa_provinsi_kota: Array.isArray(json.wa_provinsi_kota) ? json.wa_provinsi_kota : [],
-          })
+        const qs = new URLSearchParams()
+        qs.set('limit', String(pageSize))
+        qs.set('page', String(page))
+
+        bulan.forEach(v => qs.append('bulan', v))
+        produk.forEach(v => qs.append('produk', v))
+        merek.forEach(v => qs.append('merek', v))
+        perusahaan.forEach(v => qs.append('perusahaan', v))
+        provinsi.forEach(v => qs.append('provinsi', v))
+        kota.forEach(v => qs.append('kota', v))
+        tipe.forEach(v => qs.append('tipe', v))
+        if (startDate) qs.set('startDate', startDate)
+        if (endDate) qs.set('endDate', endDate)
+
+        try {
+          const res = await fetch(`/api/tracking-database?${qs.toString()}`, { cache: 'no-store' })
+          const json = await res.json().catch(() => ({}))
+          if (!mounted) return
+
+          if (json?.total_kontak_unik !== undefined) {
+            setStats({
+              total_no_telp: json.total_no_telp ?? 0,
+              total_provinsi: json.total_provinsi ?? 0,
+              total_kota: json.total_kota ?? 0,
+              total_nama: json.total_nama ?? 0,
+              total_merek: json.total_merek ?? 0,
+              total_kontak_unik: json.total_kontak_unik ?? 0,
+              total_wa_unik: json.total_wa_unik ?? 0,
+              provinsi_kota: Array.isArray(json.provinsi_kota) ? json.provinsi_kota : [],
+              wa_provinsi_kota: Array.isArray(json.wa_provinsi_kota) ? json.wa_provinsi_kota : [],
+            })
+          }
+
+          setRows(Array.isArray(json?.items) ? json.items : [])
+          const pg = json?.pagination ?? {}
+          setTotal(Number(pg?.total ?? 0))
+          setTotalPages(Number(pg?.totalPages ?? 1))
+          setSelected(null)
+        } catch {
+          if (!mounted) return
+          setRows([]); setTotal(0); setTotalPages(1); setSelected(null)
+        } finally {
+          if (mounted) { setLoadingRows(false); setLoading(false) }
         }
-
-        setRows(Array.isArray(json?.items) ? json.items : [])
-        const pg = json?.pagination ?? {}
-        setTotal(Number(pg?.total ?? 0))
-        setTotalPages(Number(pg?.totalPages ?? 1))
-        setSelected(null)
-      } catch {
-        if (!mounted) return
-        setRows([]); setTotal(0); setTotalPages(1); setSelected(null)
-      } finally {
-        if (mounted) { setLoadingRows(false); setLoading(false) }
-      }
-    })()
+      })()
     return () => { mounted = false }
   }, [page, pageSize, bulan, produk, merek, perusahaan, provinsi, kota, tipe, startDate, endDate])
 
@@ -256,8 +307,8 @@ export default function TrackingDatabasePage() {
     [page, totalPages],
   )
   const showingFrom = total === 0 ? 0 : (safePage - 1) * pageSize + 1
-  const showingTo   = Math.min(total, safePage * pageSize)
-  const gotoPage    = (p: number) => setPage(Math.min(Math.max(1, p), Math.max(1, totalPages)))
+  const showingTo = Math.min(total, safePage * pageSize)
+  const gotoPage = (p: number) => setPage(Math.min(Math.max(1, p), Math.max(1, totalPages)))
 
   return (
     <div className='min-h-screen bg-blue-50'>
@@ -275,23 +326,27 @@ export default function TrackingDatabasePage() {
           </div>
 
           {/* Section Filter Data Cerdas */}
-          <section className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-            {/* Header Biru Filter */}
-            <div className='bg-[#1a73e8] text-white px-6 h-10 flex items-center justify-between'>
-              <div className='flex items-center'>
-                <Filter size={12} className='mr-2' strokeWidth={2.5} />
-                <strong className='text-[8px] font-bold tracking-wide'>
+          <section className='bg-white rounded-xl shadow-sm border border-gray-200'>
+            {/* Header - biru cerah seperti gambar */}
+            <div className='bg-[#2563eb] text-white px-5 h-10 flex items-center justify-between rounded-t-xl'>
+              <div className='flex items-center gap-2'>
+                <Filter size={13} strokeWidth={2.5} className='text-white' />
+                <strong className='text-[11px] font-bold tracking-wide'>
                   Filter Data Cerdas
                 </strong>
-                <span className='text-[8px] ml-2 text-blue-100 font-normal tracking-wide'>
+                <span className='text-[10px] ml-1 text-blue-200 font-normal'>
                   (Multi-pilih, cascading dinamis)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm'>
-                <ChevronUp
-                  size={16}
+              <button
+                className='bg-white text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors cursor-pointer shadow-sm'
+                aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
+                <ChevronDown
+                  size={14}
                   strokeWidth={2.5}
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className={`transition-transform duration-200 ${isFilterOpen ? 'rotate-180' : ''}`}
                 />
               </button>
             </div>
@@ -301,12 +356,12 @@ export default function TrackingDatabasePage() {
               className='p-4 flex flex-col gap-3'
               style={{ display: isFilterOpen ? 'flex' : 'none' }}
             >
-              {/* Baris 1: Filter Tanggal Input */}
-              <div className='border border-slate-200 rounded-lg p-2 flex flex-col sm:flex-row items-start sm:items-center bg-white shadow-sm max-w-full'>
-                <div className='flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 sm:mb-0 mb-2'>
+              {/* Baris 1: Filter Tanggal Input - putih bersih */}
+              <div className='flex flex-col sm:flex-row items-start sm:items-center gap-2'>
+                <div className='flex items-center text-xs font-semibold text-gray-600 min-w-max'>
                   <Calendar
                     size={14}
-                    className='mr-2 text-blue-500'
+                    className='mr-1.5 text-blue-500'
                     strokeWidth={2.5}
                   />
                   Tanggal Input:
@@ -314,7 +369,7 @@ export default function TrackingDatabasePage() {
                 <div className='flex items-center gap-2'>
                   <input
                     type='date'
-                    className='w-30 text-xs h-8 shadow-none border-1 border-slate-300 rounded-lg'
+                    className='w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
                     placeholder='mm/dd/yyyy'
                     value={startDate}
                     onChange={(e) => { setStartDate(e.target.value); setPage(1); setSelected(null); }}
@@ -322,7 +377,7 @@ export default function TrackingDatabasePage() {
                   <span className='text-gray-400 font-semibold'>-</span>
                   <input
                     type='date'
-                    className='w-30 items-center justify-between text-xs h-8 shadow-none border-1 border-slate-300 rounded-lg'
+                    className='w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
                     placeholder='mm/dd/yyyy'
                     value={endDate}
                     onChange={(e) => { setEndDate(e.target.value); setPage(1); setSelected(null); }}
@@ -331,46 +386,63 @@ export default function TrackingDatabasePage() {
               </div>
 
               {/* Baris 2: Tombol Filter dengan Dropdown */}
-              <div ref={dropdownRef} className='flex flex-wrap lg:flex-nowrap gap-2 w-full mt-1'>
+              <div ref={dropdownRef} className='flex flex-wrap lg:flex-nowrap gap-2 w-full'>
                 {filterButtons.map((btn) => {
                   const IconComponent = btn.icon
                   const activeArr = getFilterArr(btn.id)
-                  const count     = activeArr.length
-                  const isActive  = count > 0
-                  const opts      = getOptions(btn.id)
-                  const search    = dropdownSearch[btn.id] ?? ''
-                  const filtered  = search ? opts.filter(o => o.toLowerCase().includes(search.toLowerCase())) : opts
+                  const count = activeArr.length
+                  const isActive = count > 0
+                  const opts = getOptions(btn.id)
+                  const search = dropdownSearch[btn.id] ?? ''
+                  const filtered = search
+                    ? opts.filter(o => {
+                      const display = btn.id === 'Bulan' ? formatBulan(o) : o
+                      return display.toLowerCase().includes(search.toLowerCase())
+                    })
+                    : opts
                   const allSelected = opts.length > 0 && opts.every(o => activeArr.includes(o))
+                  const isOpen = openDropdown === btn.id
                   return (
-                    <div key={btn.id} className='relative flex-1 min-w-[110px]'>
-                      {/* ---- Trigger button ---- */}
+                    <div key={btn.id} className='relative inline-block flex-1 min-w-[110px]'>
+                      {/* Trigger button - pill putih, border highlight biru saat diklik */}
                       <button
                         type='button'
-                        onClick={() => setOpenDropdown(openDropdown === btn.id ? null : btn.id)}
-                        className={`w-full flex items-center justify-between gap-1 py-[7px] px-2 text-xs font-semibold border-[1.5px] rounded-lg cursor-pointer transition-all duration-150 select-none box-border ${
-                          isActive
-                            ? 'border-blue-500 bg-white text-blue-700'
-                            : 'border-[#ced4da] bg-white text-[#495057] hover:bg-slate-50 hover:border-slate-400'
-                        }`}
+                        onClick={() => setOpenDropdown(isOpen ? null : btn.id)}
+                        className={`w-full flex items-center justify-between gap-1 py-[7px] px-3 text-[11px] font-semibold rounded-lg cursor-pointer ${isOpen
+                          ? 'border-2 border-blue-500 bg-white text-blue-600 shadow-md'
+                          : isActive
+                            ? 'border-2 border-blue-400 bg-white text-blue-700'
+                            : 'border border-slate-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600'
+                          }`}
                       >
-                        <span className='flex items-center gap-1 min-w-0'>
-                          <IconComponent size={10} className='shrink-0' strokeWidth={2} />
-                          <span className='truncate text-[10px]'>{btn.label}</span>
+                        <span className='flex items-center gap-1.5 min-w-0'>
+                          <IconComponent
+                            size={11}
+                            className={`shrink-0 ${isOpen || isActive ? 'text-blue-500' : 'text-gray-400'}`}
+                            strokeWidth={2}
+                          />
+                          <span className='truncate'>{btn.label}</span>
                         </span>
-                        <span className='flex items-center gap-0.5 shrink-0'>
+                        <span className='flex items-center gap-1 shrink-0'>
                           {isActive && (
                             <span className='inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-white text-[9px] font-bold'>
                               {count}
                             </span>
                           )}
-                          <ChevronDown size={10} className={`ml-0.5 transition-transform ${openDropdown === btn.id ? 'rotate-180' : ''}`} />
+                          <ChevronDown size={10} className={`ml-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                         </span>
                       </button>
 
-                      {/* ---- Dropdown panel ---- */}
-                      {openDropdown === btn.id && (
-                        <div className='absolute top-full left-0 z-[999] mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col overflow-hidden'>
-                          {/* Search */}
+                      {/* Dropdown panel - to front, shadow kuat */}
+                      {isOpen && (
+                        <div
+                          className='absolute top-[calc(100%+4px)] left-0 z-[9999] w-56 bg-white rounded-lg flex flex-col'
+                          style={{
+                            boxShadow: '0 12px 40px -4px rgba(0,0,0,0.2), 0 4px 12px -2px rgba(0,0,0,0.08)',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          {/* Search langsung, tanpa header */}
                           <div className='px-2 pt-2 pb-1'>
                             <input
                               autoFocus
@@ -378,7 +450,7 @@ export default function TrackingDatabasePage() {
                               placeholder='Cari...'
                               value={search}
                               onChange={e => setDropdownSearch(prev => ({ ...prev, [btn.id]: e.target.value }))}
-                              className='w-full text-[11px] px-2 py-1.5 border border-gray-300 rounded-lg outline-none focus:ring-1 focus:ring-blue-300'
+                              className='w-full text-[11px] px-2 py-1.5 border border-gray-300 rounded-md outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 placeholder-gray-400'
                             />
                           </div>
                           {/* Semua / Hapus */}
@@ -396,11 +468,11 @@ export default function TrackingDatabasePage() {
                               onClick={() => clearFilterArr(btn.id)}
                               className='flex items-center gap-1 text-[10px] font-semibold text-red-500 hover:text-red-700 px-1'
                             >
-                              ✕ Hapus
+                              X Hapus
                             </button>
                           </div>
                           {/* Option list */}
-                          <div className='max-h-48 overflow-y-auto border-t border-gray-100'>
+                          <div className='max-h-48 overflow-y-auto border-t border-gray-100' style={{ scrollbarWidth: 'thin' }}>
                             {filtered.length === 0 ? (
                               <div className='px-3 py-2 text-[10px] text-slate-400 text-center'>Tidak ada data</div>
                             ) : filtered.map(opt => {
@@ -417,7 +489,7 @@ export default function TrackingDatabasePage() {
                                     className='accent-blue-600 w-3.5 h-3.5 shrink-0'
                                   />
                                   <span className={`text-[11px] truncate ${checked ? 'font-semibold text-blue-700' : 'text-slate-700'}`}>
-                                    {opt}
+                                    {btn.id === 'Bulan' ? formatBulan(opt) : opt}
                                   </span>
                                 </label>
                               )
@@ -430,16 +502,27 @@ export default function TrackingDatabasePage() {
                 })}
               </div>
 
+              {/* Hint info row */}
+              <div className='flex items-center gap-1.5 text-[10px] text-slate-400'>
+                <span className='text-blue-400'>ⓘ</span>
+                Klik tombol filter → centang pilihan. Bisa pilih lebih dari satu.
+                {(filterButtons.some(b => getFilterArr(b.id).length > 0) || startDate || endDate) && (
+                  <span className='text-blue-600 font-semibold ml-1'>
+                    Menampilkan {total.toLocaleString()} data
+                  </span>
+                )}
+              </div>
+
               {/* ---- Chips row: active selections ---- */}
               {filterButtons.some(b => getFilterArr(b.id).length > 0) && (
-                <div className='flex flex-wrap gap-1 mt-1.5'>
+                <div className='flex flex-wrap gap-1 mt-0.5'>
                   {filterButtons.flatMap(btn =>
                     getFilterArr(btn.id).map(val => (
                       <span
                         key={`${btn.id}-${val}`}
                         className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200'
                       >
-                        {btn.label}: {val}
+                        {btn.label}: {btn.id === 'Bulan' ? formatBulan(val) : val}
                         <button
                           type='button'
                           onClick={() => toggleFilterVal(btn.id, val)}
@@ -474,11 +557,12 @@ export default function TrackingDatabasePage() {
                   (Klik baris tabel analisa untuk filter data)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm'>
-                <ChevronUp
+              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen2 ? "Tutup filter" : "Buka filter"}>
+                <ChevronDown
                   size={16}
                   strokeWidth={2.5}
                   onClick={() => setIsFilterOpen2(!isFilterOpen2)}
+                  className={isFilterOpen2 ? "rotate-180" : ""}
                 />
               </button>
             </div>
@@ -668,11 +752,10 @@ export default function TrackingDatabasePage() {
                             setPage(1)
                             setSelected(null)
                           }}
-                          className={`transition-colors cursor-pointer ${
-                            provinsi.includes(row.provinsi) && kota.includes(row.kota)
-                              ? 'bg-blue-100 ring-1 ring-inset ring-blue-400'
-                              : 'hover:bg-blue-50/70'
-                          }`}
+                          className={`transition-colors cursor-pointer ${provinsi.includes(row.provinsi) && kota.includes(row.kota)
+                            ? 'bg-blue-100 ring-1 ring-inset ring-blue-400'
+                            : 'hover:bg-blue-50/70'
+                            }`}
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
                             {row.no}
@@ -786,11 +869,10 @@ export default function TrackingDatabasePage() {
                             setPage(1)
                             setSelected(null)
                           }}
-                          className={`transition-colors cursor-pointer ${
-                            provinsi.includes(row.provinsi) && kota.includes(row.kota) && tipe.includes('WhatsApp')
-                              ? 'bg-green-100 ring-1 ring-inset ring-green-400'
-                              : 'hover:bg-green-50/70'
-                          }`}
+                          className={`transition-colors cursor-pointer ${provinsi.includes(row.provinsi) && kota.includes(row.kota) && tipe.includes('WhatsApp')
+                            ? 'bg-green-100 ring-1 ring-inset ring-green-400'
+                            : 'hover:bg-green-50/70'
+                            }`}
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
                             {row.no}
@@ -829,23 +911,23 @@ export default function TrackingDatabasePage() {
                 <thead className='bg-blue-600 justify-center'>
                   <tr>
                     {[
-                      'No',
-                      'Aksi',
-                      'Kode',
-                      'Nama Perusahaan',
-                      'Kota',
-                      'Provinsi',
-                      'Produk',
-                      'PIC',
-                      'Jabatan',
-                      'Telp',
-                      'Tipe',
-                    ].map((h) => (
+                      { label: 'No' },
+                      { label: '⚙ Aksi' },
+                      { label: "KODE" },
+                      { label: "🏢 NAMA PERUSAHAAN" },
+                      { label: "📍 KOTA" },
+                      { label: "🗺️ PROVINSI" },
+                      { label: "📦 PRODUK" },
+                      { label: "👨‍💼 PIC" },
+                      { label: "💼 JABATAN" },
+                      { label: "📞 TELP" },
+                      { label: "📱 TIPE" },
+                    ].map((h, index) => (
                       <th
-                        key={h}
+                        key={index}
                         className='px-2 py-2.5 text-[10px] font-semibold text-white'
                       >
-                        {h}
+                        {h.label}
                       </th>
                     ))}
                   </tr>
@@ -867,52 +949,125 @@ export default function TrackingDatabasePage() {
                         Tidak ada data
                       </td>
                     </tr>
-                  ) : rows.map((row, i) => (
-                    <tr
-                      key={row.kode + i}
-                      className='hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200'
-                    >
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-500'>
-                        {(safePage - 1) * pageSize + i + 1}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-medium cursor-pointer hover:underline'>
-                        Hapus
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-mono'>
-                        {row.kode}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                        {row.nama_perusahaan}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
-                        {row.kota}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
-                        {row.provinsi}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
-                        {row.produk}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                        {row.pic}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
-                        {row.jabatan}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600 font-mono'>
-                        {row.telp}
-                      </td>
-                      <td className='whitespace-nowrap px-2 py-1.5 text-[10px]'>
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
-                          row.tipe === 'WhatsApp'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {row.tipe}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  ) : rows.map((row, i) => {
+                    const active = selected?._id === row._id;
+                    return (
+                      <React.Fragment key={row._id}>
+                        <tr
+                          key={row.kode + i}
+                          className='hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200'
+                        >
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-500'>
+                            {(safePage - 1) * pageSize + i + 1}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-medium cursor-pointer hover:underline'>
+                            <EyeIcon
+                              size={15}
+                              onClick={() => setSelected(selected?._id === row._id ? null : row)}
+                              className={cn(
+                                selected?._id === row._id
+                                  ? "bg-blue-400 p-0.5 rounded-md text-white"
+                                  : "text-white bg-blue-400 p-0.5 rounded-md",
+                              )}
+                              strokeWidth={3}
+                            />
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-medium cursor-pointer hover:underline'>
+                            <LucidePenBox
+                              size={15}
+                              onClick={() => router.push(`/input-database?id=${encodeURIComponent(row.kode)}`)}
+                            />
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-mono'>
+                            {row.kode}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
+                            {row.nama_perusahaan}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                            {row.kota}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                            {row.provinsi}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                            {row.produk}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
+                            {row.pic}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                            {row.jabatan}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600 font-mono'>
+                            {row.telp}
+                          </td>
+                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px]'>
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${row.tipe === 'WhatsApp'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-slate-100 text-slate-600'
+                              }`}>
+                              {row.tipe}
+                            </span>
+                          </td>
+                        </tr>
+                        {active && (
+                          <tr className="bg-blue-50/30">
+                            <td colSpan={8}
+                              className='px-6 py-6 border-1-4 border-1-blue-600 border-b border-b-blue-100'
+                            >
+                              <div className='rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100'>
+                                <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
+                                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
+                                    📖
+                                  </span>
+                                  Detail Informasi Lengkap
+                                </div>
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-6 border-t border-gray-100 pt-4">
+                                  <DetailItem
+                                    label="Segmen"
+                                    value={selected.segmen}
+                                  />
+                                  <DetailItem
+                                    label="Segmentasi"
+                                    value={selected.segmentasi}
+                                  />
+                                  <DetailItem
+                                    label="Bidang Perusahaan"
+                                    value={selected.bidang_perusahaan}
+                                  />
+                                  <DetailItem
+                                    label="Brand Owner"
+                                    value={selected.brand_owner}
+                                  />
+                                  <DetailItem
+                                    label="Email"
+                                    value={selected.email}
+                                  />
+                                  <DetailItem
+                                    label="Link Produk"
+                                    value={selected.link_produk}
+                                  />
+                                  <DetailItem
+                                    label="Link Toko"
+                                    value={selected.link_toko}
+                                  />
+                                  <DetailItem
+                                    label="Updated At"
+                                    value={selected.updated_at}
+                                  />
+                                  <DetailItem
+                                    label="Alamat"
+                                    value={selected.alamat}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -995,18 +1150,5 @@ function PageBtn({
     >
       {children}
     </button>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs font-extrabold tracking-wider text-gray-500">
-        {label}
-      </div>
-      <div className="mt-1 text-sm font-semibold text-gray-900">
-        {value || "-"}
-      </div>
-    </div>
   );
 }

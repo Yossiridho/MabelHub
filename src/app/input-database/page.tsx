@@ -4,7 +4,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect'
 import { useState, useEffect } from 'react'
 import { useSession } from '@/components/session/SessionProvider'
 import { Building, Plus, Trash2, Save, Loader2, Search } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type TeamMember = {
   userId: string
@@ -36,15 +36,55 @@ function displayName(m: {
 export default function InputDatabasePage() {
   const [codeInput, setcodeInput] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, loading: sessionLoading } = useSession()
   const [ isLoading, setIsLoading] = useState(false)
   // Auto-isi requestor dari session user yang sedang login
   useEffect(() => {
     if (user) {
-      // Isi requestor dengan nama lengkap user yang login
       setRequestor(user.fullName.trim() || user.username.trim())
     }
   }, [user])
+
+  // Auto-load data jika halaman dibuka dengan query param ?id=
+  useEffect(() => {
+    const idParam = searchParams.get('id')
+    if (!idParam || !idParam.trim()) return
+
+    const code = idParam.trim()
+    setcodeInput(code)
+
+    // Auto-fetch data dengan kode dari URL
+    setIsLoading(true)
+    fetch(`/api/input-database/${code}`)
+      .then(async (res) => {
+        if (!res.ok) return
+        const data = await res.json()
+        if (!data) return
+
+        const header = data?.header ?? data
+        const kontakItems = data?.items ?? (Array.isArray(data) ? data : [])
+        if (kontakItems.length > 0) setItems(kontakItems)
+
+        setRequestor(header?.requestor ?? '')
+        setSegmen(header?.segmen ?? '')
+        setNamaPerusahaan(header?.namaPerusahaan ?? '')
+        setProvinsi(header?.provinsi ?? '')
+        setKota(header?.kota ?? '')
+        setAlamat(header?.alamat ?? '')
+        setBidangPerusahaan(header?.bidangPerusahaan ?? '')
+        setSegmentasi(header?.segmentasi ?? '')
+        setProdukRelevan(header?.produkRelevan ?? '')
+        setMerekTayang(header?.merekTayang ?? '')
+        setBrandOwner(header?.brandOwner ?? '')
+        setSumberData(header?.sumberData ?? '')
+        setLinkProduk(header?.linkProduk ?? '')
+        setLinkToko(header?.linkToko ?? '')
+      })
+      .catch(() => { /* silent fail */ })
+      .finally(() => setIsLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
   const canPickAssignee =
     user?.role === 'LEADER' ||
     user?.role === 'SUPERADMIN' ||

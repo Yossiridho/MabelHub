@@ -11,25 +11,117 @@ export async function GET(req: NextRequest) {
         const { searchParams } = req.nextUrl
 
         // ----------------------------------------------------------------
-        // Deteksi mode: jika ada param `page` atau `limit` → pagination mode
+        // Build filter from query params (shared by stats + pagination)
         // ----------------------------------------------------------------
-        const hasPagination = searchParams.has("page") || searchParams.has("limit")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filter: Record<string, any> = {}
 
-        // --- Statistik Unik (selalu dihitung) ---
-        const uniqueNoTelp = await col.distinct("no_telp", { no_telp: { $ne: "" } })
-        const uniqueProvinsi = await col.distinct("provinsi", { provinsi: { $ne: "" } })
-        const uniqueKota = await col.distinct("kota", { kota: { $ne: "" } })
-        const uniqueNama = await col.distinct("nama", { nama: { $ne: "" } })
+        const bulanArr = searchParams.getAll("bulan")
+        const produkArr = searchParams.getAll("produk")
+        const merekArr = searchParams.getAll("merek")
+        const perusahaanArr = searchParams.getAll("perusahaan")
+        const provinsiArr = searchParams.getAll("provinsi")
+        const kotaArr = searchParams.getAll("kota")
+        const tipeArr = searchParams.getAll("tipe")
+        const startDate = searchParams.get("startDate")
+        const endDate = searchParams.get("endDate")
+        const segmenArr = searchParams.getAll("segmen")
+        const segmentasiArr = searchParams.getAll("segmentasi")
+        const bidangPerusahaanArr = searchParams.getAll("bidang_perusahaan")
+        const brandOwnerArr = searchParams.getAll("brand_owner")
+        const alamatArr = searchParams.getAll("alamat")
+        const emailArr = searchParams.getAll("email")
+        const linkProdukArr = searchParams.getAll("link_produk")
+        const linkTokoArr = searchParams.getAll("link_toko")
+        const updatedArr = searchParams.getAll("updated_at")
 
+        if (produkArr.length > 0) filter["produk_relevan"] = { $in: produkArr }
+        if (merekArr.length > 0) filter["merek_tayang"] = { $in: merekArr }
+        if (perusahaanArr.length > 0) filter["nama_perusahaan"] = { $in: perusahaanArr }
+        if (provinsiArr.length > 0) filter["provinsi"] = { $in: provinsiArr }
+        if (kotaArr.length > 0) filter["kota"] = { $in: kotaArr }
+        if (tipeArr.length > 0) filter["tipe_kontak"] = { $in: tipeArr }
+
+        // ----------------------------------------------------------------
+        // Date filter berdasarkan code_input (format: PREFIX-DDMMYY-COUNTER)
+        // Contoh: YTK-011225-0012 → DD=01, MM=12, YY=25 → 01 Desember 2025
+        //
+        // Untuk perbandingan tanggal, kita bangun string YYYYMMDD dari code_input:
+        //   mid = split("-")[1] → "011225"
+        //   YYYYMMDD = "20" + mid[4..5] + mid[2..3] + mid[0..1]
+        //            = "20" + "25" + "12" + "01" = "20251201"
+        // ----------------------------------------------------------------
+        const midExpr = { $arrayElemAt: [{ $split: ["$code_input", "-"] }, 1] }
+        const dateStrExpr = {
+            $concat: [
+                "20",
+                { $substr: [midExpr, 4, 2] },  // YY
+                { $substr: [midExpr, 2, 2] },  // MM
+                { $substr: [midExpr, 0, 2] },  // DD
+            ]
+        }
+
+        if (bulanArr.length > 0) {
+            // Filter bulan: match MM dan YY dari code_input
+            // bulan format "2025-12" → YY="25", MM="12"
+            const monthConditions = bulanArr.map(m => {
+                const [yyyy, mm] = m.split("-")
+                if (!yyyy || !mm) return null
+                const yy = yyyy.slice(2) // "2025" → "25"
+                return {
+                    $and: [
+                        { $eq: [{ $substr: [midExpr, 2, 2] }, mm] },
+                        { $eq: [{ $substr: [midExpr, 4, 2] }, yy] }
+                    ]
+                }
+            }).filter(Boolean)
+
+            if (monthConditions.length === 1) {
+                filter["$expr"] = monthConditions[0]
+            } else if (monthConditions.length > 1) {
+                filter["$expr"] = { $or: monthConditions }
+            }
+        } else if (startDate || endDate) {
+            // Date range filter
+            // startDate "2026-01-01" → "20260101", endDate "2026-01-31" → "20260131"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const conditions: any[] = []
+            if (startDate) {
+                const s = startDate.replace(/-/g, "") // "2026-01-01" → "20260101"
+                conditions.push({ $gte: [dateStrExpr, s] })
+            }
+            if (endDate) {
+                const e = endDate.replace(/-/g, "") // "2026-01-31" → "20260131"
+                conditions.push({ $lte: [dateStrExpr, e] })
+            }
+            if (conditions.length === 1) {
+                filter["$expr"] = conditions[0]
+            } else {
+                filter["$expr"] = { $and: conditions }
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Statistik Unik — pakai filter
+        // ----------------------------------------------------------------
+        const uniqueNoTelp = await col.distinct("no_telp", { ...filter, no_telp: { $ne: "" } })
+        const uniqueProvinsi = await col.distinct("provinsi", { ...filter, provinsi: { $ne: "" } })
+        const uniqueKota = await col.distinct("kota", { ...filter, kota: { $ne: "" } })
+        const uniqueNama = await col.distinct("nama", { ...filter, nama: { $ne: "" } })
+        const uniqueMerek = await col.distinct("merek_tayang", { ...filter, merek_tayang: { $ne: "" } })
+
+        // Total kontak unik (nama + no_telp)
         const uniqueCombinedAgg = await col.aggregate([
-            { $match: { nama: { $ne: "" }, no_telp: { $ne: "" } } },
+            { $match: { ...filter, nama: { $ne: "" }, no_telp: { $ne: "" } } },
             { $group: { _id: { nama: "$nama", no_telp: "$no_telp" } } },
             { $count: "total" }
         ]).toArray()
         const totalKontakUnik = uniqueCombinedAgg[0]?.total ?? 0
 
+        // Total WA unik
+        const waFilter = { ...filter, tipe_kontak: "WhatsApp", nama: { $ne: "" }, no_telp: { $ne: "" } }
         const uniqueWaAgg = await col.aggregate([
-            { $match: { tipe_kontak: "WhatsApp", nama: { $ne: "" }, no_telp: { $ne: "" } } },
+            { $match: waFilter },
             { $group: { _id: { nama: "$nama", no_telp: "$no_telp" } } },
             { $count: "total" }
         ]).toArray()
@@ -39,6 +131,7 @@ export async function GET(req: NextRequest) {
         const provinsiKotaAgg = await col.aggregate([
             {
                 $match: {
+                    ...filter,
                     provinsi: { $ne: "" }, kota: { $ne: "" },
                     nama: { $ne: "" }, no_telp: { $ne: "" },
                 }
@@ -61,6 +154,7 @@ export async function GET(req: NextRequest) {
         const waProvinsiKotaAgg = await col.aggregate([
             {
                 $match: {
+                    ...filter,
                     tipe_kontak: "WhatsApp",
                     provinsi: { $ne: "" }, kota: { $ne: "" },
                     nama: { $ne: "" }, no_telp: { $ne: "" },
@@ -80,12 +174,13 @@ export async function GET(req: NextRequest) {
             pct: totalWaSeluruh > 0 ? Math.round((r.unik / totalWaSeluruh) * 100) : 0,
         }))
 
-        // Statistik ringkasan (selalu disertakan)
+        // Statistik ringkasan
         const summaryStats = {
             total_no_telp: uniqueNoTelp.length,
             total_provinsi: uniqueProvinsi.length,
             total_kota: uniqueKota.length,
             total_nama: uniqueNama.length,
+            total_merek: uniqueMerek.length,
             total_kontak_unik: totalKontakUnik,
             total_wa_unik: totalWaUnik,
             provinsi_kota: tableProvinsiKota,
@@ -93,74 +188,43 @@ export async function GET(req: NextRequest) {
         }
 
         // ----------------------------------------------------------------
-        // Mode tanpa pagination: kembalikan semua rows sekaligus (legacy)
+        // Deteksi mode: jika ada param `page` atau `limit` → pagination mode
         // ----------------------------------------------------------------
+        const hasPagination = searchParams.has("page") || searchParams.has("limit")
+
         if (!hasPagination) {
-            const allRows = await col.find({}).sort({ created_at: -1 }).toArray()
+            const allRows = await col.find(filter).sort({ created_at: -1 }).toArray()
             const data = allRows.map((r) => ({
+                _id: r._id?.toString() ?? "",
                 kode: r.code_input ?? "",
                 nama_perusahaan: r.nama_perusahaan ?? "",
+                segmen: r.segmen ?? "",
+                segmentasi: r.segmentasi ?? "",
                 kota: r.kota ?? "",
                 provinsi: r.provinsi ?? "",
                 produk: r.produk_relevan ?? "",
+                merek_tayang: r.merek_tayang ?? "",
                 pic: r.nama ?? "",
                 jabatan: r.jabatan ?? "",
                 telp: r.no_telp ?? "",
                 tipe: r.tipe_kontak ?? "",
+                bidang_perusahaan: r.bidang_perusahaan ?? "",
+                brand_owner: r.brand_owner ?? "",
+                email: r.email ?? "",
+                link_produk: r.link_produk ?? "",
+                link_toko: r.link_toko ?? "",
+                alamat: r.alamat ?? "",
+                updated_at: r.updated_at ? new Date(r.updated_at).toLocaleDateString('id-ID') : "",
             }))
             return NextResponse.json({ ...summaryStats, rows: data })
         }
 
         // ----------------------------------------------------------------
-        // Mode pagination: bangun filter dari query params
+        // Mode pagination
         // ----------------------------------------------------------------
         const page = Math.max(1, Number(searchParams.get("page") ?? 1))
         const limit = Math.min(500, Math.max(1, Number(searchParams.get("limit") ?? 25)))
         const skip = (page - 1) * limit
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const filter: Record<string, any> = {}
-
-        const bulanArr    = searchParams.getAll("bulan")
-        const produkArr   = searchParams.getAll("produk")
-        const merekArr    = searchParams.getAll("merek")
-        const perusahaanArr = searchParams.getAll("perusahaan")
-        const provinsiArr = searchParams.getAll("provinsi")
-        const kotaArr     = searchParams.getAll("kota")
-        const tipeArr     = searchParams.getAll("tipe")
-        const startDate   = searchParams.get("startDate")
-        const endDate     = searchParams.get("endDate")
-
-        if (produkArr.length > 0)    filter["produk_relevan"]  = { $in: produkArr }
-        if (merekArr.length > 0)     filter["merek"]           = { $in: merekArr }
-        if (perusahaanArr.length > 0) filter["nama_perusahaan"] = { $in: perusahaanArr }
-        if (provinsiArr.length > 0)  filter["provinsi"]        = { $in: provinsiArr }
-        if (kotaArr.length > 0)      filter["kota"]            = { $in: kotaArr }
-        if (tipeArr.length > 0)      filter["tipe_kontak"]     = { $in: tipeArr }
-
-        // ---- Date filter ----
-        if (bulanArr.length > 0) {
-            // Multi-bulan: build $or of per-month ranges (WIB)
-            const monthRanges = bulanArr.flatMap(m => {
-                const [y, mo] = m.split("-")
-                if (!y || !mo) return []
-                const from = new Date(`${y}-${mo}-01T00:00:00+07:00`)
-                const to   = new Date(from)
-                to.setMonth(to.getMonth() + 1)
-                return [{ created_at: { $gte: from, $lt: to } }]
-            })
-            if (monthRanges.length === 1) Object.assign(filter, monthRanges[0])
-            else if (monthRanges.length > 1) filter["$or"] = monthRanges
-        } else if (startDate || endDate) {
-            // Date-range filter — WIB (+07:00).
-            // Use $or to handle both native Date and ISO-string stored dates.
-            const s = startDate ? new Date(`${startDate}T00:00:00+07:00`) : null
-            const e = endDate   ? new Date(`${endDate}T23:59:59+07:00`)   : null
-            const dateCond: Record<string, Date> = {}
-            if (s) dateCond["$gte"] = s
-            if (e) dateCond["$lte"] = e
-            filter["created_at"] = dateCond
-        }
 
         const [totalCount, pageRows] = await Promise.all([
             col.countDocuments(filter),
@@ -168,15 +232,26 @@ export async function GET(req: NextRequest) {
         ])
 
         const items = pageRows.map((r) => ({
+            _id: r._id?.toString() ?? "",
             kode: r.code_input ?? "",
             nama_perusahaan: r.nama_perusahaan ?? "",
+            segmen: r.segmen ?? "",
+            segmentasi: r.segmentasi ?? "",
             kota: r.kota ?? "",
             provinsi: r.provinsi ?? "",
             produk: r.produk_relevan ?? "",
+            merek_tayang: r.merek_tayang ?? "",
             pic: r.nama ?? "",
             jabatan: r.jabatan ?? "",
             telp: r.no_telp ?? "",
             tipe: r.tipe_kontak ?? "",
+            bidang_perusahaan: r.bidang_perusahaan ?? "",
+            brand_owner: r.brand_owner ?? "",
+            email: r.email ?? "",
+            link_produk: r.link_produk ?? "",
+            link_toko: r.link_toko ?? "",
+            alamat: r.alamat ?? "",
+            updated_at: r.updated_at ? new Date(r.updated_at).toLocaleDateString('id-ID') : "",
         }))
 
         return NextResponse.json({

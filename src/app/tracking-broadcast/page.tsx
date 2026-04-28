@@ -17,6 +17,7 @@ import {
   MapPinCheck,
   Eye,
   Send,
+  ChevronDown,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -59,11 +60,13 @@ export default function TrackingBroadcastPage() {
                   (Multi-pilih, cascading dinamis)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm'>
-                <ChevronUp
+              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
+                <ChevronDown
                   size={16}
                   strokeWidth={2.5}
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className={isFilterOpen ? "rotate-180" : ""}
+                  
                 />
               </button>
             </div>
@@ -128,11 +131,12 @@ export default function TrackingBroadcastPage() {
                   (Klik baris tabel untuk drill-down)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm'>
-                <ChevronUp
+              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
+                <ChevronDown
                   size={16}
                   strokeWidth={2.5}
                   onClick={() => setIsFilterOpen2(!isFilterOpen2)}
+                  className={isFilterOpen2 ? "rotate-180" : ""}
                 />
               </button>
             </div>
@@ -635,111 +639,128 @@ export default function TrackingBroadcastPage() {
               </div>
             </div>
           </section>
-          <div className='mt-4 rounded-2xl shadow-sm border ring-1 border-gray-200 overflow-hidden'>
+          <div className='mt-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
+
             <div className='overflow-x-auto'>
-              <table className='min-w-full text-sm text-left items-center'>
-                <thead className='bg-gray-100 justify-center'>
-                  <tr>
+              <table className='min-w-full text-left border-collapse'>
+                {/* Header - dark blue like reference */}
+                <thead className='sticky top-0 z-10'>
+                  <tr className='bg-[#1a2c4e] text-white'>
                     {[
-                      "No",
-                      "Lihat",
-                      "Perusahaan",
-                      "Produk",
-                      "Info Lokasi",
-                      "Kontak PIC",
-                      "Status WA",
-                      "Ke Sales",
-                      "Opsi",
+                      { label: "NO" },
+                      { label: "👁 LIHAT" },
+                      { label: "🏢 PERUSAHAAN" },
+                      { label: "📦 PRODUK" },
+                      { label: "📍 INFO LOKASI" },
+                      { label: "👤 KONTAK PIC" },
+                      { label: "💬 STATUS WA" },
+                      { label: "➡ KE SALES" },
+                      { label: "⚙" },
                     ].map((h) => (
                       <th
-                        key={h}
-                        className='min-w-24 px-2 py-1.5 text-[10px] font-semibold text-white-500'
+                        key={h.label}
+                        className='px-2 py-2 text-[10px] font-bold tracking-wide whitespace-nowrap border-r border-[#243a5e] last:border-r-0'
                       >
-                        {h}
+                        {h.label}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className='divide-y divide-gray-100'>
-                  {Array.from({ length:15 }).map((_, i)=> (
-                    <tr key={i}
-                    className='hover:bg-green-50/50 transition-colors cursor-pointer border-b border-gray-500'
+                <tbody>
+                  {Array.from({ length: 15 }).map((_, i) => (
+                    <tr
+                      key={i}
+                      className={`transition-colors cursor-pointer border-b border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}
                     >
-                      <td className='px-2 py-1.5 text-xs font-medium'>
-                        {i+1}
+                      {/* No */}
+                      <td className='px-2 py-2 text-[11px] font-semibold text-gray-500 w-8 text-center'>
+                        {i + 1}
                       </td>
-                      <td className='px-1 py-1.5 text-xs font-medium flex items-center gap-1'>
-                        <div className='border border-gray-500 flex items-center gap-1 rounded-sm overflow-hidden'>
-                        <Eye size={14} strokeWidth={3} color='white' className='bg-[#0DCAF0] p-0.5' />
-                        <Phone size={14} strokeWidth={3} color='#15803d' className='p-0.5' />
+                      {/* Lihat - Eye & WA button */}
+                      <td className='px-1 py-2 w-16'>
+                        <div className='flex items-center gap-1'>
+                          <button className='flex items-center justify-center w-6 h-6 rounded bg-[#0DCAF0] hover:bg-cyan-500 transition-colors shadow-sm'>
+                            <Eye size={12} strokeWidth={2.5} color='white' />
+                          </button>
+                          <button className='flex items-center justify-center w-6 h-6 rounded bg-green-600 hover:bg-green-700 transition-colors shadow-sm'>
+                            <Phone size={11} strokeWidth={2.5} color='white' />
+                          </button>
                         </div>
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium'>
+                      {/* Perusahaan */}
+                      <td className='px-2 py-2 text-[11px] font-semibold text-gray-800 whitespace-nowrap'>
                         PT. Maju Mundur
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium'>
-                        <span className='border-1 border-gray-200 text-blue-600 font-semibold uppercase rounded-md p-0.5 bg-gray-100'>Genset</span>
+                      {/* Produk */}
+                      <td className='px-2 py-2'>
+                        <span className='inline-block text-[10px] text-blue-700 font-bold uppercase px-1.5 py-0.5 bg-blue-50 border border-blue-200 rounded'>
+                          Genset
+                        </span>
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium'>
+                      {/* Info Lokasi */}
+                      <td className='px-2 py-2 text-[11px] text-gray-600 whitespace-nowrap'>
                         <div className='flex items-center gap-1'>
-                          <MapPin size={10} strokeWidth={3} color='#0D6EFD' />Kota Bandung
+                          <MapPin size={10} strokeWidth={2.5} className='text-blue-500 shrink-0' />
+                          <span>Kota Bandung, DKI Jakarta</span>
                         </div>
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium'>
-                        <div className='flex items-center gap-1'>
-                          <Phone size={16} />08123456789
+                      {/* Kontak PIC */}
+                      <td className='px-2 py-2 text-[11px] text-gray-700'>
+                        <div className='flex flex-col gap-0.5'>
+                          <span className='font-semibold'>Abdul Rosyid (-)</span>
+                          <span className='flex items-center gap-1 text-gray-500'>
+                            <Phone size={9} strokeWidth={2} />08123456789
+                          </span>
                         </div>
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium'>
-                        <div className='flex items-center py-1'>
-                            <div className='md:col-span-1'>
-                              <div className='flex flex-col justify-center text-sm py-3 px-1 font-semibold border-gray-400 border h-12 w-49 rounded-xl'>
-                                <select
-                                  value={statusWa}
-                                  onChange={(e) => {
-                                    setStatusWa(e.target.value);
-                                  }}>
-                                  <option value="">Pilih Status</option>
-                                  <option value="Terkirim(1C)">Terkirim(1C)</option>
-                                  <option value="Diterima(2C)">Diterima(2C)</option>
-                                  <option value="Dibaca - Belum Respons">Dibaca - Belum Respons</option>
-                                  <option value="Dibaca - Respons - Positif">Dibaca - Respons - Positif</option>
-                                  <option value="Dibaca - Respons - Netral">Dibaca - Respons - Netral</option>
-                                  <option value="Dibaca - Respons - Negatif">Dibaca - Respons - Negatif</option>
-                                  <option value="Aktif Progres">Aktif Progres</option>
-                                </select>
-                              </div>
-                            </div>
-                        </div>
+                      {/* Status WA */}
+                      <td className='px-2 py-2'>
+                        <select
+                          value={statusWa}
+                          onChange={(e) => setStatusWa(e.target.value)}
+                          className='text-[10px] border border-gray-300 rounded px-1.5 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-36 cursor-pointer'
+                        >
+                          <option value="">- Pilih Status -</option>
+                          <option value="Terkirim(1C)">Terkirim(1C)</option>
+                          <option value="Diterima(2C)">Diterima(2C)</option>
+                          <option value="Dibaca - Belum Respons">Dibaca - Belum Respons</option>
+                          <option value="Dibaca - Respons - Positif">Dibaca - Respons - Positif</option>
+                          <option value="Dibaca - Respons - Netral">Dibaca - Respons - Netral</option>
+                          <option value="Dibaca - Respons - Negatif">Dibaca - Respons - Negatif</option>
+                          <option value="Aktif Progres">Aktif Progres</option>
+                        </select>
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium'>
-                        <div className='flex items-center py-1'>
-                            <div className='md:col-span-1'>
-                              <div className='flex flex-col justify-center text-sm py-3 px-1 font-semibold border-gray-400 border h-12 w-49 rounded-xl'>
-                                <select
-                                  value={toSales}
-                                  onChange={(e) => {
-                                    setToSales(e.target.value);
-                                  }}>
-                                  <option value="">Pilih Sales</option>
-                                  <option value="Arie Muhammad Fajar">Arie Muhammad Fajar</option>
-                                  <option value="Beffy Rizkana">Beffy Rizkana</option>
-                                </select>
-                              </div>
-                            </div>
-                        </div>
+                      {/* Ke Sales */}
+                      <td className='px-2 py-2'>
+                        <select
+                          value={toSales}
+                          onChange={(e) => setToSales(e.target.value)}
+                          className='text-[10px] border border-gray-300 rounded px-1.5 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-36 cursor-pointer'
+                        >
+                          <option value="">- Pilih Sales -</option>
+                          <option value="Arie Muhammad Fajar">Arie Muhammad Fajar</option>
+                          <option value="Beffy Rizkana">Beffy Rizkana</option>
+                        </select>
                       </td>
-                      <td className='px-2 py-1.5 text-xs font-medium flex items-center gap-1'>
-                        <div className='border border-gray-500 flex items-center gap-1'>
-                            <Send size={16} strokeWidth={3} color='blue' className='p-0.5' />
-
-                        </div>
+                      {/* Opsi - Send */}
+                      <td className='px-2 py-2'>
+                        <button className='flex items-center justify-center w-7 h-7 rounded bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm'>
+                          <Send size={12} strokeWidth={2.5} color='white' />
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+          {/* Legend Footer */}
+          <div className='flex flex-wrap items-center mt-4 gap-4 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-[#0DCAF0]'></span>Data dari sheet <strong>DATA_WA</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-blue-500'></span>Klik <strong>👁</strong> untuk detail lengkap</span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span>Centang <strong>☑</strong> untuk submit massal</span>
+            <span className='flex items-center gap-1 ml-auto'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-green-500 text-white font-bold text-[9px]'>STATUS WA</span> = Respons</span>
+            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-yellow-400 text-white font-bold text-[9px]'>KE SALES</span> = Forward</span>
           </div>
         </div>
       </div>
