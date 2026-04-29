@@ -1,7 +1,12 @@
 /**
- * TDD Tests for tracking-database filter utilities
- * Tests cover: formatBulan, getFilterArr, toggleFilterVal,
- * selectAllFilter, searchOptions, hasAnyFilter, clearFilter, resetAllFilters
+ * TDD Tests – tracking-database/filterUtils.ts
+ * Covers commits: 15 Apr 2026 → 23 Apr 2026
+ *
+ * Scope:
+ *   formatBulan, BULAN_NAMES,
+ *   getFilterArr, toggleFilterVal,
+ *   selectAllFilter, searchOptions,
+ *   hasAnyFilter, clearFilter, resetAllFilters
  */
 import {
   formatBulan,
@@ -16,15 +21,15 @@ import {
 } from '../filterUtils'
 import type { FilterId, FilterState } from '../filterUtils'
 
-// ============================================================
-// formatBulan
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 1: formatBulan
+// ──────────────────────────────────────────────────────────────
 describe('formatBulan', () => {
   it('converts YYYY-MM to MonthName-YYYY for all 12 months', () => {
     expect(formatBulan('2026-01')).toBe('January-2026')
     expect(formatBulan('2026-02')).toBe('February-2026')
     expect(formatBulan('2026-03')).toBe('March-2026')
-    expect(formatBulan('2026-04')).toBe('April-2026')
+    expect(formatBulan('2026-04')).toBe('April-2026')   // ← April 2026 (sprint window)
     expect(formatBulan('2026-05')).toBe('May-2026')
     expect(formatBulan('2026-06')).toBe('June-2026')
     expect(formatBulan('2026-07')).toBe('July-2026')
@@ -44,7 +49,6 @@ describe('formatBulan', () => {
   })
 
   it('uses MM as fallback label when month key not in BULAN_NAMES', () => {
-    // "99" is not a valid month — should fallback to raw MM
     expect(formatBulan('2026-99')).toBe('99-2026')
   })
 
@@ -56,11 +60,16 @@ describe('formatBulan', () => {
   it('BULAN_NAMES contains exactly 12 entries', () => {
     expect(Object.keys(BULAN_NAMES)).toHaveLength(12)
   })
+
+  // --- date-range window used in sprint (15-23 April 2026) ---
+  it('formats sprint window months correctly (April 2026)', () => {
+    expect(formatBulan('2026-04')).toBe('April-2026')
+  })
 })
 
-// ============================================================
-// getFilterArr
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 2: getFilterArr
+// ──────────────────────────────────────────────────────────────
 describe('getFilterArr', () => {
   const mockState: FilterState = {
     bulan: ['2026-04'],
@@ -100,9 +109,9 @@ describe('getFilterArr', () => {
   })
 })
 
-// ============================================================
-// toggleFilterVal
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 3: toggleFilterVal
+// ──────────────────────────────────────────────────────────────
 describe('toggleFilterVal', () => {
   it('adds value when not in current array', () => {
     expect(toggleFilterVal(['ACER'], 'ASUS')).toEqual(['ACER', 'ASUS'])
@@ -127,14 +136,24 @@ describe('toggleFilterVal', () => {
   })
 
   it('is case-sensitive', () => {
-    // 'acer' ≠ 'ACER' — should add, not remove
     expect(toggleFilterVal(['ACER'], 'acer')).toEqual(['ACER', 'acer'])
+  })
+
+  // multi-select scenarios from the sprint
+  it('can select multiple produk values independently', () => {
+    let state: string[] = []
+    state = toggleFilterVal(state, 'IFP')
+    state = toggleFilterVal(state, 'MRS')
+    state = toggleFilterVal(state, 'VIDEOTRON')
+    expect(state).toEqual(['IFP', 'MRS', 'VIDEOTRON'])
+    state = toggleFilterVal(state, 'MRS')
+    expect(state).toEqual(['IFP', 'VIDEOTRON'])
   })
 })
 
-// ============================================================
-// selectAllFilter
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 4: selectAllFilter
+// ──────────────────────────────────────────────────────────────
 describe('selectAllFilter', () => {
   it('returns a copy of all options', () => {
     const opts = ['ACER', 'ASUS', 'ISUZU']
@@ -149,11 +168,18 @@ describe('selectAllFilter', () => {
   it('returns empty array when opts is empty', () => {
     expect(selectAllFilter([])).toEqual([])
   })
+
+  it('selecting all and then toggling off one works correctly', () => {
+    const opts = ['IFP', 'MRS', 'VIDEOTRON', 'AIO']
+    let selected = selectAllFilter(opts)
+    selected = toggleFilterVal(selected, 'MRS')
+    expect(selected).toEqual(['IFP', 'VIDEOTRON', 'AIO'])
+  })
 })
 
-// ============================================================
-// searchOptions
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 5: searchOptions
+// ──────────────────────────────────────────────────────────────
 describe('searchOptions', () => {
   const merekOpts = ['ACER', 'AIO', 'ASUS', 'AUROMAGE', 'CUMMINS']
   const bulanOpts = ['2026-04', '2026-03', '2025-12', '2025-11']
@@ -185,8 +211,12 @@ describe('searchOptions', () => {
       expect(searchOptions(bulanOpts, '', true)).toEqual(bulanOpts)
     })
 
-    it('finds by month name (April)', () => {
+    it('finds by month name (April) — sprint window month', () => {
       expect(searchOptions(bulanOpts, 'april', true)).toEqual(['2026-04'])
+    })
+
+    it('finds by month name (March) — sprint start month', () => {
+      expect(searchOptions(bulanOpts, 'mar', true)).toEqual(['2026-03'])
     })
 
     it('finds by month name (December)', () => {
@@ -208,9 +238,9 @@ describe('searchOptions', () => {
   })
 })
 
-// ============================================================
-// hasAnyFilter
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 6: hasAnyFilter
+// ──────────────────────────────────────────────────────────────
 describe('hasAnyFilter', () => {
   const emptyState: FilterState = {
     bulan: [], produk: [], merek: [],
@@ -232,11 +262,18 @@ describe('hasAnyFilter', () => {
   it('returns true when multiple filters have values', () => {
     expect(hasAnyFilter({ ...emptyState, produk: ['GENSET'], kota: ['Bandung'] })).toBe(true)
   })
+
+  it('returns false after resetAllFilters()', () => {
+    const filled: FilterState = { bulan: ['2026-04'], produk: ['IFP'], merek: [], perusahaan: [], provinsi: [], kota: [], tipe: [] }
+    const reset = resetAllFilters()
+    expect(hasAnyFilter(filled)).toBe(true)
+    expect(hasAnyFilter(reset)).toBe(false)
+  })
 })
 
-// ============================================================
-// clearFilter
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 7: clearFilter
+// ──────────────────────────────────────────────────────────────
 describe('clearFilter', () => {
   const filledState: FilterState = {
     bulan: ['2026-04'],
@@ -265,11 +302,23 @@ describe('clearFilter', () => {
     clearFilter(filledState, 'Produk')
     expect(filledState.produk).toEqual(['GENSET'])
   })
+
+  it('clearing provinsi keeps kota intact', () => {
+    const result = clearFilter(filledState, 'Provinsi')
+    expect(result.provinsi).toEqual([])
+    expect(result.kota).toEqual(['Bandung'])
+  })
+
+  it('clearing tipe keeps WhatsApp filter untouched in other fields', () => {
+    const result = clearFilter(filledState, 'Tipe')
+    expect(result.tipe).toEqual([])
+    expect(result.merek).toEqual(['ACER'])
+  })
 })
 
-// ============================================================
-// resetAllFilters
-// ============================================================
+// ──────────────────────────────────────────────────────────────
+// SECTION 8: resetAllFilters
+// ──────────────────────────────────────────────────────────────
 describe('resetAllFilters', () => {
   it('returns state with all filters empty', () => {
     const result = resetAllFilters()

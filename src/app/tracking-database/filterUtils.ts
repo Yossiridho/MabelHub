@@ -101,3 +101,62 @@ export function resetAllFilters(): FilterState {
     perusahaan: [], provinsi: [], kota: [], tipe: [],
   }
 }
+
+export function filterButton() {
+  return [
+    { id: 'bulan', label: 'Bulan' },
+    { id: 'produk', label: 'Produk' },
+    { id: 'merek', label: 'Merek' },
+    { id: 'perusahaan', label: 'Perusahaan' },
+    { id: 'provinsi', label: 'Provinsi' },
+    { id: 'kota', label: 'Kota' },
+    { id: 'tipe', label: 'Tipe' },
+  ]
+}
+
+export function data() {
+  return [
+    {
+      id: 1,
+      kota: 'Kota Bandung',
+      provinsi: 'Jawa Barat',
+      status: 'Visited',
+      tipe: 'WhatsApp',
+    },
+    {
+      id: 2,
+      kota: 'Kota Jakarta',
+      provinsi: 'DKI Jakarta',
+      status: 'Not Visited',
+      tipe: 'WhatsApp',
+    },
+    {
+      id: 3,
+      kota: 'Kota Surabaya',
+      provinsi: 'Jawa Timur',
+      status: 'Visited',
+      tipe: 'Email',
+    },
+    {
+      id: 4,
+      kota: 'Kota Bandung',
+      provinsi: 'Jawa Barat',
+      status: 'Visited',
+      tipe: 'WhatsApp',
+    },
+    {
+      id: 5,
+      kota: 'Kota Jakarta',
+      provinsi: 'DKI Jakarta',
+      status: 'Not Visited',
+      tipe: 'WhatsApp',
+    },
+    {
+      id: 6,
+      kota: 'Kota Surabaya',
+      provinsi: 'Jawa Timur',
+      status: 'Visited',
+      tipe: 'Email',
+    },
+  ]
+}

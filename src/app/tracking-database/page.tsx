@@ -21,6 +21,7 @@ import {
   PenBoxIcon,
   LucidePenBox,
   EyeIcon,
+  BarChart2Icon,
 } from 'lucide-react'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import DatePicker from '@/components/ui/DatePicker'
@@ -50,13 +51,18 @@ type TrackingRow = {
   tipe: string
   bidang_perusahaan: string
   sumber_date: string
+  sumber_lain: string
   merek_tayang: string
   brand_owner: string
   email: string
   link_produk: string
   link_toko: string
   updated_at: string
+  keterangan_update: string
+  bulan_data: string
   alamat: string
+  penginput: string
+  jenis_entitas: string
 }
 
 type ApiStats = {
@@ -113,13 +119,44 @@ function formatBulan(val: string): string {
 }
 
 // ---- DetailItem sub-component ----
-function DetailItem({ label, value }: { label: string; value?: string | null }) {
+function DetailItem({
+  label,
+  value,
+  icon,
+  isLink = false,
+}: {
+  label: string
+  value?: string | null
+  icon?: string
+  isLink?: boolean
+}) {
+  const empty = !value || value.trim() === ''
   return (
-    <div className='flex flex-col gap-0.5'>
-      <span className='text-[10px] font-semibold text-slate-400 uppercase tracking-wide'>{label}</span>
-      <span className='text-[11px] text-slate-700 font-medium break-words'>
-        {value && value.trim() !== '' ? value : <span className='italic text-slate-300'>—</span>}
-      </span>
+    <div className='flex items-start gap-1.5 min-w-0'>
+      {icon && (
+        <span className='mt-[1px] shrink-0 text-[11px] leading-none'>{icon}</span>
+      )}
+      <div className='flex flex-col min-w-0'>
+        <span className='text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5'>
+          {label}:
+        </span>
+        {empty ? (
+          <span className='text-[10.5px] text-slate-300 italic'>-</span>
+        ) : isLink ? (
+          <a
+            href={value!.startsWith('http') ? value! : `https://${value}`}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-[10.5px] text-blue-600 underline underline-offset-2 font-medium truncate hover:text-blue-800'
+          >
+            🔗 Buka Link
+          </a>
+        ) : (
+          <span className='text-[10.5px] text-slate-700 font-medium break-words leading-snug'>
+            {value}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -569,7 +606,7 @@ export default function TrackingDatabasePage() {
 
             {/* Konten Filter */}
             <div
-              className='p-4 flex flex-col gap-3'
+              className='grid grid-cols-2 p-4 gap-3'
               style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
             >
               <div className='flex flex-col md:flex-row gap-3 w-full'>
@@ -709,7 +746,7 @@ export default function TrackingDatabasePage() {
                   </div>
                 </div>
                 {/* Tabel */}
-                <div className='max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-blue-50 [&::-webkit-scrollbar-thumb]:bg-blue-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-blue-400'>
+                <div className='max-h-[230px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-blue-50 [&::-webkit-scrollbar-thumb]:bg-blue-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-blue-400'>
                   <table className='w-full text-left border-collapse'>
                     <thead className='sticky top-0 z-10 bg-[#f1f5f9]'>
                       <tr>
@@ -769,7 +806,7 @@ export default function TrackingDatabasePage() {
                               <div className='flex-1 min-w-[36px] bg-blue-100 rounded-full h-[4px] overflow-hidden'>
                                 <div
                                   className='bg-blue-500 h-full rounded-full'
-                                  style={{ width: `${row.pct}%` }}
+                                  style={{ width: `${row?.unik}%` }}
                                 />
                               </div>
                             </div>
@@ -825,7 +862,7 @@ export default function TrackingDatabasePage() {
                   </div>
                 </div>
                 {/* Tabel */}
-                <div className='max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-green-50 [&::-webkit-scrollbar-thumb]:bg-green-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-green-400'>
+                <div className='max-h-[230px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-green-50 [&::-webkit-scrollbar-thumb]:bg-green-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-green-400'>
                   <table className='w-full text-left border-collapse'>
                     <thead className='sticky top-0 z-10 bg-[#f1f5f9]'>
                       <tr>
@@ -886,7 +923,7 @@ export default function TrackingDatabasePage() {
                               <div className='flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden'>
                                 <div
                                   className='bg-green-500 h-full rounded-full'
-                                  style={{ width: `${row.pct}%` }}
+                                  style={{ width: `${row?.unik}%` }}
                                 />
                               </div>
                             </div>
@@ -904,7 +941,7 @@ export default function TrackingDatabasePage() {
               </div>
             </div>
           </section>
-          {/* {Table 2} */}
+          {/* {Table 3} */}
           <div className='mt-4 overflow-hidden rounded-2xl bg-blue shadow-sm ring-1 ring-gray-200'>
             <div className='overflow-x-auto'>
               <table className='min-w-full text-sm text-left items-center bg-white'>
@@ -925,7 +962,7 @@ export default function TrackingDatabasePage() {
                     ].map((h, index) => (
                       <th
                         key={index}
-                        className='px-2 py-2.5 text-[10px] font-semibold text-white'
+                        className='px-5 py-3 text-[10px] font-semibold text-white'
                       >
                         {h.label}
                       </th>
@@ -957,52 +994,57 @@ export default function TrackingDatabasePage() {
                           key={row.kode + i}
                           className='hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200'
                         >
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-500'>
+                          <td className='whitespace-nowrap px-5.5 py-2 text-[10px] text-slate-500'>
                             {(safePage - 1) * pageSize + i + 1}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-medium cursor-pointer hover:underline'>
-                            <EyeIcon
-                              size={15}
-                              onClick={() => setSelected(selected?._id === row._id ? null : row)}
-                              className={cn(
-                                selected?._id === row._id
-                                  ? "bg-blue-400 p-0.5 rounded-md text-white"
-                                  : "text-white bg-blue-400 p-0.5 rounded-md",
-                              )}
-                              strokeWidth={3}
-                            />
+                          <td className='px-4 py-2'>
+                            <div className='flex items-center gap-1.5'>
+                              <button
+                                title='Lihat Detail'
+                                onClick={() => setSelected(selected?._id === row._id ? null : row)}
+                                className={cn(
+                                  'inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150 cursor-pointer',
+                                  selected?._id === row._id
+                                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-300'
+                                    : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'
+                                )}
+                              >
+                                <EyeIcon size={12} strokeWidth={2.2} />
+                              </button>
+                              <button
+                                title='Revisi Data'
+                                onClick={() => router.push(`/input-database?id=${encodeURIComponent(row.kode)}`)}
+                                className='inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-400 text-gray-900 hover:bg-amber-500 transition-all duration-150 cursor-pointer shadow-sm shadow-amber-200'
+                              >
+                                <LucidePenBox size={12} strokeWidth={2.2} />
+                              </button>
+                            </div>
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-red-500 font-medium cursor-pointer hover:underline'>
-                            <LucidePenBox
-                              size={15}
-                              onClick={() => router.push(`/input-database?id=${encodeURIComponent(row.kode)}`)}
-                            />
-                          </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-mono'>
+                          <td className='whitespace-nowrap px-3.5 py-3 text-[10px] text-blue-700 font-[Plus Jakarta Sans]'>
                             {row.kode}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-700 font-medium'>
                             {row.nama_perusahaan}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
                             {row.kota}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
                             {row.provinsi}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                          <td className='whitespace-nowrap flex justify-center px-5 py-3 text-[10px] text-slate-600'>
                             {row.produk}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-700 font-medium'>
                             {row.pic}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
                             {row.jabatan}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px] text-slate-600 font-mono'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600 font-mono'>
                             {row.telp}
                           </td>
-                          <td className='whitespace-nowrap px-2 py-1.5 text-[10px]'>
+                          <td className='whitespace-nowrap px-5 py-3 text-[10px]'>
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${row.tipe === 'WhatsApp'
                               ? 'bg-green-100 text-green-700'
                               : 'bg-slate-100 text-slate-600'
@@ -1012,55 +1054,67 @@ export default function TrackingDatabasePage() {
                           </td>
                         </tr>
                         {active && (
-                          <tr className="bg-blue-50/30">
-                            <td colSpan={8}
-                              className='px-6 py-6 border-1-4 border-1-blue-600 border-b border-b-blue-100'
-                            >
-                              <div className='rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100'>
-                                <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">
-                                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600">
-                                    📖
-                                  </span>
-                                  Detail Informasi Lengkap
+                          <tr className='bg-blue-50/20'>
+                            <td colSpan={11} className='px-4 py-3 border-b border-blue-100'>
+                              <div className='rounded-xl bg-white shadow-sm ring-1 ring-blue-100 overflow-hidden'>
+                                {/* ── Header bar ── */}
+                                <div className='flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100'>
+                                  <div className='flex items-center gap-2'>
+                                    <span className='grid h-5.5 w-4.5 place-items-center rounded-xl bg-blue-600 text-white text-[9px]'>ℹ</span>
+                                    <span className='text-[12px] font-extrabold text-blue-700 tracking-tight'>Detail Informasi Lengkap</span>
+                                  </div>
+                                  <button
+                                    onClick={() => router.push(`/input-database?id=${encodeURIComponent(selected.kode)}`)}
+                                    className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-900 text-[10px] font-bold transition-all duration-150 shadow-sm cursor-pointer'
+                                  >
+                                    <LucidePenBox size={11} strokeWidth={2.5} />
+                                    Revisi Data Ini
+                                  </button>
                                 </div>
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-6 border-t border-gray-100 pt-4">
-                                  <DetailItem
-                                    label="Segmen"
-                                    value={selected.segmen}
-                                  />
-                                  <DetailItem
-                                    label="Segmentasi"
-                                    value={selected.segmentasi}
-                                  />
-                                  <DetailItem
-                                    label="Bidang Perusahaan"
-                                    value={selected.bidang_perusahaan}
-                                  />
-                                  <DetailItem
-                                    label="Brand Owner"
-                                    value={selected.brand_owner}
-                                  />
-                                  <DetailItem
-                                    label="Email"
-                                    value={selected.email}
-                                  />
-                                  <DetailItem
-                                    label="Link Produk"
-                                    value={selected.link_produk}
-                                  />
-                                  <DetailItem
-                                    label="Link Toko"
-                                    value={selected.link_toko}
-                                  />
-                                  <DetailItem
-                                    label="Updated At"
-                                    value={selected.updated_at}
-                                  />
-                                  <DetailItem
-                                    label="Alamat"
-                                    value={selected.alamat}
-                                  />
+
+                                {/* ── Main 3-column grid ── */}
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 px-5 py-4'>
+
+                                  {/* COL 1 */}
+                                  <div className='flex flex-col gap-2.5'>
+                                    <DetailItem icon='📅' label='Tanggal Input' value={selected.sumber_date} />
+                                    <DetailItem icon='👤' label='Penginput' value={selected.penginput} />
+                                    <DetailItem icon='🏷' label='Jenis Entitas' value={selected.jenis_entitas} />
+                                    <DetailItem icon='🔖' label='Segmentasi' value={selected.segmentasi} />
+                                    <DetailItem icon='🏭' label='Bidang Usaha' value={selected.bidang_perusahaan} />
+                                  </div>
+
+                                  {/* COL 2 */}
+                                  <div className='flex flex-col gap-2.5'>
+                                    <DetailItem icon='📂' label='Sumber Data' value={selected.sumber_date} />
+                                    <DetailItem icon='📎' label='Sumber Lain' value={selected.sumber_lain} />
+                                    <DetailItem icon='🎯' label='Merek Tayang' value={selected.merek_tayang} />
+                                    <DetailItem icon='👑' label='Brand Owner' value={selected.brand_owner} />
+                                    <DetailItem icon='✉️' label='Email PIC' value={selected.email} />
+                                  </div>
+
+                                  {/* COL 3 */}
+                                  <div className='flex flex-col gap-2.5'>
+                                    <DetailItem icon='🔗' label='Link Produk' value={selected.link_produk} isLink />
+                                    <DetailItem icon='🛒' label='Link Toko' value={selected.link_toko} isLink />
+                                    <DetailItem icon='🕒' label='Tanggal Update' value={selected.updated_at} />
+                                    <DetailItem icon='📝' label='Keterangan Update' value={selected.keterangan_update} />
+                                    <DetailItem icon='📆' label='Bulan Data' value={selected.bulan_data} />
+                                  </div>
                                 </div>
+
+                                {/* ── Alamat full width ── */}
+                                {selected.alamat && selected.alamat.trim() !== '' && (
+                                  <div className='border-t border-gray-100 px-5 py-3'>
+                                    <div className='flex items-start gap-2'>
+                                      <span className='text-[11px] mt-0.5'>📍</span>
+                                      <div>
+                                        <span className='text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5'>Alamat Lengkap:</span>
+                                        <span className='text-[10.5px] text-slate-700 font-medium'>{selected.alamat}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1072,6 +1126,7 @@ export default function TrackingDatabasePage() {
               </table>
             </div>
           </div>
+
           {/* Pagination */}
           <section className='mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between'>
             <div className='text-sm text-gray-500 font-medium'>
@@ -1124,8 +1179,14 @@ export default function TrackingDatabasePage() {
                 </div>
               </div>
             </div>
-            <div></div>
           </section>
+          {/* Legend Footer */}
+          <div className='flex flex-wrap items-center mt-4 gap-100 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
+            <span className='flex items-center gap-1'>👁<strong>Tombol Lihat Detail</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-amber-500'></span>Tombol <strong>Revisi Data</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span><BarChart2Icon className='w-3 h-3 text-green-500' />Klik baris analisa untuk drill-down data</span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span>Centang <strong>☑</strong> untuk submit massal</span>
+          </div>
         </div>
       </div>
     </div>

@@ -214,6 +214,12 @@ export async function GET(req: NextRequest) {
                 link_produk: r.link_produk ?? "",
                 link_toko: r.link_toko ?? "",
                 alamat: r.alamat ?? "",
+                sumber_date: r.sumber_date ?? "",
+                sumber_lain: r.sumber_lain ?? "",
+                penginput: r.penginput ?? "",
+                jenis_entitas: r.jenis_entitas ?? "",
+                keterangan_update: r.keterangan_update ?? "",
+                bulan_data: r.bulan_data ?? "",
                 updated_at: r.updated_at ? new Date(r.updated_at).toLocaleDateString('id-ID') : "",
             }))
             return NextResponse.json({ ...summaryStats, rows: data })
@@ -251,6 +257,12 @@ export async function GET(req: NextRequest) {
             link_produk: r.link_produk ?? "",
             link_toko: r.link_toko ?? "",
             alamat: r.alamat ?? "",
+            sumber_date: r.sumber_date ?? "",
+            sumber_lain: r.sumber_lain ?? "",
+            penginput: r.penginput ?? "",
+            jenis_entitas: r.jenis_entitas ?? "",
+            keterangan_update: r.keterangan_update ?? "",
+            bulan_data: r.bulan_data ?? "",
             updated_at: r.updated_at ? new Date(r.updated_at).toLocaleDateString('id-ID') : "",
         }))
 
