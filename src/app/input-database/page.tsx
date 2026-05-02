@@ -33,12 +33,82 @@ function displayName(m: {
   return m.role ? `${name} • ${m.role}` : name
 }
 
+// ── Label field yang ditampilkan di history ─────────────────────────────────
+const FIELD_LABELS: Record<string, string> = {
+  requestor: 'Penginput',
+  segmen: 'Jenis Entitas',
+  namaPerusahaan: 'Nama Perusahaan',
+  provinsi: 'Provinsi',
+  kota: 'Kota/Kabupaten',
+  alamat: 'Alamat',
+  bidangPerusahaan: 'Bidang Usaha',
+  segmentasi: 'Segmentasi',
+  produkRelevan: 'Produk Relevan',
+  merekTayang: 'Merek Tayang',
+  brandOwner: 'Brand Owner',
+  sumberData: 'Sumber Data',
+  linkProduk: 'Link Produk',
+  linkToko: 'Link Toko',
+}
+
+function computeChangedFields(
+  oldSnap: { header: Record<string, string>; items: any[] } | null,
+  newHeader: Record<string, string>,
+  newItems: any[]
+): { field: string; oldValue: string; newValue: string }[] {
+  const changes: { field: string; oldValue: string; newValue: string }[] = []
+  if (!oldSnap) return changes
+
+  // Bandingkan setiap field header
+  for (const [key, label] of Object.entries(FIELD_LABELS)) {
+    const oldVal = String(oldSnap.header[key] ?? '')
+    const newVal = String(newHeader[key] ?? '')
+    if (oldVal !== newVal) {
+      changes.push({ field: label, oldValue: oldVal, newValue: newVal })
+    }
+  }
+
+  // Bandingkan items kontak (per-index)
+  const maxLen = Math.max(oldSnap.items.length, newItems.length)
+  for (let i = 0; i < maxLen; i++) {
+    const oldItem = oldSnap.items[i]
+    const newItem = newItems[i]
+    const prefix = `Kontak ${i + 1}`
+    if (!oldItem && newItem) {
+      changes.push({ field: `${prefix}`, oldValue: '(tidak ada)', newValue: `${newItem.nama} – ${newItem.jabatan}` })
+      continue
+    }
+    if (oldItem && !newItem) {
+      changes.push({ field: `${prefix}`, oldValue: `${oldItem.nama} – ${oldItem.jabatan}`, newValue: '(dihapus)' })
+      continue
+    }
+    const kontakFields: { key: keyof typeof oldItem; label: string }[] = [
+      { key: 'nama', label: 'Nama' },
+      { key: 'jabatan', label: 'Jabatan' },
+      { key: 'tipeKontak', label: 'Tipe Kontak' },
+      { key: 'noTelp', label: 'No Kontak' },
+      { key: 'email', label: 'Email' },
+    ]
+    for (const f of kontakFields) {
+      const ov = String(oldItem[f.key] ?? '')
+      const nv = String(newItem[f.key] ?? '')
+      if (ov !== nv) {
+        changes.push({ field: `${prefix} – ${f.label}`, oldValue: ov, newValue: nv })
+      }
+    }
+  }
+
+  return changes
+}
+
 export default function InputDatabasePage() {
   const [codeInput, setcodeInput] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: sessionLoading } = useSession()
-  const [ isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  // Snapshot data asli saat form pertama kali di-load (untuk diff history)
+  const [originalSnapshot, setOriginalSnapshot] = useState<{ header: Record<string, string>; items: any[] } | null>(null)
   // Auto-isi requestor dari session user yang sedang login
   useEffect(() => {
     if (user) {
@@ -80,6 +150,27 @@ export default function InputDatabasePage() {
         setSumberData(header?.sumberData ?? '')
         setLinkProduk(header?.linkProduk ?? '')
         setLinkToko(header?.linkToko ?? '')
+
+        // ── Simpan snapshot asli untuk diff history ──────────────────────
+        setOriginalSnapshot({
+          header: {
+            requestor: header?.requestor ?? '',
+            segmen: header?.segmen ?? '',
+            namaPerusahaan: header?.namaPerusahaan ?? '',
+            provinsi: header?.provinsi ?? '',
+            kota: header?.kota ?? '',
+            alamat: header?.alamat ?? '',
+            bidangPerusahaan: header?.bidangPerusahaan ?? '',
+            segmentasi: header?.segmentasi ?? '',
+            produkRelevan: header?.produkRelevan ?? '',
+            merekTayang: header?.merekTayang ?? '',
+            brandOwner: header?.brandOwner ?? '',
+            sumberData: header?.sumberData ?? '',
+            linkProduk: header?.linkProduk ?? '',
+            linkToko: header?.linkToko ?? '',
+          },
+          items: kontakItems,
+        })
       })
       .catch(() => { /* silent fail */ })
       .finally(() => setIsLoading(false))
@@ -277,6 +368,27 @@ export default function InputDatabasePage() {
       setSumberData(header?.sumberData ?? '')
       setLinkProduk(header?.linkProduk ?? '')
       setLinkToko(header?.linkToko ?? '')
+
+      // ── Simpan snapshot asli untuk diff history ──────────────────────
+      setOriginalSnapshot({
+        header: {
+          requestor: header?.requestor ?? '',
+          segmen: header?.segmen ?? '',
+          namaPerusahaan: header?.namaPerusahaan ?? '',
+          provinsi: header?.provinsi ?? '',
+          kota: header?.kota ?? '',
+          alamat: header?.alamat ?? '',
+          bidangPerusahaan: header?.bidangPerusahaan ?? '',
+          segmentasi: header?.segmentasi ?? '',
+          produkRelevan: header?.produkRelevan ?? '',
+          merekTayang: header?.merekTayang ?? '',
+          brandOwner: header?.brandOwner ?? '',
+          sumberData: header?.sumberData ?? '',
+          linkProduk: header?.linkProduk ?? '',
+          linkToko: header?.linkToko ?? '',
+        },
+        items: kontakItems,
+      })
     } catch (error) {
       console.error('Error mencari kode:', error)
       alert(
@@ -291,6 +403,8 @@ export default function InputDatabasePage() {
 
   const handleKirim = async () => {
     try {
+      const isRevisionMode = !!(searchParams.get('id')?.trim() || originalSnapshot)
+
       // Gunakan kode yang sudah di-generate manual; fallback auto-generate jika masih kosong
       const namaReq = requestor.trim() || user?.fullName?.trim() || user?.username?.trim() || ''
       const prefixFallback = namaReq.substring(0, 3).toUpperCase() || 'XXX'
@@ -300,48 +414,72 @@ export default function InputDatabasePage() {
         .replace(/\//g, '')
       const generatedCode = codeInput.trim() || `${prefixFallback}-${dmy}-${String(Date.now()).slice(-4)}`
 
-      const payload = {
-        header: {
-          codeInput: generatedCode,
-          requestor: requestor || user?.fullName || user?.username || user?.userId || '',
-          assignedToUserId: assignedToUserId || user?.userId || '',
-          segmen: segmen,
-          namaPerusahaan: namaPerusahaan,
-          provinsi: provinsi,
-          kota: kota,
-          alamat: alamat,
-          bidangPerusahaan: bidangPerusahaan,
-          segmentasi: segmentasi,
-          produkRelevan: produkRelevan,
-          merekTayang: merekTayang,
-          brandOwner: brandOwner,
-          sumberData: sumberData,
-          linkProduk: linkProduk,
-          linkToko: linkToko,
-        },
-        // maping untuk insert to Array ke database
-        items: items.map((item) => ({
-          id: item.id,
-          nama: item.nama,
-          jabatan: item.jabatan,
-          tipeKontak: item.tipeKontak,
-          noTelp: item.noTelp,
-          email: item.email,
-        })),
+      const headerPayload = {
+        codeInput: generatedCode,
+        requestor: requestor || user?.fullName || user?.username || user?.userId || '',
+        assignedToUserId: assignedToUserId || user?.userId || '',
+        segmen: segmen,
+        namaPerusahaan: namaPerusahaan,
+        provinsi: provinsi,
+        kota: kota,
+        alamat: alamat,
+        bidangPerusahaan: bidangPerusahaan,
+        segmentasi: segmentasi,
+        produkRelevan: produkRelevan,
+        merekTayang: merekTayang,
+        brandOwner: brandOwner,
+        sumberData: sumberData,
+        linkProduk: linkProduk,
+        linkToko: linkToko,
       }
 
-      const res = await fetch('/api/input-database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const itemsPayload = items.map((item) => ({
+        id: item.id,
+        nama: item.nama,
+        jabatan: item.jabatan,
+        tipeKontak: item.tipeKontak,
+        noTelp: item.noTelp,
+        email: item.email,
+      }))
+
+      let res: Response
+
+      if (isRevisionMode) {
+        // ── Hitung perubahan field ────────────────────────────────────
+        const changedFields = computeChangedFields(
+          originalSnapshot,
+          headerPayload,
+          itemsPayload
+        )
+
+        // ── Mode REVISI: panggil PUT ─────────────────────────────────
+        res = await fetch('/api/input-database', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: generatedCode,
+            header: headerPayload,
+            items: itemsPayload,
+            oldData: originalSnapshot,      // snapshot sebelum revisi
+            changedFields,                  // daftar field yang berubah
+            revisedBy: requestor || user?.fullName || user?.username || '',
+          }),
+        })
+      } else {
+        // ── Mode BARU: panggil POST ───────────────────────────────────────
+        res = await fetch('/api/input-database', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ header: headerPayload, items: itemsPayload }),
+        })
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData?.error || 'Gagal menyimpan database')
       }
 
-      alert('Database berhasil disimpan!')
+      alert(isRevisionMode ? 'Data berhasil direvisi!' : 'Database berhasil disimpan!')
       router.push('/input-database')
       router.refresh()
     } catch (error) {
@@ -353,6 +491,7 @@ export default function InputDatabasePage() {
       )
     }
   }
+
 
   return (
     <div className='min-h-screen bg-blue-50'>
@@ -910,7 +1049,7 @@ export default function InputDatabasePage() {
                 className='flex h-10 items-center justify-center gap-2 cursor-pointer rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 transition-all'
               >
                 <Save className='w-5 h-5' />
-                Simpan Database
+                {searchParams.get('id') ? 'Simpan Revisi' : 'Simpan Database'}
               </button>
             </div>
           </div>

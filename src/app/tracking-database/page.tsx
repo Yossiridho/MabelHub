@@ -87,6 +87,15 @@ type FilterOptions = {
   tipe: string[]
 }
 
+type LatestRevision = {
+  found: boolean
+  code_input?: string
+  revised_by?: string
+  revised_at?: string
+  changed_fields?: { field: string; oldValue: string; newValue: string }[]
+  snapshot_before?: any
+}
+
 function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
 }
@@ -207,6 +216,10 @@ export default function TrackingDatabasePage() {
   const [totalPages, setTotalPages] = useState(1)
   const [selected, setSelected] = useState<TrackingRow | null>(null)
 
+  // Riwayat revisi terbaru untuk row yang sedang dipilih
+  const [latestRevision, setLatestRevision] = useState<LatestRevision | null>(null)
+  const [loadingRevision, setLoadingRevision] = useState(false)
+
   // data — statistik & analitik
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<ApiStats | null>(null)
@@ -218,6 +231,20 @@ export default function TrackingDatabasePage() {
       .then((data: FilterOptions) => setFilterOptions(data))
       .catch(() => { })
   }, [])
+
+  // Auto-fetch riwayat revisi terbaru saat row di-expand
+  useEffect(() => {
+    if (!selected?.kode) {
+      setLatestRevision(null)
+      return
+    }
+    setLoadingRevision(true)
+    fetch(`/api/input-database/history/${encodeURIComponent(selected.kode)}`)
+      .then(r => r.json())
+      .then((data: LatestRevision) => setLatestRevision(data))
+      .catch(() => setLatestRevision({ found: false }))
+      .finally(() => setLoadingRevision(false))
+  }, [selected?.kode])
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -1098,7 +1125,39 @@ export default function TrackingDatabasePage() {
                                     <DetailItem icon='🔗' label='Link Produk' value={selected.link_produk} isLink />
                                     <DetailItem icon='🛒' label='Link Toko' value={selected.link_toko} isLink />
                                     <DetailItem icon='🕒' label='Tanggal Update' value={selected.updated_at} />
-                                    <DetailItem icon='📝' label='Keterangan Update' value={selected.keterangan_update} />
+                                    {/* Keterangan Update — Riwayat Revisi Terbaru */}
+                                    <div className='flex items-start gap-1.5 min-w-0 col-span-1'>
+                                      <span className='mt-[1px] shrink-0 text-[11px] leading-none'>📝</span>
+                                      <div className='flex flex-col min-w-0'>
+                                        <span className='text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1'>Keterangan Update:</span>
+                                        {loadingRevision ? (
+                                          <span className='text-[10px] text-slate-400 italic'>Memuat riwayat...</span>
+                                        ) : !latestRevision || !latestRevision.found ? (
+                                          <span className='text-[10px] text-slate-300 italic'>Belum ada riwayat revisi</span>
+                                        ) : (
+                                          <div className='flex flex-col gap-1'>
+                                            <span className='text-[10px] text-slate-600 font-medium'>
+                                              Direvisi oleh <span className='text-blue-600 font-bold'>{latestRevision.revised_by}</span>
+                                              {latestRevision.revised_at && (
+                                                <> pada {new Date(latestRevision.revised_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</>
+                                              )}
+                                            </span>
+                                            {latestRevision.changed_fields && latestRevision.changed_fields.length > 0 && (
+                                              <div className='flex flex-col gap-0.5 mt-0.5'>
+                                                {latestRevision.changed_fields.map((cf, i) => (
+                                                  <div key={i} className='text-[9.5px] text-slate-600 leading-snug'>
+                                                    <span className='font-semibold text-slate-500'>{cf.field}:</span>{' '}
+                                                    <span className='line-through text-red-400'>{cf.oldValue || '-'}</span>
+                                                    {' → '}
+                                                    <span className='text-green-600 font-semibold'>{cf.newValue || '-'}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
                                     <DetailItem icon='📆' label='Bulan Data' value={selected.bulan_data} />
                                   </div>
                                 </div>
