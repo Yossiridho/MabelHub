@@ -3,8 +3,8 @@
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import { useState, useEffect } from 'react'
 import { useSession } from '@/components/session/SessionProvider'
-import { Building, Plus, Trash2, Save } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Building, Plus, Trash2, Save, Loader2, Search } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type TeamMember = {
   userId: string
@@ -33,32 +33,149 @@ function displayName(m: {
   return m.role ? `${name} • ${m.role}` : name
 }
 
-export default function InputDatabasePage() {
-  const [ticketCode, setTicketCode] = useState('')
-  const handleGenerate = () => {
-    const prefix = "D" + user?.role.substring(0, 2)
-    const date = new Date();
+// ── Label field yang ditampilkan di history ─────────────────────────────────
+const FIELD_LABELS: Record<string, string> = {
+  requestor: 'Penginput',
+  segmen: 'Jenis Entitas',
+  namaPerusahaan: 'Nama Perusahaan',
+  provinsi: 'Provinsi',
+  kota: 'Kota/Kabupaten',
+  alamat: 'Alamat',
+  bidangPerusahaan: 'Bidang Usaha',
+  segmentasi: 'Segmentasi',
+  produkRelevan: 'Produk Relevan',
+  merekTayang: 'Merek Tayang',
+  brandOwner: 'Brand Owner',
+  sumberData: 'Sumber Data',
+  linkProduk: 'Link Produk',
+  linkToko: 'Link Toko',
+}
 
-    // Format DDMMYY
-    const dmy = date.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    }).replace(/\//g, '');
+function computeChangedFields(
+  oldSnap: { header: Record<string, string>; items: any[] } | null,
+  newHeader: Record<string, string>,
+  newItems: any[]
+): { field: string; oldValue: string; newValue: string }[] {
+  const changes: { field: string; oldValue: string; newValue: string }[] = []
+  if (!oldSnap) return changes
 
-    const counter = "0001";
-
-    setTicketCode(`${prefix}-${dmy}-${counter}`);
+  // Bandingkan setiap field header
+  for (const [key, label] of Object.entries(FIELD_LABELS)) {
+    const oldVal = String(oldSnap.header[key] ?? '')
+    const newVal = String(newHeader[key] ?? '')
+    if (oldVal !== newVal) {
+      changes.push({ field: label, oldValue: oldVal, newValue: newVal })
+    }
   }
+
+  // Bandingkan items kontak (per-index)
+  const maxLen = Math.max(oldSnap.items.length, newItems.length)
+  for (let i = 0; i < maxLen; i++) {
+    const oldItem = oldSnap.items[i]
+    const newItem = newItems[i]
+    const prefix = `Kontak ${i + 1}`
+    if (!oldItem && newItem) {
+      changes.push({ field: `${prefix}`, oldValue: '(tidak ada)', newValue: `${newItem.nama} – ${newItem.jabatan}` })
+      continue
+    }
+    if (oldItem && !newItem) {
+      changes.push({ field: `${prefix}`, oldValue: `${oldItem.nama} – ${oldItem.jabatan}`, newValue: '(dihapus)' })
+      continue
+    }
+    const kontakFields: { key: keyof typeof oldItem; label: string }[] = [
+      { key: 'nama', label: 'Nama' },
+      { key: 'jabatan', label: 'Jabatan' },
+      { key: 'tipeKontak', label: 'Tipe Kontak' },
+      { key: 'noTelp', label: 'No Kontak' },
+      { key: 'email', label: 'Email' },
+    ]
+    for (const f of kontakFields) {
+      const ov = String(oldItem[f.key] ?? '')
+      const nv = String(newItem[f.key] ?? '')
+      if (ov !== nv) {
+        changes.push({ field: `${prefix} – ${f.label}`, oldValue: ov, newValue: nv })
+      }
+    }
+  }
+
+  return changes
+}
+
+export default function InputDatabasePage() {
+  const [codeInput, setcodeInput] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, loading: sessionLoading } = useSession()
+  const [isLoading, setIsLoading] = useState(false)
+  // Snapshot data asli saat form pertama kali di-load (untuk diff history)
+  const [originalSnapshot, setOriginalSnapshot] = useState<{ header: Record<string, string>; items: any[] } | null>(null)
   // Auto-isi requestor dari session user yang sedang login
   useEffect(() => {
     if (user) {
-      // Isi requestor dengan nama lengkap user yang login
       setRequestor(user.fullName.trim() || user.username.trim())
     }
   }, [user])
+
+  // Auto-load data jika halaman dibuka dengan query param ?id=
+  useEffect(() => {
+    const idParam = searchParams.get('id')
+    if (!idParam || !idParam.trim()) return
+
+    const code = idParam.trim()
+    setcodeInput(code)
+
+    // Auto-fetch data dengan kode dari URL
+    setIsLoading(true)
+    fetch(`/api/input-database/${code}`)
+      .then(async (res) => {
+        if (!res.ok) return
+        const data = await res.json()
+        if (!data) return
+
+        const header = data?.header ?? data
+        const kontakItems = data?.items ?? (Array.isArray(data) ? data : [])
+        if (kontakItems.length > 0) setItems(kontakItems)
+
+        setRequestor(header?.requestor ?? '')
+        setSegmen(header?.segmen ?? '')
+        setNamaPerusahaan(header?.namaPerusahaan ?? '')
+        setProvinsi(header?.provinsi ?? '')
+        setKota(header?.kota ?? '')
+        setAlamat(header?.alamat ?? '')
+        setBidangPerusahaan(header?.bidangPerusahaan ?? '')
+        setSegmentasi(header?.segmentasi ?? '')
+        setProdukRelevan(header?.produkRelevan ?? '')
+        setMerekTayang(header?.merekTayang ?? '')
+        setBrandOwner(header?.brandOwner ?? '')
+        setSumberData(header?.sumberData ?? '')
+        setLinkProduk(header?.linkProduk ?? '')
+        setLinkToko(header?.linkToko ?? '')
+
+        // ── Simpan snapshot asli untuk diff history ──────────────────────
+        setOriginalSnapshot({
+          header: {
+            requestor: header?.requestor ?? '',
+            segmen: header?.segmen ?? '',
+            namaPerusahaan: header?.namaPerusahaan ?? '',
+            provinsi: header?.provinsi ?? '',
+            kota: header?.kota ?? '',
+            alamat: header?.alamat ?? '',
+            bidangPerusahaan: header?.bidangPerusahaan ?? '',
+            segmentasi: header?.segmentasi ?? '',
+            produkRelevan: header?.produkRelevan ?? '',
+            merekTayang: header?.merekTayang ?? '',
+            brandOwner: header?.brandOwner ?? '',
+            sumberData: header?.sumberData ?? '',
+            linkProduk: header?.linkProduk ?? '',
+            linkToko: header?.linkToko ?? '',
+          },
+          items: kontakItems,
+        })
+      })
+      .catch(() => { /* silent fail */ })
+      .finally(() => setIsLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
   const canPickAssignee =
     user?.role === 'LEADER' ||
     user?.role === 'SUPERADMIN' ||
@@ -66,16 +183,45 @@ export default function InputDatabasePage() {
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([])
   const [assignedToUserId, setAssignedToUserId] = useState('')
   const [requestor, setRequestor] = useState('')
+
+  const handleGenerate = async () => {
+    // Prefix = 3 huruf pertama nama user, uppercase (misal "Aliya" → "ALY")
+    const namaUser = user?.fullName?.trim() || user?.username?.trim() || ''
+    const prefix = namaUser.substring(0, 4).toUpperCase() || 'XXX'
+
+    const date = new Date()
+    // Format DDMMYY
+    const dmy = date
+      .toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+      })
+      .replace(/\//g, '')
+
+    // Fetch counter berikutnya dari database (0001, 0002, dst.)
+    let counter = '0001'
+    try {
+      const res = await fetch(`/api/input-database?prefix=${prefix}&dmy=${dmy}`)
+      if (res.ok) {
+        const data = await res.json()
+        counter = data.counter || '0001'
+      }
+    } catch {
+      // fallback ke 0001 jika gagal
+    }
+
+    setcodeInput(`${prefix}-${dmy}-${counter}`)
+
+    // Isi juga field PENGINPUT dengan nama user yang sedang login
+    if (namaUser) setRequestor(namaUser)
+  }
   const [segmen, setSegmen] = useState<string>('')
   const [kota, setKota] = useState<string>('')
   const [alamat, setAlamat] = useState('')
   const [namaPerusahaan, setNamaPerusahaan] = useState('')
   const [provinsi, setProvinsi] = useState('')
-  const [nama, setNama] = useState('')
-  const [noTelp, setNoTelp] = useState('')
-  const [jabatan, setJabatan] = useState('')
-  const [email, setEmail] = useState('')
-  const [tipeKontak, setTipeKontak] = useState('')
+
   const [bidangPerusahaan, setBidangPerusahaan] = useState('')
   const [segmentasi, setSegmentasi] = useState('')
   const [produkRelevan, setProdukRelevan] = useState('')
@@ -149,7 +295,7 @@ export default function InputDatabasePage() {
       },
     ])
   }
-  
+
   const [rows, setRows] = useState<string[][]>([]);
   const newKontak: KontakItem[] = rows
     .map((row, index) => ({
@@ -177,59 +323,163 @@ export default function InputDatabasePage() {
     }
   }
 
+  const handleCariKode = async () => {
+    try {
+      if (!codeInput.trim()) {
+        alert('Masukkan kode terlebih dahulu')
+        return
+      }
+      setIsLoading(true)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const res = await fetch(`/api/input-database/${codeInput}`)
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        alert(errData?.error || 'Data tidak ditemukan untuk kode tersebut')
+        return
+      }
+
+      const data = await res.json()
+      console.log('Data ditemukan:', data)
+
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        alert('Data tidak ditemukan')
+        return
+      }
+
+      // Support both response shapes: { header, items } or raw array
+      const header = data?.header ?? data
+      const kontakItems = data?.items ?? (Array.isArray(data) ? data : [])
+
+      if (kontakItems.length > 0) {
+        setItems(kontakItems)
+      }
+      setRequestor(header?.requestor ?? user?.fullName ?? user?.username ?? user?.userId ?? '')
+      setSegmen(header?.segmen ?? '')
+      setNamaPerusahaan(header?.namaPerusahaan ?? '')
+      setProvinsi(header?.provinsi ?? '')
+      setKota(header?.kota ?? '')
+      setAlamat(header?.alamat ?? '')
+      setBidangPerusahaan(header?.bidangPerusahaan ?? '')
+      setSegmentasi(header?.segmentasi ?? '')
+      setProdukRelevan(header?.produkRelevan ?? '')
+      setMerekTayang(header?.merekTayang ?? '')
+      setBrandOwner(header?.brandOwner ?? '')
+      setSumberData(header?.sumberData ?? '')
+      setLinkProduk(header?.linkProduk ?? '')
+      setLinkToko(header?.linkToko ?? '')
+
+      // ── Simpan snapshot asli untuk diff history ──────────────────────
+      setOriginalSnapshot({
+        header: {
+          requestor: header?.requestor ?? '',
+          segmen: header?.segmen ?? '',
+          namaPerusahaan: header?.namaPerusahaan ?? '',
+          provinsi: header?.provinsi ?? '',
+          kota: header?.kota ?? '',
+          alamat: header?.alamat ?? '',
+          bidangPerusahaan: header?.bidangPerusahaan ?? '',
+          segmentasi: header?.segmentasi ?? '',
+          produkRelevan: header?.produkRelevan ?? '',
+          merekTayang: header?.merekTayang ?? '',
+          brandOwner: header?.brandOwner ?? '',
+          sumberData: header?.sumberData ?? '',
+          linkProduk: header?.linkProduk ?? '',
+          linkToko: header?.linkToko ?? '',
+        },
+        items: kontakItems,
+      })
+    } catch (error) {
+      console.error('Error mencari kode:', error)
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kesalahan saat mengambil data'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleKirim = async () => {
     try {
-      // Generate ticket code sinkron sebelum payload dibuat
-      const prefix = 'D' + (user?.role?.substring(0, 2) ?? 'XX')
+      const isRevisionMode = !!(searchParams.get('id')?.trim() || originalSnapshot)
+
+      // Gunakan kode yang sudah di-generate manual; fallback auto-generate jika masih kosong
+      const namaReq = requestor.trim() || user?.fullName?.trim() || user?.username?.trim() || ''
+      const prefixFallback = namaReq.substring(0, 3).toUpperCase() || 'XXX'
       const date = new Date()
       const dmy = date
         .toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
         .replace(/\//g, '')
-      const generatedCode = `${prefix}-${dmy}-${String(Date.now()).slice(-4)}`
-      setTicketCode(generatedCode)
+      const generatedCode = codeInput.trim() || `${prefixFallback}-${dmy}-${String(Date.now()).slice(-4)}`
 
-      const payload = {
-        header: {
-          ticketCode: generatedCode,
-          requestor: requestor || user?.fullName || user?.username || user?.userId || '',
-          assignedToUserId: assignedToUserId || user?.userId || '',
-          segmen: segmen,
-          namaPerusahaan: namaPerusahaan,
-          provinsi: provinsi,
-          kota: kota,
-          alamat: alamat,
-          bidangPerusahaan: bidangPerusahaan,
-          segmentasi: segmentasi,
-          produkRelevan: produkRelevan,
-          merekTayang: merekTayang,
-          brandOwner: brandOwner,
-          sumberData: sumberData,
-          linkProduk: linkProduk,
-          linkToko: linkToko,
-        },
-        // Gunakan state kontak global (nama, jabatan, dll) bukan array items
-        items: [{
-          id: crypto.randomUUID(),
-          nama: nama,
-          jabatan: jabatan,
-          tipeKontak: tipeKontak,
-          noTelp: noTelp,
-          email: email,
-        }],
+      const headerPayload = {
+        codeInput: generatedCode,
+        requestor: requestor || user?.fullName || user?.username || user?.userId || '',
+        assignedToUserId: assignedToUserId || user?.userId || '',
+        segmen: segmen,
+        namaPerusahaan: namaPerusahaan,
+        provinsi: provinsi,
+        kota: kota,
+        alamat: alamat,
+        bidangPerusahaan: bidangPerusahaan,
+        segmentasi: segmentasi,
+        produkRelevan: produkRelevan,
+        merekTayang: merekTayang,
+        brandOwner: brandOwner,
+        sumberData: sumberData,
+        linkProduk: linkProduk,
+        linkToko: linkToko,
       }
 
-      const res = await fetch('/api/input-database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const itemsPayload = items.map((item) => ({
+        id: item.id,
+        nama: item.nama,
+        jabatan: item.jabatan,
+        tipeKontak: item.tipeKontak,
+        noTelp: item.noTelp,
+        email: item.email,
+      }))
+
+      let res: Response
+
+      if (isRevisionMode) {
+        // ── Hitung perubahan field ────────────────────────────────────
+        const changedFields = computeChangedFields(
+          originalSnapshot,
+          headerPayload,
+          itemsPayload
+        )
+
+        // ── Mode REVISI: panggil PUT ─────────────────────────────────
+        res = await fetch('/api/input-database', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: generatedCode,
+            header: headerPayload,
+            items: itemsPayload,
+            oldData: originalSnapshot,      // snapshot sebelum revisi
+            changedFields,                  // daftar field yang berubah
+            revisedBy: requestor || user?.fullName || user?.username || '',
+          }),
+        })
+      } else {
+        // ── Mode BARU: panggil POST ───────────────────────────────────────
+        res = await fetch('/api/input-database', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ header: headerPayload, items: itemsPayload }),
+        })
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData?.error || 'Gagal menyimpan database')
       }
 
-      alert('Database berhasil disimpan!')
+      alert(isRevisionMode ? 'Data berhasil direvisi!' : 'Database berhasil disimpan!')
       router.push('/input-database')
       router.refresh()
     } catch (error) {
@@ -241,6 +491,7 @@ export default function InputDatabasePage() {
       )
     }
   }
+
 
   return (
     <div className='min-h-screen bg-blue-50'>
@@ -257,7 +508,7 @@ export default function InputDatabasePage() {
             </div>
           </div>
           <section className='mt-2 rounded-2xl bg-white p-4 pl-7 h-24 shadow-sm ring-1 ring-black/5'>
-            <div className='flex items-center gap-3 mb-6'>
+            <div className='flex items-center justify-between gap-3 mb-6'>
               <div className='flex flex-col'>
                 <h2 className='text-xl pl-1 font-bold text-gray-700'>
                   Cari Kode Untuk Revisi
@@ -265,8 +516,17 @@ export default function InputDatabasePage() {
                 <input
                   className='h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                   placeholder='Masukkan Kode'
+                  value={codeInput}
+                  onChange={(e) => setcodeInput(e.target.value)}
                 />
               </div>
+              <button
+                onClick={handleCariKode}
+                disabled={isLoading}
+                className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+              >
+                {isLoading ? <Loader2 className="animate-spin" size={20}/> : 'Cari Kode'}
+              </button>
             </div>
           </section>
 
@@ -290,32 +550,24 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   PENGINPUT
                 </label>
-
-                <div className='relative mt-2'>
-                  {canPickAssignee ? (
-                    <SearchableSelect
-                      value={assignedToUserId}
-                      onChange={(val: string) => setAssignedToUserId(val)}
-                      options={[
-                        { value: user?.userId, label: displayName(user) },
-                        { value: 'Ramadan', label: 'Ramadan'},
-                        { value: '', label: 'Isi Sendiri'},                        ...assigneeOptions.map((m) => ({
-                          value: m.userId,
-                          label: displayName(m),
-                        })),
-                      ]}
-                      className='border-0 bg-white'
-                      placeholder='Pilih Assignee...'
-                    />
-                  ) : (
-                    // SALES: requestor tampil auto (boleh edit manual kalau mau)
-                    <input
-                      value={requestor}
-                      onChange={(e) => setRequestor(e.target.value)}
-                      className='h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                      placeholder='Nama requestor'
-                    />
-                  )}
+                <div className='mt-2'>
+                  <SearchableSelect
+                    value={requestor}
+                    onChange={(val: string) => setRequestor(val)}
+                    options={(() => {
+                      const base = [
+                        { value: '', label: 'Pilih requestor' },
+                        { value: 'Aliya', label: 'Aliya' },
+                      ]
+                      // Jika requestor dari database belum ada di list, tambahkan otomatis
+                      if (requestor && !base.find((o) => o.value === requestor)) {
+                        base.push({ value: requestor, label: requestor })
+                      }
+                      return base
+                    })()}
+                    className='w-full'
+                    placeholder='Pilih requestor...'
+                  />
                 </div>
               </div>
 
@@ -524,6 +776,7 @@ export default function InputDatabasePage() {
                   key={item.id}
                   className='relative grid grid-cols-1 gap-3 md:grid-cols-5 p-4 border border-gray-100 rounded-xl bg-gray-50/50'
                 >
+
                   {items.length > 1 && (
                     <button
                       onClick={() => removeItem(index)}
@@ -538,8 +791,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={nama}
-                      onChange={(e) => setNama(e.target.value)}
+                      value={item.nama}
+                      onChange={(e) => updateItem(index, 'nama', e.target.value)}
                       placeholder='Masukkan Nama'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -550,8 +803,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={jabatan}
-                      onChange={(e) => setJabatan(e.target.value)}
+                      value={item.jabatan}
+                      onChange={(e) => updateItem(index, 'jabatan', e.target.value)}
                       placeholder='Masukkan Jabatan'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -560,18 +813,23 @@ export default function InputDatabasePage() {
                     <label className='text-sm font-semibold text-blue-600'>
                       TIPE KONTAK
                     </label>
-                    <select
-                      value={tipeKontak}
-                      onChange={(e) => setTipeKontak(e.target.value)}
-                      className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                    >
-                      <option className='text-gray-600' value=''>
-                        Pilih...
-                      </option>
-                      <option value='Whatsapp'>Whatsapp</option>
-                      <option value='Office'>Office</option>
-                      <option value='Phone Call'>Phone Call</option>
-                    </select>
+                    <SearchableSelect
+                      value={item.tipeKontak}
+                      onChange={(value) => updateItem(index, 'tipeKontak', value as string)}
+                      options={(() => {
+                        const base = [
+                          { value: '', label: '-Pilih-' },
+                          { value: 'WhatsApp', label: 'WhatsApp' },
+                          { value: 'Office', label: 'TELP' },
+                          { value: 'Phone Call', label: 'SMS' },
+                        ]
+                       if (item.tipeKontak && !base.find((o) => o.value === item.tipeKontak)) {
+                         base.push({ value : item.tipeKontak, label : item.tipeKontak})
+                       }
+                       return base;
+                      })()}
+                      className='w-full'
+                    />
                   </div>
                   <div>
                     <label className='text-sm font-semibold text-blue-600'>
@@ -579,8 +837,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={noTelp}
-                      onChange={(e) => setNoTelp(e.target.value)}
+                      value={item.noTelp}
+                      onChange={(e) => updateItem(index, 'noTelp', e.target.value)}
                       placeholder='6281234567890'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -591,8 +849,8 @@ export default function InputDatabasePage() {
                     </label>
                     <input
                       type='text'
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={item.email}
+                      onChange={(e) => updateItem(index, 'email', e.target.value)}
                       placeholder='email@example.com'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -617,60 +875,117 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   BIDANG USAHA
                 </label>
-                <input
-                  type='text'
+                <select
                   value={bidangPerusahaan}
                   onChange={(e) => setBidangPerusahaan(e.target.value)}
-                  placeholder='Masukkan Bidang Usaha'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    Pilih Sumber Data
+                  </option>
+                  <option value="Energi & Pertambangan">Energi & Pertambangan</option>
+                  <option value="Jasa Profesional">Jasa Profesional</option>
+                  <option value="Jasa Umum & Lainnya">Jasa Umum & Lainnya</option>
+                  <option value="Kesehatan">Kesehatan</option>
+                  <option value="Keuangan & Asuransi">Keuangan & Asuransi</option>
+                  <option value="Konstruksi & Properti">Konstruksi & Properti</option>
+                  <option value="Kreatif & Media">Kreatif & Media</option>
+                  <option value="Manufaktur & Industri">Manufaktur & Industri</option>
+                  <option value="Pemerintahan & BUMN">Pemerintahan & BUMN</option>
+                  <option value="Pendidikan">Pendidikan</option>
+                  <option value="Perdagangan (Trading)">Perdagangan (Trading)</option>
+                  <option value="Perhotelan & Pariwisata">Perhotelan & Pariwisata</option>
+                  <option value="Pertanian, Perkebunan & Perikanan">Pertanian, Perkebunan & Perikanan</option>
+                  <option value="Teknologi & Digital">Teknologi & Digital</option>
+                  <option value="UMKM & Industri Rumah Tangga">UMKM & Industri Rumah Tangga</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   SEGMENTASI
                 </label>
-                <input
-                  type='text'
+                <select
                   value={segmentasi}
                   onChange={(e) => setSegmentasi(e.target.value)}
-                  placeholder='Masukkan Segmentasi'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
-                />
+                >
+                  <option className='text-gray-600' value=''>
+                    Pilih Segmentasi
+                  </option>
+                  <option value="B2G-R1">B2G-R1</option>
+                  <option value="B2G-R2">B2G-R2</option>
+                  <option value="B2G-R3">B2G-R3</option>
+                  <option value="B2B">B2B</option>
+                  <option value="B2C">B2C</option>
+                  <option value="C2C">C2C</option>
+                  <option value="C2B">C2B</option>
+                </select>
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   PRODUK RELEVAN
                 </label>
-                <input
-                  type='text'
+                <SearchableSelect
                   value={produkRelevan}
-                  onChange={(e) => setProdukRelevan(e.target.value)}
-                  placeholder='Masukkan Produk Relevan'
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                  onChange={(value) => setProdukRelevan(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Produk Relevan' },
+                      { value: 'IFP', label: 'IFP' },
+                      { value: 'MRS', label: 'MRS' },
+                      { value: 'VIDEOTRON', label: 'VIDEOTRON' },
+                      { value: 'AIO', label: 'AIO' },
+                    ]
+                    if (produkRelevan && !base.find((o) => o.value === produkRelevan)) {
+                      base.push({ value: produkRelevan, label: produkRelevan })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
                 />
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   MEREK TAYANG
                 </label>
-                <input
-                  type='text'
+                <SearchableSelect
                   value={merekTayang}
-                  onChange={(e) => setMerekTayang(e.target.value)}
-                  placeholder='Masukkan Merek Tayang'
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                  onChange={(value) => setMerekTayang(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Merek Tayang' },
+                      { value: 'HDe', label: 'HDe' },
+                      { value: 'MABO POWER', label: 'MABO POWER' },
+                      { value: 'MOBO POWER', label: 'MOBO POWER' },
+                      { value: 'Lainnya', label: 'Lainnya' },
+                    ]
+                    if (merekTayang && !base.find((o) => o.value === merekTayang)) {
+                      base.push({ value: merekTayang, label: merekTayang })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
                 />
               </div>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   BRAND OWNER
                 </label>
-                <input
-                  type='text'
+                <SearchableSelect
                   value={brandOwner}
-                  onChange={(e) => setBrandOwner(e.target.value)}
-                  placeholder='Masukkan Brand Owner'
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                  onChange={(value) => setBrandOwner(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Brand Owner' },
+                      { value: 'YA', label: 'YA' },
+                      { value: 'TIDAK', label: 'TIDAK' },
+                    ]
+                    if (brandOwner && !base.find((o) => o.value === brandOwner)) {
+                      base.push({ value: brandOwner, label: brandOwner })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
                 />
               </div>
             </div>
@@ -679,12 +994,26 @@ export default function InputDatabasePage() {
                 <label className='text-sm font-semibold text-blue-600'>
                   SUMBER DATA
                 </label>
-                <input
-                  type='text'
+                <SearchableSelect
                   value={sumberData}
-                  onChange={(e) => setSumberData(e.target.value)}
-                  placeholder='Masukkan Sumber Data'
-                  className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                  onChange={(value) => setSumberData(value)}
+                  options={(() => {
+                    const base = [
+                      { value: '', label: 'Pilih Sumber Data' },
+                      { value: 'e-Katalog LKPP', label: 'e-Katalog LKPP' },
+                      { value: 'INAPROC', label: 'INAPROC' },
+                      { value: 'PaDi UMKM', label: 'PaDi UMKM' },
+                      { value: 'Mbizmarket', label: 'Mbizmarket' },
+                      { value: 'SIPLah', label: 'SIPLah' },
+                      { value: 'SPSE Pemda', label: 'SPSE Pemda' },
+                      { value: 'Sistem Internal Instansi', label: 'Sistem Internal Instansi' },
+                    ]
+                    if (sumberData && !base.find((o) => o.value === sumberData)) {
+                      base.push({ value: sumberData, label: sumberData })
+                    }
+                    return base
+                  })()}
+                  className='w-full'
                 />
               </div>
               <div>
@@ -695,7 +1024,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={linkProduk}
                   onChange={(e) => setLinkProduk(e.target.value)}
-                  placeholder='Masukkan Link Produk'
+                  placeholder='https:// atau contoh.com'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -707,7 +1036,7 @@ export default function InputDatabasePage() {
                   type='text'
                   value={linkToko}
                   onChange={(e) => setLinkToko(e.target.value)}
-                  placeholder='Masukkan Link Toko'
+                  placeholder='https:// atau contoh.com'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
               </div>
@@ -720,12 +1049,12 @@ export default function InputDatabasePage() {
                 className='flex h-10 items-center justify-center gap-2 cursor-pointer rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-blue-700 hover:bg-blue-700 transition-all'
               >
                 <Save className='w-5 h-5' />
-                Simpan Database
+                {searchParams.get('id') ? 'Simpan Revisi' : 'Simpan Database'}
               </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
