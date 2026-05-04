@@ -8,81 +8,128 @@ export type MenuItem = {
 
 export type MenuSection = {
   title: string;
-  icon: string; // NEW: Section icon
+  icon: string;
   items: MenuItem[];
 };
 
 export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
   SUPERADMIN: [
     {
-      title : "TELEMARKETING",
-      icon : "Bot",
+      title: "TELEMARKETING",
+      icon: "Bot",
       items: [
-        { label: "Input Database", href: "/input-database", icon: "Bot"},
-        { label: "Tracking Database", href: "/tracking-database", icon: "Database"},
-        { label: "Tracking Broadcast", href: "/tracking-broadcast", icon: "MessageCircleCode"},
-      ]
+        { label: "Input Database", href: "/input-database", icon: "Database" },
+        { label: "Tracking Database", href: "/tracking-database", icon: "TableProperties" },
+        { label: "Tracking Broadcast", href: "/tracking-broadcast", icon: "MessageCircleCode" },
+      ],
     },
     {
-      title: "ACTIVITY REQUEST",
-      icon: "Edit3",
+      title: "VISIT",
+      icon: "CalendarCheck",
       items: [
-        { label: "Dashboard", href: "/dashboard-request", icon: "LayoutDashboard" },
+        { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "E-Procurement", href: "/e-procurement", icon: "ShoppingCart" },
         { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+      ],
+    },
+    {
+      title: "PRODUCT",
+      icon: "Package",
+      items: [
+        { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
+      ],
+    },
+    {
+      title: "E-PROCUREMENT",
+      icon: "ShoppingCart",
+      items: [
+        { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
+        { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
     {
-      title: "ACTIVITY RESPONSE",
-      icon: "CheckCircle",
+      title: "ADMIN",
+      icon: "UserCog",
       items: [
-        { label: "Dashboard", href: "/dashboard-response", icon: "LayoutDashboard" },
-        { label: "E-Procurement Request", href: "/e-procurement-response", icon: "ClipboardList" },
-        { label: "Rekapitulasi", href: "/rekapitulasi-response", icon: "BarChart" },
-        { label: "Finance", href: "/finance", icon: "Banknote" },
-        { label: "Instansi", href: "/instansi", icon: "Building2" }
+        { label: "Rekapitulasi Admin", href: "/rekapitulasi-response", icon: "BarChart" },
       ],
     },
     {
-      title: "Lainnya",
-      icon: "MoreHorizontal",
+      title: "INSTANSI",
+      icon: "Building2",
+      items: [
+        { label: "Daftar Instansi", href: "/instansi", icon: "Building2" },
+        { label: "Tambah Instansi", href: "/tambah-instansi", icon: "PlusSquare" },
+      ],
+    },
+    {
+      title: "FINANCE",
+      icon: "Banknote",
+      items: [
+        { label: "Finance", href: "/finance", icon: "Banknote" },
+      ],
+    },
+    {
+      title: "MANAJEMEN",
+      icon: "ShieldCheck",
       items: [
         { label: "Add User", href: "/add-user", icon: "UserPlus" },
-        { label: "Parameter", href: "/parameters", icon: "Settings" },
         { label: "Teams", href: "/teams", icon: "Users" },
+        { label: "Parameter", href: "/parameters", icon: "Settings" },
       ],
     },
   ],
 
   ADMIN: [
     {
-      title: "ACTIVITY REQUEST",
-      icon: "Edit3",
-      items: [{ label: "E-Procurement", href: "/e-procurement", icon: "ShoppingCart" }],
+      title: "PRODUCT",
+      icon: "Package",
+      items: [
+        { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
+      ],
     },
     {
-      title: "ACTIVITY RESPONSE",
-      icon: "CheckCircle",
+      title: "E-PROCUREMENT",
+      icon: "ShoppingCart",
       items: [
-        { label: "Dashboard", href: "/dashboard-response", icon: "LayoutDashboard" },
-        { label: "E-Procurement Request", href: "/e-procurement-response", icon: "ClipboardList" },
-        { label: "Rekapitulasi", href: "/rekapitulasi-response", icon: "BarChart" },
-        { label: "TM Database", href: "/tm-database", icon: "Database" },
+        { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
+        { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
+        { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
+      ],
+    },
+    {
+      title: "ADMIN",
+      icon: "UserCog",
+      items: [
+        { label: "Rekapitulasi Admin", href: "/rekapitulasi-response", icon: "BarChart" },
+      ],
+    },
+    {
+      title: "INSTANSI",
+      icon: "Building2",
+      items: [
+        { label: "Daftar Instansi", href: "/instansi", icon: "Building2" },
+        { label: "Tambah Instansi", href: "/tambah-instansi", icon: "PlusSquare" },
       ],
     },
   ],
 
   LEADER: [
     {
-      title: "ACTIVITY REQUEST",
-      icon: "Edit3",
+      title: "VISIT",
+      icon: "CalendarCheck",
       items: [
-        { label: "Dashboard", href: "/dashboard-request", icon: "LayoutDashboard" },
+        { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "E-Procurement", href: "/e-procurement", icon: "ShoppingCart" },
         { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+      ],
+    },
+    {
+      title: "E-PROCUREMENT",
+      icon: "ShoppingCart",
+      items: [
+        { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
@@ -90,13 +137,19 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
 
   SALES: [
     {
-      title: "ACTIVITY REQUEST",
-      icon: "Edit3",
+      title: "VISIT",
+      icon: "CalendarCheck",
       items: [
-        { label: "Dashboard", href: "/dashboard-request", icon: "LayoutDashboard" },
+        { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "E-Procurement", href: "/e-procurement", icon: "ShoppingCart" },
         { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+      ],
+    },
+    {
+      title: "E-PROCUREMENT",
+      icon: "ShoppingCart",
+      items: [
+        { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
