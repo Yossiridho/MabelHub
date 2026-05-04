@@ -655,6 +655,90 @@ export default function DashboardResponsePage() {
               )}
             </div>
 
+            {/* PIC Average Response Time — SUPERADMIN ONLY */}
+            {user?.role === "SUPERADMIN" && (
+              <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+                  <div className="p-2 bg-violet-50 rounded-lg text-violet-500">
+                    <Timer strokeWidth={2.5} className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-800">
+                      Statistik PIC — Avg. Waktu Penyelesaian
+                    </h3>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">
+                      Rata-rata waktu dari submit request sampai status usulan selesai (Done / Cancel / Hold).
+                    </div>
+                  </div>
+                </div>
+                {summary.avgTimeByAdmin.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                    <Timer className="w-8 h-8 mb-2" />
+                    <span className="text-sm">Belum ada data penyelesaian</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {summary.avgTimeByAdmin.map((adm) => {
+                      const avgHours = adm.avgDays * 24;
+                      let displayTime: string;
+                      let timeColor: string;
+                      if (adm.resolvedCount === 0) {
+                        displayTime = "-";
+                        timeColor = "text-slate-400";
+                      } else if (avgHours < 24) {
+                        displayTime = `${avgHours.toFixed(1)} jam`;
+                        timeColor = "text-emerald-600";
+                      } else if (adm.avgDays < 7) {
+                        displayTime = `${adm.avgDays.toFixed(1)} hari`;
+                        timeColor = adm.avgDays <= 3 ? "text-emerald-600" : "text-amber-600";
+                      } else {
+                        displayTime = `${adm.avgDays.toFixed(1)} hari`;
+                        timeColor = "text-rose-600";
+                      }
+                      return (
+                        <div
+                          key={adm.adminName}
+                          className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/80 p-4 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                              <span className="text-xs font-bold">
+                                {adm.adminName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="text-sm font-semibold text-slate-800 truncate">
+                              {adm.adminName}
+                            </div>
+                          </div>
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
+                                AVG. RESPONSE TIME
+                              </div>
+                              <div className={`text-2xl font-extrabold ${timeColor} flex items-center gap-1.5`}>
+                                <Clock className="w-4 h-4" />
+                                {displayTime}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                                SELESAI / TOTAL
+                              </div>
+                              <div className="text-sm font-bold text-slate-700 mt-1">
+                                <span className="text-emerald-600">{adm.resolvedCount}</span>
+                                <span className="text-slate-400 mx-0.5">/</span>
+                                <span>{adm.totalCount}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Takeable orders (putih, rounded, shadow) */}
             <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm border border-slate-200 transition-shadow">
               <div className="flex items-end justify-between gap-3 border-b border-slate-100 pb-3">
@@ -1085,80 +1169,6 @@ export default function DashboardResponsePage() {
                   </OverviewCard>
                 </div>
               )}
-
-              {/* PIC Average Response Time */}
-              <div className="mt-4">
-                <OverviewCard title="STATISTIK PIC — AVG. WAKTU PENYELESAIAN">
-                  <div className="text-xs text-slate-500 mb-4">
-                    Rata-rata waktu dari submit request sampai status usulan selesai (Done / Cancel / Hold).
-                  </div>
-                  {summary.avgTimeByAdmin.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-slate-400">
-                      <Timer className="w-8 h-8 mb-2" />
-                      <span className="text-sm">Belum ada data penyelesaian</span>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {summary.avgTimeByAdmin.map((adm) => {
-                        const avgHours = adm.avgDays * 24;
-                        let displayTime: string;
-                        let timeColor: string;
-                        if (adm.resolvedCount === 0) {
-                          displayTime = "-";
-                          timeColor = "text-slate-400";
-                        } else if (avgHours < 24) {
-                          displayTime = `${avgHours.toFixed(1)} jam`;
-                          timeColor = "text-emerald-600";
-                        } else if (adm.avgDays < 7) {
-                          displayTime = `${adm.avgDays.toFixed(1)} hari`;
-                          timeColor = adm.avgDays <= 3 ? "text-emerald-600" : "text-amber-600";
-                        } else {
-                          displayTime = `${adm.avgDays.toFixed(1)} hari`;
-                          timeColor = "text-rose-600";
-                        }
-                        return (
-                          <div
-                            key={adm.adminName}
-                            className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/80 p-4 shadow-sm hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                                <span className="text-xs font-bold">
-                                  {adm.adminName.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div className="text-sm font-semibold text-slate-800 truncate">
-                                {adm.adminName}
-                              </div>
-                            </div>
-                            <div className="flex items-end justify-between">
-                              <div>
-                                <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
-                                  AVG. RESPONSE TIME
-                                </div>
-                                <div className={`text-2xl font-extrabold ${timeColor} flex items-center gap-1.5`}>
-                                  <Clock className="w-4 h-4" />
-                                  {displayTime}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                                  SELESAI / TOTAL
-                                </div>
-                                <div className="text-sm font-bold text-slate-700 mt-1">
-                                  <span className="text-emerald-600">{adm.resolvedCount}</span>
-                                  <span className="text-slate-400 mx-0.5">/</span>
-                                  <span>{adm.totalCount}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </OverviewCard>
-              </div>
             </div>
 
             <div className="h-10" />

@@ -31,7 +31,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+        { label: "Tracking Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
       ],
     },
     {
@@ -46,7 +46,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       icon: "ShoppingCart",
       items: [
         { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
-        { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
+        { label: "Tracking E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
     {
@@ -55,7 +55,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
         { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
-        { label: "Rekapitulasi Admin", href: "/rekapitulasi-response", icon: "BarChart" },
+        { label: "Tracking Admin", href: "/rekapitulasi-response", icon: "BarChart" },
       ],
     },
     {
@@ -122,7 +122,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
         { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
-        { label: "Rekapitulasi Admin", href: "/rekapitulasi-response", icon: "BarChart" },
+        { label: "Tracking Admin", href: "/rekapitulasi-response", icon: "BarChart" },
       ],
     },
     {
@@ -142,7 +142,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+        { label: "Tracking Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
       ],
     },
     {
@@ -150,7 +150,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       icon: "ShoppingCart",
       items: [
         { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
-        { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
+        { label: "Tracking E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
   ],
@@ -162,7 +162,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+        { label: "Tracking Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
       ],
     },
     {
@@ -170,7 +170,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       icon: "ShoppingCart",
       items: [
         { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
-        { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
+        { label: "Tracking E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
   ],
