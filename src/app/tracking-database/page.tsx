@@ -1240,7 +1240,7 @@ export default function TrackingDatabasePage() {
             </div>
           </section>
           {/* Legend Footer */}
-          <div className='flex flex-wrap items-center mt-4 gap-100 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
+          <div className='flex flex-wrap items-center mt-4 gap-60 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
             <span className='flex items-center gap-1'>👁<strong>Tombol Lihat Detail</strong></span>
             <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-amber-500'></span>Tombol <strong>Revisi Data</strong></span>
             <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span><BarChart2Icon className='w-3 h-3 text-green-500' />Klik baris analisa untuk drill-down data</span>
