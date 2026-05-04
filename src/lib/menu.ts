@@ -21,6 +21,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "Input Database", href: "/input-database", icon: "Bot"},
         { label: "Tracking Database", href: "/tracking-database", icon: "Database"},
         { label: "Tracking Broadcast", href: "/tracking-broadcast", icon: "MessageCircleCode"},
+        { label: "Report Progres", href: "/report-progres", icon: "FileText"},
       ]
     },
     {
@@ -32,6 +33,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "E-Procurement", href: "/e-procurement", icon: "ShoppingCart" },
         { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
+        { label: "Tindak Lanjut Sales", href: "/tindak-lanjut-sales", icon: "User"},
       ],
     },
     {
