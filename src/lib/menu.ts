@@ -21,6 +21,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "Input Database", href: "/input-database", icon: "Bot"},
         { label: "Tracking Database", href: "/tracking-database", icon: "Database"},
         { label: "Tracking Broadcast", href: "/tracking-broadcast", icon: "MessageCircleCode"},
+        { label: "Tindak Lanjut Sales", href: "/tindak-lanjut-sales", icon: "User"},
         { label: "Report Progres", href: "/report-progres", icon: "FileText"},
       ]
     },
@@ -37,7 +38,6 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       title: "PRODUCT",
       icon: "Package",
       items: [
-        { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
       ],
     },
     {
@@ -45,15 +45,15 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       icon: "ShoppingCart",
       items: [
         { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
-        { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
-        { label: "Tindak Lanjut Sales", href: "/tindak-lanjut-sales", icon: "User"},
       ],
     },
     {
       title: "ADMIN",
       icon: "UserCog",
       items: [
+        { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
+        { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
         { label: "Rekapitulasi Admin", href: "/rekapitulasi-response", icon: "BarChart" },
       ],
     },
@@ -85,10 +85,28 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
 
   ADMIN: [
     {
+      title: "TELEMARKETING",
+      icon: "Bot",
+      items: [
+        { label: "Input Database", href: "/input-database", icon: "Bot"},
+        { label: "Tracking Database", href: "/tracking-database", icon: "Database"},
+        { label: "Tracking Broadcast", href: "/tracking-broadcast", icon: "MessageCircleCode"},
+        { label: "Report Progres", href: "/report-progres", icon: "FileText"},
+      ]
+    },
+    {
+      title: "VISIT",
+      icon: "CalendarCheck",
+      items: [
+        { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
+        { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
+        { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
+      ],
+    },
+    {
       title: "PRODUCT",
       icon: "Package",
       items: [
-        { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
       ],
     },
     {
@@ -96,7 +114,6 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       icon: "ShoppingCart",
       items: [
         { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
-        { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
         { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
@@ -104,6 +121,8 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       title: "ADMIN",
       icon: "UserCog",
       items: [
+        { label: "Dashboard Admin", href: "/dashboard-response", icon: "CheckSquare" },
+        { label: "Request E-Procurement", href: "/e-procurement-response", icon: "ClipboardList" },
         { label: "Rekapitulasi Admin", href: "/rekapitulasi-response", icon: "BarChart" },
       ],
     },
