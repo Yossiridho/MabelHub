@@ -38,6 +38,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       title: "PRODUCT",
       icon: "Package",
       items: [
+        { label: "Data Produk", href: "/produk", icon: "CheckSquare" },
       ],
     },
     {
@@ -100,7 +101,6 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       items: [
         { label: "Dashboard Visit", href: "/dashboard-request", icon: "LayoutDashboard" },
         { label: "Plan Activity", href: "/plan-activity", icon: "MapPin" },
-        { label: "Rekapitulasi Visit", href: "/rekapitulasi-visit", icon: "BarChart3" },
       ],
     },
     {
@@ -114,7 +114,6 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       icon: "ShoppingCart",
       items: [
         { label: "Form E-Procurement", href: "/e-procurement", icon: "FilePlus" },
-        { label: "Rekapitulasi E-Procurement", href: "/rekapitulasi-Eproc", icon: "PieChart" },
       ],
     },
     {

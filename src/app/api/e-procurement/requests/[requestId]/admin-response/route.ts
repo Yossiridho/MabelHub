@@ -158,6 +158,15 @@ export async function PUT(
     updatedAt: now,
   };
 
+  // Track timestamp when status usulan becomes resolved (Done/Cancel/Hold) for PIC avg response time
+  const isResolved = computedStatus === "Done" || computedStatus === "Cancel" || computedStatus === "Hold";
+  if (isResolved && !existing.statusUsulanResolvedAt) {
+    setPayload.statusUsulanResolvedAt = now;
+  } else if (!isResolved) {
+    // Reset if status reverted to non-resolved (e.g. back to Proses)
+    setPayload.statusUsulanResolvedAt = null;
+  }
+
   const isRilisKontrak = finalStatusAkhir.toUpperCase() === "RILIS KONTRAK";
   const isTerbitBast = finalStatusAkhir.toUpperCase() === "TERBIT BAST";
 
