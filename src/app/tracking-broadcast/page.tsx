@@ -19,7 +19,9 @@ import {
   ChevronDown,
   X,
   LucidePenBox,
+  SendIcon,
 } from 'lucide-react'
+import router, { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import React from 'react'
 
@@ -50,7 +52,10 @@ type BroadCastRow = {
   alamat: string
   penginput: string
   jenis_entitas: string
+  status_wa: string
+  ke_sales: string
 }
+
 type FilterOptions = {
   bulan: string[]
   perusahaan: string[]
@@ -69,6 +74,37 @@ type LatestRevision = {
   changed_fields?: { field: string; oldValue: string; newValue: string }[]
   snapshot_before?: any
 }
+
+interface DataItem {
+  id: string;
+  kode_input: string,
+  nama_perusahaan: string,
+  produk: string,
+  merek_tayang: string,
+  kota: string,
+  provinsi: string,
+  pic: string,
+  jabatan: string,
+  telp: string,
+  email: string,
+  alamat: string,
+  segmen: string,
+  segmentasi: string,
+  tipe: string,
+  bidang_perusahaan: string,
+  brand_owner: string,
+  sumber_data: string,
+  sumber_lain: string,
+  link_produk: string,
+  link_toko: string,
+  penginput: string,
+  jenis_entitas: string,
+  bulan_data: string,
+  status_wa: string,
+  ke_sales: string,
+}
+
+
 
 function cn(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(" ");
@@ -159,6 +195,87 @@ export default function TrackingBroadcastPage() {
     { id: 'Ke Sales', icon: Users, label: 'Ke Sales' },
   ]
 
+  // function selected broadcast
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isSending, setisSending] = useState(false)
+
+  // Select all: gunakan `rows` (state data yang sudah di-fetch)
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(rows.map(r => r._id))
+    } else {
+      setSelectedIds([])
+    }
+  }
+
+  // Toggle satu checkbox per baris
+  const handleSelectedOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    )
+  }
+
+  // Kirim semua baris yang di-centang ke /api/tracking-broadcast/send
+  const handleKirimKeDatabase = async () => {
+    if (selectedIds.length === 0) {
+      alert('Pilih minimal satu data!')
+      return
+    }
+    setisSending(true)
+    try {
+      const selectedRows = rows.filter(r => selectedIds.includes(r._id))
+      const results = await Promise.allSettled(
+        selectedRows.map(row =>
+          fetch('/api/tracking-broadcast/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source_id: row._id,
+              kode: row.kode,
+              nama_perusahaan: row.nama_perusahaan,
+              produk: row.produk,
+              merek_tayang: row.merek_tayang,
+              kota: row.kota,
+              provinsi: row.provinsi,
+              pic: row.pic,
+              jabatan: row.jabatan,
+              telp: row.telp,
+              email: row.email,
+              alamat: row.alamat,
+              segmen: row.segmen,
+              segmentasi: row.segmentasi,
+              tipe: row.tipe,
+              bidang_perusahaan: row.bidang_perusahaan,
+              brand_owner: row.brand_owner,
+              sumber_date: row.sumber_date,
+              sumber_lain: row.sumber_lain,
+              link_produk: row.link_produk,
+              link_toko: row.link_toko,
+              penginput: row.penginput,
+              jenis_entitas: row.jenis_entitas,
+              bulan_data: row.bulan_data,
+              status_wa: row.status_wa,
+              ke_sales: row.ke_sales,
+              sent_at: new Date().toISOString(),
+            }),
+          })
+        )
+      )
+      const failed = results.filter(r => r.status === 'rejected').length
+      if (failed > 0) {
+        alert(`⚠️ ${results.length - failed} berhasil, ${failed} gagal dikirim.`)
+      } else {
+        alert(`✅ ${results.length} data berhasil dikirim!`)
+        setSelectedIds([])
+      }
+    } catch (error) {
+      console.error('Gagal mengirim data:', error)
+      alert('Terjadi kesalahan saat mengirim data.')
+    } finally {
+      setisSending(false)
+    }
+  }
+
   // filter state
   const [isFilterOpen, setIsFilterOpen] = useState(true)
   const [isFilterOpen2, setIsFilterOpen2] = useState(true)
@@ -174,7 +291,7 @@ export default function TrackingBroadcastPage() {
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-
+  const router = useRouter();
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
@@ -189,7 +306,89 @@ export default function TrackingBroadcastPage() {
   })
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Buka WhatsApp chat dengan nomor dari row tabel
+  const handleWhatsAppClick = (telp: unknown) => {
+    const raw = String(telp ?? '').trim()
+    if (!raw) return
+    let cleanNumber = raw.replace(/\D/g, '')
+    if (cleanNumber.startsWith('0')) {
+      cleanNumber = '62' + cleanNumber.slice(1)
+    } else if (!cleanNumber.startsWith('62')) {
+      cleanNumber = '62' + cleanNumber
+    }
+    if (cleanNumber.length < 10) return // nomor tidak valid
+    window.open(`https://wa.me/${cleanNumber}`, '_blank', 'noopener,noreferrer')
+  }
+
+  // Update status WA per baris (optimistic update di local state)
+  const updateRowStatusWa = useCallback((id: string, value: string) => {
+    setRows(prev => prev.map(r => r._id === id ? { ...r, status_wa: value } : r))
+  }, [])
+
+  // Update ke_sales per baris (optimistic update di local state)
+  const updateRowKeSales = useCallback((id: string, value: string) => {
+    setRows(prev => prev.map(r => r._id === id ? { ...r, ke_sales: value } : r))
+  }, [])
+
+  // Kirim data satu baris ke database tracking_broadcast
+  const [sendingRows, setSendingRows] = useState<Set<string>>(new Set())
+
+  const handleSendRow = useCallback(async (row: BroadCastRow) => {
+    if (sendingRows.has(row._id)) return // sudah sedang proses
+    setSendingRows(prev => new Set(prev).add(row._id))
+    try {
+      const payload = {
+        source_id: row._id,
+        kode: row.kode,
+        nama_perusahaan: row.nama_perusahaan,
+        produk: row.produk,
+        merek_tayang: row.merek_tayang,
+        kota: row.kota,
+        provinsi: row.provinsi,
+        pic: row.pic,
+        jabatan: row.jabatan,
+        telp: row.telp,
+        email: row.email,
+        alamat: row.alamat,
+        segmen: row.segmen,
+        segmentasi: row.segmentasi,
+        tipe: row.tipe,
+        bidang_perusahaan: row.bidang_perusahaan,
+        brand_owner: row.brand_owner,
+        sumber_date: row.sumber_date,
+        sumber_lain: row.sumber_lain,
+        link_produk: row.link_produk,
+        link_toko: row.link_toko,
+        penginput: row.penginput,
+        jenis_entitas: row.jenis_entitas,
+        bulan_data: row.bulan_data,
+        status_wa: row.status_wa,
+        ke_sales: row.ke_sales,
+        sent_at: new Date().toISOString(),
+      }
+
+      const res = await fetch('/api/tracking-broadcast/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Gagal menyimpan data')
+      }
+
+      alert(`✅ Data "${row.nama_perusahaan}" berhasil dikirim!`)
+    } catch (error) {
+      console.error('[handleSendRow] Error:', error)
+      alert(error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim data')
+    } finally {
+      setSendingRows(prev => { const s = new Set(prev); s.delete(row._id); return s })
+    }
+  }, [sendingRows])
+
   // Pagination
+
   const [pageSize, setPageSize] = useState(25)
   const [page, setPage] = useState(1)
   const [rows, setRows] = useState<BroadCastRow[]>([])
@@ -1048,10 +1247,32 @@ export default function TrackingBroadcastPage() {
             </div>
           </section>
           <div className='mt-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-
+            {/* Toolbar kirim batch di atas tabel */}
+            {selectedIds.length > 0 && (
+              <div className='flex items-center justify-end gap-3 px-4 py-2 bg-blue-50 border-b border-blue-100'>
+                <span className='text-[11px] text-blue-700 font-semibold'>
+                  {selectedIds.length} baris dipilih
+                </span>
+                <button
+                  onClick={handleKirimKeDatabase}
+                  disabled={isSending}
+                  className='inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors'
+                >
+                  {isSending
+                    ? <><span className='w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin' /> Mengirim...</>
+                    : <><Send size={11} strokeWidth={2.5} /> Kirim ({selectedIds.length}) Data</>}
+                </button>
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className='text-[11px] text-gray-500 hover:text-gray-700 underline'
+                >
+                  Batal pilih
+                </button>
+              </div>
+            )}
             <div className='overflow-x-auto'>
               <table className='min-w-full text-left border-collapse'>
-                {/* Header - dark blue like reference */}
+                {/* Header */}
                 <thead className='sticky top-0 z-10'>
                   <tr className='bg-[#1a2c4e] text-white'>
                     {[
@@ -1072,9 +1293,18 @@ export default function TrackingBroadcastPage() {
                         {h.label}
                       </th>
                     ))}
+                    {/* Checkbox Select All — kolom paling kanan */}
+                    <th className='px-3 py-2 border-l border-[#243a5e] text-center'>
+                      <input
+                        type='checkbox'
+                        onChange={handleSelectAll}
+                        checked={selectedIds.length === rows.length && rows.length > 0}
+                        className='w-3.5 h-3.5 accent-blue-500 cursor-pointer'
+                      />
+                    </th>
                   </tr>
                 </thead>
-                <tbody className='divide-y divide-gray-300'>
+                <tbody className='divide-y divide-gray-300 bg-white'>
                   {loadingRows ? (
                     <tr>
                       <td colSpan={11} className='px-6 py-8 text-center text-[10px] text-gray-500'>
@@ -1096,7 +1326,10 @@ export default function TrackingBroadcastPage() {
                       <React.Fragment key={row._id}>
                         <tr
                           key={row.kode + i}
-                          className='hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200'
+                          className={cn(
+                            'hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200',
+                            selectedIds.includes(row._id) ? 'bg-blue-50' : ''
+                          )}
                         >
                           <td className='whitespace-nowrap px-5.5 py-2 text-[10px] text-slate-500'>
                             {(safePage - 1) * pageSize + i + 1}
@@ -1115,6 +1348,18 @@ export default function TrackingBroadcastPage() {
                               >
                                 <EyeIcon size={12} strokeWidth={2.2} />
                               </button>
+                              <button
+                                title='Chat Whatsapp'
+                                onClick={() => handleWhatsAppClick(row.telp)}
+                                className={cn(
+                                  'inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150 cursor-pointer',
+                                  selected?._id === row._id
+                                    ? 'bg-green-600 text-white shadow-sm shadow-blue-300'
+                                    : 'bg-blue-100 text-green-600 hover:bg-green-600 hover:text-white'
+                                )}
+                              >
+                                <PhoneCallIcon size={12} strokeWidth={2.2} />
+                              </button>
                             </div>
                           </td>
                           <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-700 font-medium'>
@@ -1126,10 +1371,66 @@ export default function TrackingBroadcastPage() {
                           <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
                             {row.kota}, {row.provinsi}
                           </td>
-                          <td className='whitespace-nowrap flex justify-center px-5 py-3 text-[10px] text-slate-600'>
-                            {row.pic}-{row.jabatan}
-                            <br/>
-                            {row.telp}
+                          <td className='px-2 py-2 text-[10px] text-gray-700'>
+                            <div className='flex flex-col gap-0.5'>
+                              <span className='font-semibold text-slate-800'>
+                                {row.pic || '-'}
+                                {row.jabatan ? ` (${row.jabatan})` : ''}
+                              </span>
+                              <span className='flex items-center gap-1 text-slate-500'>
+                                <Phone size={9} strokeWidth={2} className='shrink-0' />
+                                {row.telp || '-'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className='px-1 py-1 w-12 text-[10px] text-slate-600'>
+                            <select
+                              value={row.status_wa || ''}
+                              onChange={(e) => updateRowStatusWa(row._id, e.target.value)}
+                              className='text-[10px] border border-gray-300 rounded-lg px-5 py-3 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-57 h-12 cursor-pointer'
+                            >
+                              <option value=''>- Pilih Status -</option>
+                              <option value='Terkirim(1C)'>Terkirim(1C)</option>
+                              <option value='Diterima(2C)'>Diterima(2C)</option>
+                              <option value='Dibaca - Belum Respons'>Dibaca - Belum Respons</option>
+                              <option value='Dibaca - Respons - Positif'>Dibaca - Respons - Positif</option>
+                              <option value='Dibaca - Respons - Netral'>Dibaca - Respons - Netral</option>
+                              <option value='Dibaca - Respons - Negatif'>Dibaca - Respons - Negatif</option>
+                              <option value='Aktif Progres'>Aktif Progres</option>
+                            </select>
+                          </td>
+                          <td className='px-5 py-3 text-[10px] text-slate-600'>
+                            <select
+                              value={row.ke_sales || ''}
+                              onChange={(e) => updateRowKeSales(row._id, e.target.value)}
+                              className='text-[10px] border border-gray-300 rounded-lg px-4 py-3 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-45 h-12 cursor-pointer'
+                            >
+                              <option value=''>- Pilih Sales -</option>
+                              <option value='Arie Muhamad Fajar'>Arie Muhamad Fajar</option>
+                              <option value='Beffry Rizkana'>Beffry Rizkana</option>
+                              <option value='Ferrie Ferdinal'>Ferrie Ferdinal</option>
+                            </select>
+                          </td>
+                          <td className='py-2 px-3'>
+                            <button
+                              title='Kirim ke database'
+                              onClick={() => handleSendRow(row)}
+                              disabled={sendingRows.has(row._id)}
+                              className='inline-flex items-center justify-center w-8 h-7 rounded bg-blue-700 hover:bg-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed'
+                            >
+                              {sendingRows.has(row._id)
+                                ? <span className='w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                                : <Send size={12} strokeWidth={2} className='text-white' />}
+                            </button>
+                          </td>
+                          {/* Checkbox per baris — kolom paling kanan */}
+                          <td className='px-3 py-2 text-center'>
+                            <input
+                              type='checkbox'
+                              checked={selectedIds.includes(row._id)}
+                              onChange={() => handleSelectedOne(row._id)}
+                              className='w-3.5 h-3.5 accent-blue-500 cursor-pointer'
+                            />
                           </td>
                         </tr>
                         {active && (
@@ -1160,16 +1461,13 @@ export default function TrackingBroadcastPage() {
                                   <div className='flex flex-col gap-2.5'>
                                     <DetailItem icon='📂' label='Sumber Data' value={selected.sumber_date} />
                                     <DetailItem icon='📎' label='Sumber Lain' value={selected.sumber_lain} />
-                                    <DetailItem icon='🎯' label='Merek Tayang' value={selected.merek_tayang} />
                                     <DetailItem icon='👑' label='Brand Owner' value={selected.brand_owner} />
                                     <DetailItem icon='✉️' label='Email PIC' value={selected.email} />
+                                    <DetailItem icon='🕒' label='Tanggal Update' value={selected.updated_at} />
                                   </div>
 
                                   {/* COL 3 */}
                                   <div className='flex flex-col gap-2.5'>
-                                    <DetailItem icon='🔗' label='Link Produk' value={selected.link_produk} isLink />
-                                    <DetailItem icon='🛒' label='Link Toko' value={selected.link_toko} isLink />
-                                    <DetailItem icon='🕒' label='Tanggal Update' value={selected.updated_at} />
                                     {/* Keterangan Update — Riwayat Revisi Terbaru */}
                                     <div className='flex items-start gap-1.5 min-w-0 col-span-1'>
                                       <span className='mt-[1px] shrink-0 text-[11px] leading-none'>📝</span>
@@ -1204,17 +1502,32 @@ export default function TrackingBroadcastPage() {
                                       </div>
                                     </div>
                                     <DetailItem icon='📆' label='Bulan Data' value={selected.bulan_data} />
+                                    {selected.alamat && selected.alamat.trim() !== '' && (
+                                      <div className='border-4 shadow-sm bg-gray-100 rounded-lg border-gray-100 px-3 py-3'>
+                                        <div className='flex items-start gap-2'>
+                                          <span className='text-[11px] mt-0.5'>📍</span>
+                                          <div>
+                                            <span className='text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5'>Alamat Lengkap:</span>
+                                            <span className='text-[10.5px] text-slate-700 font-medium'>{selected.alamat}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
                                 {/* ── Alamat full width ── */}
-                                {selected.alamat && selected.alamat.trim() !== '' && (
-                                  <div className='border-t border-gray-100 px-5 py-3'>
+                                {selected.produk && selected.produk.trim() !== '' && (
+                                  <div className='border-t border-gray-200 px-5 py-3'>
                                     <div className='flex items-start gap-2'>
-                                      <span className='text-[11px] mt-0.5'>📍</span>
+                                      <span className='text-[11px] mt-0.5'></span>
                                       <div>
-                                        <span className='text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5'>Alamat Lengkap:</span>
-                                        <span className='text-[10.5px] text-slate-700 font-medium'>{selected.alamat}</span>
+                                        <span className='text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5'>Produk Relevan</span>
+                                        <span className='border rounded-sm border-gray-300 py-1 px-1.5 text-[10.5px] text-slate-700 font-medium'>📦
+                                          {selected.merek_tayang && selected.merek_tayang.trim() !== ''
+                                            ? `${selected.produk} / ${selected.merek_tayang}`
+                                            : selected.produk}
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
