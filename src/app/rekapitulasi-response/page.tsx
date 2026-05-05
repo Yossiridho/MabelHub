@@ -169,7 +169,7 @@ export default function RekapitulasiResponsePage() {
     const qq = q.trim().toLowerCase();
     const af = adminFilter.trim().toLowerCase();
 
-    return rows.filter((r) => {
+    const res = rows.filter((r) => {
       const matchAdmin =
         !isSuperAdmin ||
         !af ||
@@ -191,6 +191,9 @@ export default function RekapitulasiResponsePage() {
 
       return matchAdmin && matchQ;
     });
+
+    // Urutkan dari yang terbaru di atas (descending)
+    return res.sort((a, b) => new Date(b.tanggalSubmit).getTime() - new Date(a.tanggalSubmit).getTime());
   }, [rows, adminFilter, q, isSuperAdmin]);
 
   const exportColumns: ExportColumn[] = [
@@ -417,6 +420,9 @@ export default function RekapitulasiResponsePage() {
                   <table className="min-w-fit w-full text-sm border-collapse">
                     <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold">
                       <tr className="border-b border-slate-100">
+                        <th className="px-5 py-4 text-center whitespace-nowrap w-12">
+                          No
+                        </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
                           Request ID
                         </th>
@@ -450,12 +456,16 @@ export default function RekapitulasiResponsePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((r) => {
+                      {filtered.map((r, index) => {
                         const isOpen = openDetail === r.requestId;
+                        // Penomoran: Karena tabel diurutkan descending (terbaru di atas),
+                        // baris terlama (paling bawah) mendapat nomor 1.
+                        const rowNumber = filtered.length - index;
                         return (
                           <FragmentRow
                             key={r.requestId}
                             r={r}
+                            rowNumber={rowNumber}
                             isOpen={isOpen}
                             onToggle={() =>
                               setOpenDetail(isOpen ? null : r.requestId)
@@ -501,6 +511,7 @@ export default function RekapitulasiResponsePage() {
 
 function FragmentRow({
   r,
+  rowNumber,
   isOpen,
   onToggle,
   isAdmin,
@@ -510,6 +521,7 @@ function FragmentRow({
   onUpdated,
 }: {
   r: EProcRow;
+  rowNumber: number;
   isOpen: boolean;
   onToggle: () => void;
   isAdmin: boolean;
@@ -695,6 +707,9 @@ function FragmentRow({
         onClick={onToggle}
         title="Klik untuk lihat detail"
       >
+        <td className="px-5 py-4 font-semibold text-slate-800 text-center">
+          {rowNumber}
+        </td>
         <td className="px-5 py-4 font-semibold text-slate-800">
           <div className="flex items-center gap-2">
             {r.requestId}
@@ -767,7 +782,7 @@ function FragmentRow({
 
       {isOpen && (
         <tr className="border-b border-neutral-100 bg-slate-50/50">
-          <td colSpan={10} className="px-5 py-5 text-sm">
+          <td colSpan={11} className="px-5 py-5 text-sm">
             {/* Rincian Barang */}
             <div className="mb-6">
               {/* Rincian Barang Card */}

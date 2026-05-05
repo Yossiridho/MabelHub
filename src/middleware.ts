@@ -22,6 +22,14 @@ export function middleware(req: NextRequest) {
 
   // protect all app pages + api
   if (!token) {
+    // If it's an API route, return 401 JSON instead of redirecting
+    // This prevents "Unexpected token '<', <!DOCTYPE..." errors in the frontend
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized: Missing session token" },
+        { status: 401 }
+      );
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

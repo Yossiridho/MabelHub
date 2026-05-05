@@ -89,7 +89,6 @@ export async function POST(req: Request) {
             created_at: now,
             updated_at: now,
         }))
-
         const result = await col.insertMany(docs)
 
         return NextResponse.json(
