@@ -25,6 +25,17 @@ import router, { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import React from 'react'
 
+type StatusWaSummary = {
+  terkirim: number,
+  diterima: number
+  belumRespon: number
+  positif: number
+  netral: number
+  negatif: number
+  aktif: number
+  kosong: number
+}
+
 type BroadCastRow = {
   _id: string;
   kode: string
@@ -195,6 +206,21 @@ export default function TrackingBroadcastPage() {
     { id: 'Ke Sales', icon: Users, label: 'Ke Sales' },
   ]
 
+  
+  // Summary Status WA
+  const [statusWaSummary, setStatusWaSummary] = useState<StatusWaSummary>({
+    terkirim: 0,
+    diterima: 0,
+    belumRespon: 0,
+    positif: 0,
+    netral: 0,
+    negatif: 0,
+    aktif: 0,
+    kosong: 0,
+  })
+
+
+
   // function selected broadcast
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSending, setisSending] = useState(false)
@@ -291,7 +317,7 @@ export default function TrackingBroadcastPage() {
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const router = useRouter();
+
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
@@ -319,6 +345,7 @@ export default function TrackingBroadcastPage() {
     if (cleanNumber.length < 10) return // nomor tidak valid
     window.open(`https://wa.me/${cleanNumber}`, '_blank', 'noopener,noreferrer')
   }
+
 
   // Update status WA per baris (optimistic update di local state)
   const updateRowStatusWa = useCallback((id: string, value: string) => {
@@ -401,10 +428,14 @@ export default function TrackingBroadcastPage() {
 
   useEffect(() => {
     fetch('/api/tracking-broadcast/filters')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`Filter API error: ${r.status}`)
+        return r.json()
+      })
       .then((data: FilterOptions) => setFilterOptions(data))
-      .catch(() => { })
+      .catch(err => console.error('[filters fetch]', err))
   }, [])
+
 
   // Auto-fetch riwayat revisi terbaru saat row di-expand
   useEffect(() => {
@@ -426,8 +457,9 @@ export default function TrackingBroadcastPage() {
         setOpenDropdown(null)
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    // Use 'mouseup' instead of 'mousedown' so the trigger button's onClick fires first
+    document.addEventListener('mouseup', handleClickOutside)
+    return () => document.removeEventListener('mouseup', handleClickOutside)
   }, [])
 
   // ---- filter helpers ----
@@ -471,7 +503,8 @@ export default function TrackingBroadcastPage() {
     setFilterArr(id, [...opts])
   }, [setFilterArr])
 
-  const getOptions = useCallback((id: string): string[] => {
+  // getOptions: tidak pakai useCallback supaya selalu baca filterOptions terbaru
+  const getOptions = (id: string): string[] => {
     switch (id) {
       case 'Bulan': return filterOptions.bulan
       case 'Perusahaan': return filterOptions.perusahaan
@@ -482,7 +515,7 @@ export default function TrackingBroadcastPage() {
       case 'Ke Sales': return filterOptions.ke_sales
       default: return []
     }
-  }, [filterOptions])
+  }
 
   // ---- main data fetch (paginated rows) ----
   useEffect(() => {
@@ -511,6 +544,16 @@ export default function TrackingBroadcastPage() {
           if (!mounted) return
 
           setRows(Array.isArray(json?.items) ? json.items : [])
+          setStatusWaSummary({
+            terkirim: json?.statusWaSummary?.terkirim ?? 0,
+            diterima: json?.statusWaSummary?.diterima ?? 0,
+            belumRespon: json?.statusWaSummary?.belumRespon ?? 0,
+            positif: json?.statusWaSummary?.positif ?? 0,
+            netral: json?.statusWaSummary?.netral ?? 0,
+            negatif: json?.statusWaSummary?.negatif ?? 0,
+            aktif: json?.statusWaSummary?.aktif ?? 0,
+            kosong: json?.statusWaSummary?.kosong ?? 0,
+          })
           const pg = json?.pagination ?? {}
           setTotal(Number(pg?.total ?? 0))
           setTotalPages(Number(pg?.totalPages ?? 1))
@@ -547,52 +590,57 @@ export default function TrackingBroadcastPage() {
               </p>
             </div>
           </div>
-          <section className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-            <div className='bg-[#1ae862] text-white px-6 h-10 flex items-center justify-between'>
-              <div className='flex items-center'>
-                <Filter size={12} className='mr-2' strokeWidth={2.5} />
-                <strong className='text-[8px] font-bold tracking-wide'>
+          <section className='bg-white rounded-xl shadow-sm border border-gray-200'>
+            {/* Header - biru cerah seperti gambar */}
+            <div className='bg-[#1ae862] text-white px-5 h-10 flex items-center justify-between rounded-t-xl'>
+              <div className='flex items-center gap-2'>
+                <Filter size={13} strokeWidth={2.5} className='text-white' />
+                <strong className='text-[11px] font-bold tracking-wide'>
                   Filter Data Broadcast
                 </strong>
-                <span className='text-[8px] ml-2 text-blue-100 font-normal tracking-wide'>
+                <span className='text-[10px] ml-1 text-blue-100 font-normal'>
                   (Multi-pilih, cascading dinamis)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
+              <button
+                className='bg-white text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors cursor-pointer shadow-sm'
+                aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
                 <ChevronDown
-                  size={16}
+                  size={14}
                   strokeWidth={2.5}
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className={isFilterOpen ? "rotate-180" : ""}
-
+                  className={`transition-transform duration-200 ${isFilterOpen ? 'rotate-180' : ''}`}
                 />
               </button>
             </div>
+
             {/* {Konten Filter} */}
             <div
-              className='p-4 border-t border-gray-200'
-              style={{ display: isFilterOpen ? 'block' : 'none' }}
+              className='p-4 flex flex-col gap-3'
+              style={{ display: isFilterOpen ? 'flex' : 'none' }}
             >
-              <div className='border border-slate-200 rounded-lg p-2 flex flex-col sm:flex-row items-start sm:items-center bg-white shadow-sm max-w-full'>
-                <div className='flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 sm:mb-0 mb-2'>
+              {/* Baris 1: Filter Tanggal Input */}
+              <div className='flex flex-col sm:flex-row items-start sm:items-center gap-2'>
+                <div className='flex items-center text-xs font-semibold text-gray-600 min-w-max'>
                   <Calendar
                     size={14}
-                    className='mr-2 text-blue-500'
+                    className='mr-1.5 text-blue-500'
                     strokeWidth={2.5}
                   />
                   Tanggal Input:
                 </div>
                 <div className='flex items-center gap-2'>
                   <input
-                    type="date"
+                    type='date'
                     className='w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
                     placeholder='mm/dd/yyyy'
                     value={startDate}
                     onChange={(e) => { setStartDate(e.target.value); setPage(1); setSelected(null); }}
                   />
-                  <span className='text-slate-300 font-semibold'>-</span>
+                  <span className='text-gray-400 font-semibold'>-</span>
                   <input
-                    type="date"
+                    type='date'
                     className='w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
                     placeholder='mm/dd/yyyy'
                     value={endDate}
@@ -601,7 +649,8 @@ export default function TrackingBroadcastPage() {
                 </div>
               </div>
 
-              <div ref={dropdownRef} className='flex flex-wrap lg:flex-nowrap gap-3 w-full mt-3'>
+              {/* Baris 2: Tombol Filter dengan Dropdown */}
+              <div ref={dropdownRef} className='flex flex-wrap lg:flex-nowrap gap-2 w-full'>
                 {filterButtons.map((btn) => {
                   const IconComponent = btn.icon
                   const activeArr = getFilterArr(btn.id)
@@ -619,7 +668,7 @@ export default function TrackingBroadcastPage() {
                   const isOpen = openDropdown === btn.id
                   return (
                     <div key={btn.id} className='relative inline-block flex-1 min-w-[110px]'>
-                      {/* Trigger button - pill putih, border highlight baru saat diklik */}
+                      {/* Trigger button - pill putih, border highlight biru saat diklik */}
                       <button
                         type='button'
                         onClick={() => setOpenDropdown(isOpen ? null : btn.id)}
@@ -647,7 +696,8 @@ export default function TrackingBroadcastPage() {
                           <ChevronDown size={10} className={`ml-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                         </span>
                       </button>
-                      {/* Dropdown panel - to front, shadow kuat */}
+
+                      {/* Dropdown panel */}
                       {isOpen && (
                         <div
                           className='absolute top-[calc(100%+4px)] left-0 z-[9999] w-56 bg-white rounded-lg flex flex-col'
@@ -656,7 +706,7 @@ export default function TrackingBroadcastPage() {
                             border: '1px solid #e2e8f0',
                           }}
                         >
-                          {/* Search langsung */}
+                          {/* Search langsung, tanpa header */}
                           <div className='px-2 pt-2 pb-1'>
                             <input
                               autoFocus
@@ -715,6 +765,7 @@ export default function TrackingBroadcastPage() {
                   )
                 })}
               </div>
+
               {/* Hint info row */}
               <div className='flex items-center gap-1.5 text-[10px] text-slate-400'>
                 <span className='text-blue-400'>ⓘ</span>
@@ -725,9 +776,41 @@ export default function TrackingBroadcastPage() {
                   </span>
                 )}
               </div>
+
+              {/* ---- Chips row: active selections ---- */}
+              {filterButtons.some(b => getFilterArr(b.id).length > 0) && (
+                <div className='flex flex-wrap gap-1 mt-0.5'>
+                  {filterButtons.flatMap(btn =>
+                    getFilterArr(btn.id).map(val => (
+                      <span
+                        key={`${btn.id}-${val}`}
+                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200'
+                      >
+                        {btn.label}: {btn.id === 'Bulan' ? formatBulan(val) : val}
+                        <button
+                          type='button'
+                          onClick={() => toggleFilterVal(btn.id, val)}
+                          className='hover:text-red-500 ml-0.5'
+                        >
+                          <X size={9} />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                  <button
+                    type='button'
+                    onClick={() => filterButtons.forEach(b => clearFilterArr(b.id))}
+                    className='text-[10px] text-red-500 hover:text-red-700 font-semibold ml-1'
+                  >
+                    Reset Semua
+                  </button>
+                </div>
+              )}
             </div>
           </section>
+
           <section className='bg-white mt-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
+
             <div className='bg-[#095D4B] text-white px-6 h-10 flex items-center justify-between'>
               <div className='flex items-center'>
                 <BarChart2 size={12} className='mr-2' strokeWidth={2.5} />
@@ -800,7 +883,7 @@ export default function TrackingBroadcastPage() {
                         <span className='text-[10px] text-slate-600 font-medium whitespace-nowrap'>
                           Terkirim (1C)
                         </span>
-                        <span className='text-[10px] font-bold text-slate-700 ml-0.5' id='statTerkirim'>11</span>
+                        <span className='text-[10px] font-bold text-slate-700 ml-0.5'>{statusWaSummary.terkirim}</span>
                       </div>
                       {/* Diterima (2C) */}
                       <div className='flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-0.5'>
@@ -808,7 +891,7 @@ export default function TrackingBroadcastPage() {
                         <span className='text-[10px] text-blue-700 font-medium whitespace-nowrap'>
                           Diterima (2C)
                         </span>
-                        <span className='text-[10px] font-bold text-blue-800 ml-0.5' id='statDiterima'>37</span>
+                        <span className='text-[10px] font-bold text-blue-800 ml-0.5' id='statDiterima'>{statusWaSummary.diterima}</span>
                       </div>
                       {/* Dibaca - Belum Respons */}
                       <div className='flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-2.5 py-0.5'>
@@ -816,7 +899,7 @@ export default function TrackingBroadcastPage() {
                         <span className='text-[10px] text-yellow-700 font-medium whitespace-nowrap'>
                           Dibaca - Belum Respons
                         </span>
-                        <span className='text-[10px] font-bold text-yellow-800 ml-0.5' id='statBelumRespons'>74</span>
+                        <span className='text-[10px] font-bold text-yellow-800 ml-0.5' id='statBelumRespons'>{statusWaSummary.belumRespon}</span>
                       </div>
                       {/* Dibaca - Respons Positif */}
                       <div className='flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5'>
@@ -824,7 +907,14 @@ export default function TrackingBroadcastPage() {
                         <span className='text-[10px] text-green-700 font-medium whitespace-nowrap'>
                           Dibaca - Respons Positif
                         </span>
-                        <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>14</span>
+                        <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>{statusWaSummary.positif}</span>
+                      </div>
+                      <div className='flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5'>
+                        <span className='w-2 h-2 rounded-full bg-green-500 shrink-0'></span>
+                        <span className='text-[10px] text-green-700 font-medium whitespace-nowrap'>
+                          Dibaca - Respons Netral
+                        </span>
+                        <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>{statusWaSummary.netral}</span>
                       </div>
                       {/* Aktif Broadcast */}
                       <div className='flex items-center gap-1 bg-purple-50 border border-purple-200 rounded-full px-2.5 py-0.5'>
@@ -832,7 +922,7 @@ export default function TrackingBroadcastPage() {
                         <span className='text-[10px] text-purple-700 font-medium whitespace-nowrap'>
                           Aktif Broadcast
                         </span>
-                        <span className='text-[10px] font-bold text-purple-800 ml-0.5' id='statAktif'>6</span>
+                        <span className='text-[10px] font-bold text-purple-800 ml-0.5' id='statAktif'>{statusWaSummary.aktif}</span>
                       </div>
                       {/* Total angka */}
                       <div className='flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-0.5'>
@@ -845,7 +935,7 @@ export default function TrackingBroadcastPage() {
                         <span className='text-[10px] text-amber-700 font-medium whitespace-nowrap'>
                           (Kosong)
                         </span>
-                        <span className='text-[10px] font-bold text-amber-800 ml-0.5' id='statKosong'>19</span>
+                        <span className='text-[10px] font-bold text-amber-800 ml-0.5' id='statKosong'>{statusWaSummary.kosong}</span>
                       </div>
                     </div>
                   </div>

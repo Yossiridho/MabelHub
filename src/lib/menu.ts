@@ -35,7 +35,7 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       ],
     },
     {
-      title: "PRODUCT",
+      title: "PRODUCT HUB",
       icon: "Package",
       items: [
         { label: "Data Produk", href: "/produk", icon: "CheckSquare" },
