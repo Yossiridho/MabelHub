@@ -8,8 +8,8 @@ export default function RequestSPHPage() {
   const router = useRouter();
 
   return (
-    <div className="flex-1 p-6">
-      <main className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow">
+    <div className="flex-1 p-3 sm:p-6">
+      <main className="mx-auto max-w-6xl rounded-2xl bg-white p-4 sm:p-6 shadow">
         {/* HEADER */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h2 className="text-lg font-semibold text-black">REQUEST SPH</h2>
@@ -48,8 +48,8 @@ export default function RequestSPHPage() {
 
         {/* TABLE */}
         <div className="mt-4 overflow-hidden rounded-xl ring-1 ring-black/10">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-gray-700">
+          <table className="w-full text-sm block lg:table">
+            <thead className="bg-gray-100 text-gray-700 hidden lg:table-header-group">
               <tr>
                 {[
                   "TANGGAL",
@@ -67,9 +67,9 @@ export default function RequestSPHPage() {
               </tr>
             </thead>
 
-            <tbody className="bg-white">
-              <tr>
-                <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
+            <tbody className="bg-white block lg:table-row-group">
+              <tr className="block lg:table-row">
+                <td colSpan={7} className="px-4 py-14 text-center text-gray-500 block">
                   Belum ada data.
                 </td>
               </tr>

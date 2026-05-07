@@ -53,6 +53,18 @@ export default function Sidebar() {
     setIsOpen(false);
   }, [pathname]);
 
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     const handleScroll = () => {
       const el = navRef.current;
@@ -123,11 +135,16 @@ export default function Sidebar() {
     router.replace("/");
   }
 
+  // Helper: on mobile when isOpen, labels should always be visible (not rely on hover)
+  const labelVisibility = isOpen
+    ? "opacity-100"
+    : "opacity-0 group-hover:opacity-100";
+
   return (
     <>
       <style>{`
         @media (max-width: 1023px) {
-          aside ~ div {
+          .main-content-area {
             padding-top: 4rem !important;
           }
         }
@@ -139,14 +156,28 @@ export default function Sidebar() {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+
+        /* Mobile sidebar open: show scrollbar for usability */
+        @media (max-width: 1023px) {
+          .sidebar-nav-mobile::-webkit-scrollbar {
+            width: 3px;
+          }
+          .sidebar-nav-mobile::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .sidebar-nav-mobile::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+          }
+        }
       `}</style>
 
       {/* Mobile Top Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-blue-900 z-40 border-b border-white/10 flex items-center justify-between px-4 shadow-sm">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-blue-900 z-40 border-b border-white/10 flex items-center justify-between px-4 shadow-lg">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsOpen(true)}
-            className="p-2 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg text-white/80 hover:bg-white/10 active:bg-white/20 transition-colors"
             aria-label="Open Menu"
           >
             <Menu className="w-6 h-6" />
@@ -155,7 +186,7 @@ export default function Sidebar() {
             MabelHub
           </span>
         </div>
-        <div className="flex items-center gap-4 text-white">
+        <div className="flex items-center gap-3 text-white">
           <NotificationMenu />
           <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-blue-900 font-bold text-xs shadow-inner">
             {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
@@ -164,12 +195,12 @@ export default function Sidebar() {
       </header>
 
       {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      <div
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity duration-300 ${
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setIsOpen(false)}
+      />
 
       {/* Sidebar Wrapper Div to maintain layout width on desktop */}
       <div className="hidden lg:block w-20 flex-shrink-0 transition-all duration-300" />
@@ -179,8 +210,8 @@ export default function Sidebar() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 left-0 z-50 h-screen bg-[#1D80D9] text-white transition-all duration-300 ease-in-out flex flex-col group 
-          ${isOpen ? "translate-x-0 w-[255px] shadow-2xl shadow-blue-950/50" : "-translate-x-full lg:translate-x-0 w-20 lg:hover:w-[255px] lg:hover:shadow-2xl lg:hover:shadow-blue-950/50"}
+        className={`fixed top-0 left-0 z-50 h-[100dvh] bg-[#1D80D9] text-white transition-all duration-300 ease-in-out flex flex-col group 
+          ${isOpen ? "translate-x-0 w-[280px] shadow-2xl shadow-blue-950/50" : "-translate-x-full lg:translate-x-0 w-20 lg:hover:w-[255px] lg:hover:shadow-2xl lg:hover:shadow-blue-950/50"}
         `}
       >
         {/* LOGO / HEAD SECTION */}
@@ -188,18 +219,21 @@ export default function Sidebar() {
           <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-transform">
              <Icons.ShieldCheck className="w-6 h-6 text-blue-900" />
           </div>
-          <div className="ml-4 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+          <div className={`ml-4 flex flex-col ${labelVisibility} transition-opacity duration-300 whitespace-nowrap overflow-hidden`}>
             <span className="text-sm font-black text-white tracking-[0.1em]">MabelHub</span>
             <span className="text-[10px] text-blue-100 font-medium whitespace-nowrap">Customer Relationship Management</span>
           </div>
           
           {/* Close Button Mobile */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="lg:hidden ml-auto p-2 text-white/60 hover:bg-white/10 rounded-full"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {isOpen && (
+            <button
+              onClick={() => setIsOpen(false)}
+              className="lg:hidden ml-auto p-2 text-white/80 hover:bg-white/10 active:bg-white/20 rounded-full transition-colors"
+              aria-label="Close Menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* SCROLL PROGRESS */}
@@ -213,7 +247,7 @@ export default function Sidebar() {
         {/* MENU */}
         <nav 
           ref={navRef}
-          className="flex-1 overflow-y-auto no-scrollbar px-3 py-6 space-y-4"
+          className={`flex-1 overflow-y-auto no-scrollbar px-3 py-4 space-y-3 ${isOpen ? "sidebar-nav-mobile" : ""}`}
         >
           {sections.map((section) => {
             const SectionIcon = (Icons as any)[section.icon] || Icons.Circle;
@@ -234,12 +268,12 @@ export default function Sidebar() {
                   `}>
                     <SectionIcon className="w-5 h-5" />
                   </div>
-                  <div className="flex-1 flex items-center justify-between overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className={`flex-1 flex items-center justify-between overflow-hidden ${labelVisibility} transition-opacity duration-300`}>
                     <span className="text-[10px] font-bold tracking-widest uppercase truncate whitespace-nowrap">
                       {section.title}
                     </span>
                     <ChevronUp
-                      className={`w-4 h-4 transition-transform duration-200 ${expanded ? "" : "transform rotate-180"}`}
+                      className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${expanded ? "" : "transform rotate-180"}`}
                     />
                   </div>
                 </button>
@@ -248,7 +282,7 @@ export default function Sidebar() {
                 <div 
                   className={`space-y-1 overflow-hidden transition-all duration-300 
                     ${expanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}
-                    lg:hidden lg:group-hover:block
+                    ${!isOpen ? "lg:hidden lg:group-hover:block" : ""}
                   `}
                 >
                   {section.items.map((item) => {
@@ -262,13 +296,13 @@ export default function Sidebar() {
                         className={`flex items-center h-11 rounded-xl transition-all duration-200 px-3 pl-4 group/item
                           ${active 
                             ? "bg-white text-blue-900 shadow-lg shadow-white/10" 
-                            : "text-white/60 hover:bg-white/10 hover:text-white"}
+                            : "text-white/60 hover:bg-white/10 hover:text-white active:bg-white/20"}
                         `}
                       >
                         <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mr-4">
                           <ItemIcon className={`w-4 h-4 ${active ? "text-blue-900" : "text-white/40 group-hover/item:text-white"}`} />
                         </div>
-                        <span className={`whitespace-nowrap font-medium text-base opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${active ? "text-blue-900" : ""}`}>
+                        <span className={`whitespace-nowrap font-medium text-base ${labelVisibility} transition-opacity duration-300 ${active ? "text-blue-900" : ""}`}>
                           {item.label}
                         </span>
                       </Link>
@@ -287,7 +321,7 @@ export default function Sidebar() {
                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-white flex items-center justify-center text-blue-900 font-bold text-lg shadow-lg">
                     {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
                  </div>
-                 <div className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col min-w-0">
+                 <div className={`ml-4 ${labelVisibility} transition-opacity duration-300 flex flex-col min-w-0`}>
                     <span className="text-white font-semibold truncate text-sm">{user.fullName}</span>
                     <span className="text-blue-100 font-bold text-[10px] tracking-wider">{userLabel.toUpperCase()}</span>
                  </div>
@@ -298,12 +332,12 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={onLogout}
-                className="flex items-center justify-center h-12 w-full rounded-xl bg-white/10 text-white hover:bg-white hover:text-blue-900 transition-all duration-200 group/logout"
+                className="flex items-center justify-center h-12 w-full rounded-xl bg-white/10 text-white hover:bg-white hover:text-blue-900 active:bg-white/20 transition-all duration-200 group/logout"
               >
                  <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center group-hover/logout:text-blue-900">
                     <Icons.LogOut className="w-5 h-5" />
                  </div>
-                 <span className="font-bold text-[10px] tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden whitespace-nowrap">
+                 <span className={`font-bold text-[10px] tracking-widest ${labelVisibility} transition-opacity duration-300 overflow-hidden whitespace-nowrap`}>
                     LOGOUT
                  </span>
               </button>

@@ -38,7 +38,7 @@ export default function TrackingBroadcastPage() {
   return (
     <div className='min-h-screen bg-blue-50'>
       <div className='flex'>
-        <div className='flex-1 p-6'>
+        <div className='flex-1 p-3 sm:p-6'>
           <div className='bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100'>
             <div className='flex flex-col'>
               <h4 className='text-[20px] mb-1 font-extrabold text-(--gray-800) m-0 tracking-[-0.5px]'>
@@ -50,23 +50,22 @@ export default function TrackingBroadcastPage() {
             </div>
           </div>
           <section className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-            <div className='bg-[#1ae862] text-white px-6 h-10 flex items-center justify-between'>
-              <div className='flex items-center'>
-                <Filter size={12} className='mr-2' strokeWidth={2.5} />
-                <strong className='text-[8px] font-bold tracking-wide'>
+            <div className='bg-[#1ae862] text-white px-3 sm:px-6 h-10 flex items-center justify-between gap-2'>
+              <div className='flex items-center min-w-0'>
+                <Filter size={12} className='mr-1.5 sm:mr-2 shrink-0' strokeWidth={2.5} />
+                <strong className='text-[10px] sm:text-[8px] font-bold tracking-wide whitespace-nowrap'>
                   Filter Data Broadcast
                 </strong>
-                <span className='text-[8px] ml-2 text-blue-100 font-normal tracking-wide'>
+                <span className='text-[9px] sm:text-[8px] ml-1 sm:ml-2 text-green-100 font-normal tracking-wide hidden sm:inline'>
                   (Multi-pilih, cascading dinamis)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
+              <button className='bg-white text-green-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
                 <ChevronDown
                   size={16}
                   strokeWidth={2.5}
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className={isFilterOpen ? "rotate-180" : ""}
-                  
+                  className={`transition-transform duration-200 ${isFilterOpen ? "rotate-180" : ""}`}
                 />
               </button>
             </div>
@@ -76,7 +75,7 @@ export default function TrackingBroadcastPage() {
               style={{ display: isFilterOpen ? 'block' : 'none' }}
             >
               <div className='border border-slate-200 rounded-lg p-2 flex flex-col sm:flex-row items-start sm:items-center bg-white shadow-sm max-w-full'>
-                <div className='flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 sm:mb-0 mb-2'>
+                <div className='flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 lg:mb-0 mb-2'>
                   <Calendar
                     size={14}
                     className='mr-2 text-blue-500'
@@ -96,13 +95,13 @@ export default function TrackingBroadcastPage() {
                   />
                 </div>
               </div>
-              <div className='flex flex-wrap lg:flex-nowrap gap-2 w-full mt-1'>
+              <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full mt-1'>
                 {filterButtons.map((btn, idx) => {
                   const IconComponent = btn.icon
                   return (
                     <button
                       key={idx}
-                      className='flex flex-1 items-center justify-center gap-1.5 py-[7px] px-2 text-xs font-semibold border-[1.5px] border-[#ced4da] rounded-lg bg-white cursor-pointer text-[#495057] transition-all duration-150 select-none box-border truncate hover:bg-slate-50 hover:border-slate-400 min-w-[120px]'
+                      className='flex items-center justify-center gap-1.5 py-[7px] px-2 text-xs font-semibold border-[1.5px] border-[#ced4da] rounded-lg bg-white cursor-pointer text-[#495057] transition-all duration-150 select-none box-border truncate hover:bg-slate-50 hover:border-slate-400'
                     >
                       <IconComponent
                         size={10}
@@ -121,32 +120,32 @@ export default function TrackingBroadcastPage() {
             </div>
           </section>
           <section className='bg-white mt-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-            <div className='bg-[#095D4B] text-white px-6 h-10 flex items-center justify-between'>
-              <div className='flex items-center'>
-                <BarChart2 size={12} className='mr-2' strokeWidth={2.5} />
-                <strong className='text-[8px] font-bold tracking-wide'>
+            <div className='bg-[#095D4B] text-white px-3 sm:px-6 h-10 flex items-center justify-between gap-2'>
+              <div className='flex items-center min-w-0'>
+                <BarChart2 size={12} className='mr-1.5 sm:mr-2 shrink-0' strokeWidth={2.5} />
+                <strong className='text-[10px] sm:text-[8px] font-bold tracking-wide whitespace-nowrap'>
                   Analis Data Broadcast
                 </strong>
-                <span className='text-[8px] ml-2 text-blue-100 font-normal tracking-wide'>
+                <span className='text-[9px] sm:text-[8px] ml-1 sm:ml-2 text-blue-100 font-normal tracking-wide hidden sm:inline'>
                   (Klik baris tabel untuk drill-down)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
+              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0' aria-label={isFilterOpen2 ? "Tutup filter" : "Buka filter"}>
                 <ChevronDown
                   size={16}
                   strokeWidth={2.5}
                   onClick={() => setIsFilterOpen2(!isFilterOpen2)}
-                  className={isFilterOpen2 ? "rotate-180" : ""}
+                  className={`transition-transform duration-200 ${isFilterOpen2 ? "rotate-180" : ""}`}
                 />
               </button>
             </div>
 
             {/* {Konten Filter 2} */}
             <div
-              className='p-4 flex flex-col gap-3'
+              className='p-3 sm:p-4 flex flex-col gap-3'
               style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
             >
-              <div className='flex flex-col md:flex-row gap-3 w-full'>
+              <div className='flex flex-col sm:flex-row gap-3 w-full'>
                 {/* Card Kiri: Total Unik No HP */}
                 <div className='shrink-0 md:w-auto w-full'>
                   <div className='flex items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 h-full min-w-[200px]'>
@@ -247,7 +246,7 @@ export default function TrackingBroadcastPage() {
             </div>
             {/* Konten Filter */}
             <div
-              className='flex flex-col md:flex-row gap-3 w-full px-4 pb-4 mt-1.5'
+              className='flex flex-col sm:flex-row gap-3 w-full px-3 sm:px-4 pb-3 sm:pb-4 mt-1.5'
               style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
             >
               {/* Panel Kiri: Data Unik per Provinsi & Kota */}
@@ -640,11 +639,10 @@ export default function TrackingBroadcastPage() {
             </div>
           </section>
           <div className='mt-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-
             <div className='overflow-x-auto'>
-              <table className='min-w-full text-left border-collapse'>
+              <table className='w-full text-left border-collapse block lg:table'>
                 {/* Header - dark blue like reference */}
-                <thead className='sticky top-0 z-10'>
+                <thead className='sticky top-0 z-10 hidden lg:table-header-group'>
                   <tr className='bg-[#1a2c4e] text-white'>
                     {[
                       { label: "NO" },
@@ -666,18 +664,20 @@ export default function TrackingBroadcastPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className='block lg:table-row-group'>
                   {Array.from({ length: 15 }).map((_, i) => (
                     <tr
                       key={i}
-                      className={`transition-colors cursor-pointer border-b border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}
+                      className={`block lg:table-row mb-4 lg:mb-0 rounded-xl lg:rounded-none shadow-md lg:shadow-none border border-gray-200 lg:border-b lg:border-t-0 lg:border-x-0 p-3 lg:p-0 transition-colors cursor-pointer ${i % 2 === 0 ? 'bg-white' : 'bg-white lg:bg-gray-50'} hover:bg-blue-50/50`}
                     >
                       {/* No */}
-                      <td className='px-2 py-2 text-[11px] font-semibold text-gray-500 w-8 text-center'>
-                        {i + 1}
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 text-[11px] font-semibold text-gray-500 sm:w-8 sm:text-center border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400">NO</span>
+                        <span>{i + 1}</span>
                       </td>
                       {/* Lihat - Eye & WA button */}
-                      <td className='px-1 py-2 w-16'>
+                      <td className="flex justify-between items-center px-1 py-1.5 sm:px-1 sm:py-2 sm:w-16 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">👁 LIHAT</span>
                         <div className='flex items-center gap-1'>
                           <button className='flex items-center justify-center w-6 h-6 rounded bg-[#0DCAF0] hover:bg-cyan-500 transition-colors shadow-sm'>
                             <Eye size={12} strokeWidth={2.5} color='white' />
@@ -688,37 +688,42 @@ export default function TrackingBroadcastPage() {
                         </div>
                       </td>
                       {/* Perusahaan */}
-                      <td className='px-2 py-2 text-[11px] font-semibold text-gray-800 whitespace-nowrap'>
-                        PT. Maju Mundur
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 text-[11px] font-semibold text-gray-800 sm:whitespace-nowrap border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">🏢 PERUSAHAAN</span>
+                        <span className='text-right'>PT. Maju Mundur</span>
                       </td>
                       {/* Produk */}
-                      <td className='px-2 py-2'>
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">📦 PRODUK</span>
                         <span className='inline-block text-[10px] text-blue-700 font-bold uppercase px-1.5 py-0.5 bg-blue-50 border border-blue-200 rounded'>
                           Genset
                         </span>
                       </td>
                       {/* Info Lokasi */}
-                      <td className='px-2 py-2 text-[11px] text-gray-600 whitespace-nowrap'>
-                        <div className='flex items-center gap-1'>
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 text-[11px] text-gray-600 sm:whitespace-nowrap border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">📍 INFO LOKASI</span>
+                        <div className='flex items-center justify-end gap-1'>
                           <MapPin size={10} strokeWidth={2.5} className='text-blue-500 shrink-0' />
-                          <span>Kota Bandung, DKI Jakarta</span>
+                          <span className='text-right'>Kota Bandung, DKI Jakarta</span>
                         </div>
                       </td>
                       {/* Kontak PIC */}
-                      <td className='px-2 py-2 text-[11px] text-gray-700'>
-                        <div className='flex flex-col gap-0.5'>
-                          <span className='font-semibold'>Abdul Rosyid (-)</span>
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 text-[11px] text-gray-700 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">👤 KONTAK PIC</span>
+                        <div className='flex flex-col gap-0.5 items-end sm:items-start'>
+                          <span className='font-semibold text-right'>Abdul Rosyid (-)</span>
                           <span className='flex items-center gap-1 text-gray-500'>
                             <Phone size={9} strokeWidth={2} />08123456789
                           </span>
                         </div>
                       </td>
                       {/* Status WA */}
-                      <td className='px-2 py-2'>
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">💬 STATUS WA</span>
                         <select
                           value={statusWa}
                           onChange={(e) => setStatusWa(e.target.value)}
-                          className='text-[10px] border border-gray-300 rounded px-1.5 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-36 cursor-pointer'
+                          className='text-[10px] border border-gray-300 rounded px-1.5 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full sm:w-36 max-w-[150px] cursor-pointer text-right lg:text-left'
                         >
                           <option value="">- Pilih Status -</option>
                           <option value="Terkirim(1C)">Terkirim(1C)</option>
@@ -731,11 +736,12 @@ export default function TrackingBroadcastPage() {
                         </select>
                       </td>
                       {/* Ke Sales */}
-                      <td className='px-2 py-2'>
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">➡ KE SALES</span>
                         <select
                           value={toSales}
                           onChange={(e) => setToSales(e.target.value)}
-                          className='text-[10px] border border-gray-300 rounded px-1.5 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-36 cursor-pointer'
+                          className='text-[10px] border border-gray-300 rounded px-1.5 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full sm:w-36 max-w-[150px] cursor-pointer text-right lg:text-left'
                         >
                           <option value="">- Pilih Sales -</option>
                           <option value="Arie Muhammad Fajar">Arie Muhammad Fajar</option>
@@ -743,7 +749,8 @@ export default function TrackingBroadcastPage() {
                         </select>
                       </td>
                       {/* Opsi - Send */}
-                      <td className='px-2 py-2'>
+                      <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 sm:py-2 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                        <span className="lg:hidden font-bold text-gray-400 text-[10px]">⚙ OPSI</span>
                         <button className='flex items-center justify-center w-7 h-7 rounded bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm'>
                           <Send size={12} strokeWidth={2.5} color='white' />
                         </button>
@@ -755,12 +762,12 @@ export default function TrackingBroadcastPage() {
             </div>
           </div>
           {/* Legend Footer */}
-          <div className='flex flex-wrap items-center mt-4 gap-4 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-[#0DCAF0]'></span>Data dari sheet <strong>DATA_WA</strong></span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-blue-500'></span>Klik <strong>👁</strong> untuk detail lengkap</span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span>Centang <strong>☑</strong> untuk submit massal</span>
-            <span className='flex items-center gap-1 ml-auto'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-green-500 text-white font-bold text-[9px]'>STATUS WA</span> = Respons</span>
-            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-yellow-400 text-white font-bold text-[9px]'>KE SALES</span> = Forward</span>
+          <div className='flex flex-wrap items-center mt-4 gap-2 sm:gap-4 px-3 sm:px-4 py-2 bg-gray-50 border-b border-gray-200 text-[9px] sm:text-[10px] text-gray-500 rounded-lg lg:rounded-none'>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-[#0DCAF0]'></span><strong>DATA_WA</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-blue-500'></span><strong>👁</strong> detail</span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span><strong>☑</strong> massal</span>
+            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-green-500 text-white font-bold text-[9px]'>STATUS</span></span>
+            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-yellow-400 text-white font-bold text-[9px]'>SALES</span></span>
           </div>
         </div>
       </div>

@@ -152,7 +152,7 @@ export default function EProcurementResponsePage() {
       <div className="flex relative z-10">
         
 
-        <div className="flex-1 p-6 ">
+        <div className="flex-1 p-3 sm:p-6">
           <div className="px-3 pt-2 pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -183,9 +183,9 @@ export default function EProcurementResponsePage() {
                   Tidak ada request yang bisa diambil.
                 </div>
               ) : (
-                <div className="w-full overflow-x-auto">
-                  <table className="min-w-[1150px] w-full text-sm border-collapse">
-                    <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                <div className="w-full overflow-x-hidden sm:overflow-x-auto">
+                  <table className="w-full text-sm border-collapse block lg:table">
+                    <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold hidden lg:table-header-group">
                       <tr className="border-b border-slate-100">
                         <th className="px-5 py-4 text-left whitespace-nowrap">
                           Request ID
@@ -214,7 +214,7 @@ export default function EProcurementResponsePage() {
                       </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody className="block lg:table-row-group">
                       {sortedRows.map((r) => {
                         const isOpen = openDetail === r.requestId;
                         const isTaking = takingId === r.requestId;
@@ -281,14 +281,15 @@ function FragmentRow({
   return (
     <>
       <tr
-        className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${
+        className={`block lg:table-row border border-slate-200 lg:border-0 border-b lg:border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors mb-4 lg:mb-0 rounded-xl lg:rounded-none p-4 lg:p-0 shadow-sm lg:shadow-none bg-white ${
           isOpen ? "bg-indigo-50/20" : isDelayed ? "bg-rose-50/40" : ""
         }`}
         onClick={onToggle}
         title="Klik untuk lihat detail"
       >
-        <td className="px-5 py-4 font-semibold text-slate-800">
-          <div className="flex items-center gap-2">
+        <td className="px-1 py-2 sm:px-5 lg:py-4 font-semibold text-slate-800 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">REQUEST ID</span>
+          <div className="flex items-center justify-end gap-2 text-right">
             {r.requestId}
             {isDelayed && (
               <span
@@ -298,24 +299,36 @@ function FragmentRow({
             )}
           </div>
         </td>
-        <td className="px-5 py-4 text-slate-600">
-          <span>{r.requestor}</span>
+        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-600 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">REQUESTOR</span>
+          <span className="text-right">{r.requestor}</span>
         </td>
-        <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
-        <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
-        <td className="px-5 py-4">
-          <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200">
+        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-800 font-medium flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">PEMOHON</span>
+          <span className="text-right">{r.pemohon}</span>
+        </td>
+        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-600 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">LOKASI</span>
+          <span className="text-right">{r.lokasi}</span>
+        </td>
+        <td className="px-1 py-2 sm:px-5 lg:py-4 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">SEGMEN</span>
+          <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200 text-right">
             {r.segmen}
           </span>
         </td>
-        <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>
+        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-600 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">TANGGAL MASUK</span>
+          <span className="text-right">{fmtDate(r.tanggalSubmit)}</span>
+        </td>
         <td
-          className={`px-5 py-4 font-medium ${isDelayed ? "text-rose-600" : "text-slate-600"}`}
+          className={`px-1 py-2 sm:px-5 lg:py-4 font-medium flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed ${isDelayed ? "text-rose-600" : "text-slate-600"}`}
         >
-          {fmtDate(r.deadlineUsulan)}
+          <span className="lg:hidden text-[10px] font-bold text-slate-400 text-slate-400">DEADLINE</span>
+          <span className="text-right">{fmtDate(r.deadlineUsulan)}</span>
         </td>
 
-        <td className="px-5 py-4 text-center">
+        <td className="px-1 py-3 sm:px-5 lg:py-4 text-center lg:table-cell mt-2 lg:mt-0 w-full sm:w-auto">
           <button
             disabled={isTaking}
             onClick={(e) => {
@@ -323,7 +336,7 @@ function FragmentRow({
               onTake();
             }}
             className={[
-              "h-8 rounded-full px-5 text-xs font-bold transition-all flex items-center justify-center mx-auto shadow-sm",
+              "h-10 sm:h-8 w-full sm:w-auto rounded-xl sm:rounded-full px-5 text-xs font-bold transition-all flex items-center justify-center mx-auto shadow-sm",
               isTaking
                 ? "bg-slate-300 text-slate-500 shadow-none cursor-not-allowed"
                 : isDelayed
@@ -364,8 +377,8 @@ function FragmentRow({
       </tr>
 
       {isOpen ? (
-        <tr className="border-b border-slate-100 bg-slate-50/50">
-          <td colSpan={8} className="px-5 py-5 text-sm">
+        <tr className="border border-slate-200 lg:border-0 lg:border-b sm:border-slate-100 bg-slate-50/50 block lg:table-row relative sm:static -mt-6 lg:mt-0 z-0 lg:z-auto rounded-b-xl lg:rounded-none pt-4 sm:pt-0 pb-2 lg:pb-0">
+          <td colSpan={8} className="px-5 py-5 text-sm block lg:table-cell">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
               <div>
                 <span className="font-semibold text-slate-700">
@@ -402,8 +415,8 @@ function FragmentRow({
               </h4>
               {r.items && r.items.length > 0 ? (
                 <div className="overflow-x-auto border border-slate-200 shadow-sm rounded-xl bg-white">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                  <table className="w-full text-xs text-left block lg:table">
+                    <thead className="bg-slate-50 border-b border-slate-100 hidden lg:table-header-group">
                       <tr className="text-slate-500 uppercase tracking-wider font-semibold">
                         <th className="px-3 py-3 font-semibold">Merek</th>
                         <th className="px-3 py-3 font-semibold">
@@ -421,34 +434,41 @@ function FragmentRow({
                         <th className="px-3 py-3 font-semibold">Link ECom</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 block lg:table-row-group">
                       {r.items.map((it, idx) => (
                         <tr
                           key={it.id || idx}
-                          className="hover:bg-slate-50 transition-colors"
+                          className="hover:bg-slate-50 transition-colors block lg:table-row py-2 sm:py-0 border-b border-slate-100 lg:border-0"
                         >
-                          <td className="px-3 py-3 font-medium text-slate-800">
-                            {it.merek || "-"}
+                          <td className="px-3 py-1.5 lg:py-3 font-medium text-slate-800 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400">MEREK</span>
+                            <span className="text-right lg:text-left">{it.merek || "-"}</span>
                           </td>
-                          <td className="px-3 py-3 text-slate-600">
-                            {it.subKategori || "-"}
+                          <td className="px-3 py-1.5 lg:py-3 text-slate-600 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400 whitespace-nowrap">SUB KATEGORI</span>
+                            <span className="text-right lg:text-left">{it.subKategori || "-"}</span>
                           </td>
                           <td
-                            className="px-3 py-3 text-slate-600 line-clamp-2"
+                            className="px-3 py-1.5 lg:py-3 text-slate-600 sm:line-clamp-2 flex flex-col lg:table-cell items-start gap-1"
                             title={it.spesifikasi}
                           >
-                            {it.spesifikasi || "-"}
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400 w-full">SPESIFIKASI</span>
+                            <span className="text-left w-full bg-slate-50 sm:bg-transparent p-2 lg:p-0 rounded-md lg:rounded-none mt-1 lg:mt-0 text-xs sm:text-[11px]">{it.spesifikasi || "-"}</span>
                           </td>
-                          <td className="px-3 py-3 font-semibold text-slate-700">
-                            {it.qty ?? "-"}
+                          <td className="px-3 py-1.5 lg:py-3 font-semibold text-slate-700 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400">QTY</span>
+                            <span className="text-right lg:text-left">{it.qty ?? "-"}</span>
                           </td>
-                          <td className="px-3 py-3 pl-4 text-slate-600">
-                            {it.paguPerItem || "-"}
+                          <td className="px-3 py-1.5 lg:py-3 sm:pl-4 text-slate-600 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400">PAGU</span>
+                            <span className="text-right lg:text-left">{it.paguPerItem || "-"}</span>
                           </td>
-                          <td className="px-3 py-3 text-slate-600">
-                            {it.hargaTayang || "-"}
+                          <td className="px-3 py-1.5 lg:py-3 text-slate-600 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400">HARGA TAYANG</span>
+                            <span className="text-right lg:text-left">{it.hargaTayang || "-"}</span>
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="px-3 py-1.5 lg:py-3 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400">LINK INAPROC</span>
                             {it.linkInaproc ? (
                               <a
                                 href={it.linkInaproc}
@@ -476,7 +496,8 @@ function FragmentRow({
                               <span className="text-slate-400">-</span>
                             )}
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="px-3 py-1.5 lg:py-3 flex justify-between lg:table-cell items-start gap-2">
+                            <span className="lg:hidden font-bold text-[10px] text-slate-400">LINK ECOM</span>
                             {it.linkEcom ? (
                               <a
                                 href={it.linkEcom}

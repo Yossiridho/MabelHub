@@ -377,13 +377,13 @@ export default function TrackingDatabasePage() {
   return (
     <div className='min-h-screen bg-blue-50'>
       <div className='flex'>
-        <div className='flex-1 p-6'>
-          <div className='bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100'>
+        <div className='flex-1 p-3 sm:p-6'>
+          <div className='bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-100'>
             <div className='flex flex-col'>
-              <h4 className='text-[20px] mb-1 font-extrabold text-(--gray-800) m-0 tracking-[-0.5px]'>
+              <h4 className='text-[17px] sm:text-[20px] mb-1 font-extrabold text-(--gray-800) m-0 tracking-[-0.5px]'>
                 Database Tracking
               </h4>
-              <p className='text-sm ml-1 text-slate-500 font-medium'>
+              <p className='text-xs sm:text-sm ml-1 text-slate-500 font-medium'>
                 Monitor dan kelola seluruh data entitas dengan filter cerdas
               </p>
             </div>
@@ -392,18 +392,18 @@ export default function TrackingDatabasePage() {
           {/* Section Filter Data Cerdas */}
           <section className='bg-white rounded-xl shadow-sm border border-gray-200'>
             {/* Header - biru cerah seperti gambar */}
-            <div className='bg-[#2563eb] text-white px-5 h-10 flex items-center justify-between rounded-t-xl'>
-              <div className='flex items-center gap-2'>
-                <Filter size={13} strokeWidth={2.5} className='text-white' />
-                <strong className='text-[11px] font-bold tracking-wide'>
+            <div className='bg-[#2563eb] text-white px-3 sm:px-5 h-10 flex items-center justify-between rounded-t-xl gap-2'>
+              <div className='flex items-center gap-1.5 sm:gap-2 min-w-0'>
+                <Filter size={13} strokeWidth={2.5} className='text-white shrink-0' />
+                <strong className='text-[10px] sm:text-[11px] font-bold tracking-wide whitespace-nowrap'>
                   Filter Data Cerdas
                 </strong>
-                <span className='text-[10px] ml-1 text-blue-200 font-normal'>
+                <span className='text-[9px] sm:text-[10px] text-blue-200 font-normal hidden sm:inline'>
                   (Multi-pilih, cascading dinamis)
                 </span>
               </div>
               <button
-                className='bg-white text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors cursor-pointer shadow-sm'
+                className='bg-white text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors cursor-pointer shadow-sm shrink-0'
                 aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
@@ -417,7 +417,7 @@ export default function TrackingDatabasePage() {
 
             {/* Konten Filter */}
             <div
-              className='p-4 flex flex-col gap-3'
+              className='p-3 sm:p-4 flex flex-col gap-3'
               style={{ display: isFilterOpen ? 'flex' : 'none' }}
             >
               {/* Baris 1: Filter Tanggal Input - putih bersih */}
@@ -430,10 +430,10 @@ export default function TrackingDatabasePage() {
                   />
                   Tanggal Input:
                 </div>
-                <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-2 w-full sm:w-auto'>
                   <input
                     type='date'
-                    className='w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
+                    className='flex-1 sm:flex-none sm:w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
                     placeholder='mm/dd/yyyy'
                     value={startDate}
                     onChange={(e) => { setStartDate(e.target.value); setPage(1); setSelected(null); }}
@@ -441,7 +441,7 @@ export default function TrackingDatabasePage() {
                   <span className='text-gray-400 font-semibold'>-</span>
                   <input
                     type='date'
-                    className='w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
+                    className='flex-1 sm:flex-none sm:w-30 text-xs h-8 px-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400'
                     placeholder='mm/dd/yyyy'
                     value={endDate}
                     onChange={(e) => { setEndDate(e.target.value); setPage(1); setSelected(null); }}
@@ -450,7 +450,7 @@ export default function TrackingDatabasePage() {
               </div>
 
               {/* Baris 2: Tombol Filter dengan Dropdown */}
-              <div ref={dropdownRef} className='flex flex-wrap lg:flex-nowrap gap-2 w-full'>
+              <div ref={dropdownRef} className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 w-full'>
                 {filterButtons.map((btn) => {
                   const IconComponent = btn.icon
                   const activeArr = getFilterArr(btn.id)
@@ -467,7 +467,7 @@ export default function TrackingDatabasePage() {
                   const allSelected = opts.length > 0 && opts.every(o => activeArr.includes(o))
                   const isOpen = openDropdown === btn.id
                   return (
-                    <div key={btn.id} className='relative inline-block flex-1 min-w-[110px]'>
+                    <div key={btn.id} className='relative'>
                       {/* Trigger button - pill putih, border highlight biru saat diklik */}
                       <button
                         type='button'
@@ -611,32 +611,35 @@ export default function TrackingDatabasePage() {
 
           <section className='bg-white mt-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
             {/* Header Biru Filter */}
-            <div className='bg-[#1E3B62] text-white px-6 h-10 flex items-center justify-between'>
-              <div className='flex items-center'>
-                <BarChart2 size={12} className='mr-2' strokeWidth={2.5} />
-                <strong className='text-[8px] font-bold tracking-wide'>
-                  Analis Data Tracking
+            <div className='bg-[#1E3B62] text-white px-3 sm:px-6 h-10 flex items-center justify-between gap-2'>
+              <div className='flex items-center min-w-0'>
+                <BarChart2 size={12} className='mr-1.5 sm:mr-2 shrink-0' strokeWidth={2.5} />
+                <strong className='text-[9px] sm:text-[10px] font-bold tracking-wide whitespace-nowrap'>
+                  Analis Data
                 </strong>
-                <span className='text-[8px] ml-2 text-blue-100 font-normal tracking-wide'>
+                <span className='text-[8px] sm:text-[9px] ml-1 sm:ml-2 text-blue-100 font-normal tracking-wide hidden sm:inline'>
                   (Klik baris tabel analisa untuk filter data)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen2 ? "Tutup filter" : "Buka filter"}>
+              <button
+                className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0'
+                aria-label={isFilterOpen2 ? "Tutup filter" : "Buka filter"}
+                onClick={() => setIsFilterOpen2(!isFilterOpen2)}
+              >
                 <ChevronDown
                   size={16}
                   strokeWidth={2.5}
-                  onClick={() => setIsFilterOpen2(!isFilterOpen2)}
-                  className={isFilterOpen2 ? "rotate-180" : ""}
+                  className={`transition-transform duration-200 ${isFilterOpen2 ? 'rotate-180' : ''}`}
                 />
               </button>
             </div>
 
             {/* Konten Filter */}
             <div
-              className='grid grid-cols-2 p-4 gap-3'
-              style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
+              className='p-3 sm:p-4 gap-3'
+              style={{ display: isFilterOpen2 ? 'flex' : 'none', flexDirection: 'column' }}
             >
-              <div className='flex flex-col md:flex-row gap-3 w-full'>
+              <div className='flex flex-col sm:flex-row gap-3 w-full'>
                 {/* Card 2: Total Data Unik */}
                 <div className='w-full md:w-full'>
                   <div className='flex flex-col border-0 h-full border-l-4 border-l-[#2563eb] bg-[#f8fbff] rounded-lg shadow-sm'>
@@ -731,7 +734,7 @@ export default function TrackingDatabasePage() {
               </div>
             </div>
             <div
-              className='flex flex-col md:flex-row gap-3 w-full px-4 pb-4'
+              className='flex flex-col sm:flex-row gap-3 w-full px-3 sm:px-4 pb-3 sm:pb-4'
               style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
             >
               {/* Panel Kiri: Data Unik per Provinsi & Kota */}
@@ -971,8 +974,8 @@ export default function TrackingDatabasePage() {
           {/* {Table 3} */}
           <div className='mt-4 overflow-hidden rounded-2xl bg-blue shadow-sm ring-1 ring-gray-200'>
             <div className='overflow-x-auto'>
-              <table className='min-w-full text-sm text-left items-center bg-white'>
-                <thead className='bg-blue-600 justify-center'>
+              <table className='w-full text-sm text-left items-center bg-transparent lg:bg-white block lg:table'>
+                <thead className='bg-blue-600 justify-center hidden lg:table-header-group'>
                   <tr>
                     {[
                       { label: 'No' },
@@ -997,7 +1000,7 @@ export default function TrackingDatabasePage() {
                   </tr>
                 </thead>
 
-                <tbody className='divide-y divide-gray-300'>
+                <tbody className='divide-y lg:divide-gray-300 block lg:table-row-group'>
                   {loadingRows ? (
                     <tr>
                       <td colSpan={11} className='px-6 py-8 text-center text-[10px] text-gray-500'>
@@ -1019,12 +1022,14 @@ export default function TrackingDatabasePage() {
                       <React.Fragment key={row._id}>
                         <tr
                           key={row.kode + i}
-                          className='hover:bg-blue-50/50 transition-colors cursor-pointer border-b border-gray-200'
+                          className='block lg:table-row mb-4 lg:mb-0 bg-white rounded-xl lg:rounded-none shadow-md lg:shadow-none border border-gray-200 lg:border-b lg:border-t-0 lg:border-x-0 p-3 lg:p-0 hover:bg-blue-50/50 transition-colors cursor-pointer relative overflow-hidden'
                         >
-                          <td className='whitespace-nowrap px-5.5 py-2 text-[10px] text-slate-500'>
-                            {(safePage - 1) * pageSize + i + 1}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5.5 sm:py-2 text-[10px] text-slate-500 sm:whitespace-nowrap border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">No</span>
+                            <span>{(safePage - 1) * pageSize + i + 1}</span>
                           </td>
-                          <td className='px-4 py-2'>
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-4 sm:py-2 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400 text-[10px]">⚙ Aksi</span>
                             <div className='flex items-center gap-1.5'>
                               <button
                                 title='Lihat Detail'
@@ -1047,31 +1052,40 @@ export default function TrackingDatabasePage() {
                               </button>
                             </div>
                           </td>
-                          <td className='whitespace-nowrap px-3.5 py-3 text-[10px] text-blue-700 font-[Plus Jakarta Sans]'>
-                            {row.kode}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-3.5 lg:py-3 text-[10px] text-blue-700 font-[Plus Jakarta Sans] border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">KODE</span>
+                            <span>{row.kode}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-700 font-medium'>
-                            {row.nama_perusahaan}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-700 font-medium border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">🏢 NAMA PERUSAHAAN</span>
+                            <span className='text-right'>{row.nama_perusahaan}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
-                            {row.kota}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">📍 KOTA</span>
+                            <span className='text-right'>{row.kota}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
-                            {row.provinsi}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">🗺️ PROVINSI</span>
+                            <span className='text-right'>{row.provinsi}</span>
                           </td>
-                          <td className='whitespace-nowrap flex justify-center px-5 py-3 text-[10px] text-slate-600'>
-                            {row.produk}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">📦 PRODUK</span>
+                            <span className='text-right'>{row.produk}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-700 font-medium'>
-                            {row.pic}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-700 font-medium border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">👨‍💼 PIC</span>
+                            <span className='text-right'>{row.pic}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600'>
-                            {row.jabatan}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">💼 JABATAN</span>
+                            <span className='text-right'>{row.jabatan}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px] text-slate-600 font-mono'>
-                            {row.telp}
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] text-slate-600 font-mono border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">📞 TELP</span>
+                            <span>{row.telp}</span>
                           </td>
-                          <td className='whitespace-nowrap px-5 py-3 text-[10px]'>
+                          <td className="flex justify-between items-center px-1 py-1.5 sm:px-5 lg:py-3 text-[10px] border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                            <span className="lg:hidden font-bold text-gray-400">📱 TIPE</span>
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${row.tipe === 'WhatsApp'
                               ? 'bg-green-100 text-green-700'
                               : 'bg-slate-100 text-slate-600'
@@ -1081,8 +1095,8 @@ export default function TrackingDatabasePage() {
                           </td>
                         </tr>
                         {active && (
-                          <tr className='bg-blue-50/20'>
-                            <td colSpan={11} className='px-4 py-3 border-b border-blue-100'>
+                          <tr className='bg-blue-50/20 block lg:table-row -mt-4 lg:mt-0 mb-4 lg:mb-0 border border-t-0 sm:border-t rounded-b-xl lg:rounded-none border-blue-200 lg:border-0 relative z-10 lg:z-auto shadow-md lg:shadow-none'>
+                            <td colSpan={11} className='block lg:table-cell px-2 sm:px-4 py-2 lg:py-3 border-b border-blue-100'>
                               <div className='rounded-xl bg-white shadow-sm ring-1 ring-blue-100 overflow-hidden'>
                                 {/* ── Header bar ── */}
                                 <div className='flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100'>
@@ -1187,64 +1201,64 @@ export default function TrackingDatabasePage() {
           </div>
 
           {/* Pagination */}
-          <section className='mt-6 flex flex-col gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-blue-100 md:flex-row md:items-center md:justify-between'>
-            <div className='text-sm text-gray-500 font-medium'>
-              <p className='font-medium text-gray-700'>
+          <section className='mt-4 sm:mt-6 flex flex-col gap-3 rounded-2xl bg-white px-3 sm:px-6 py-3 lg:py-4 shadow-sm ring-1 ring-blue-100'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+              <p className='text-xs sm:text-sm font-medium text-gray-700'>
                 Showing <strong>{showingFrom}</strong> to{' '}
                 <strong>{showingTo}</strong> of <strong>{total}</strong>{' '}
                 entries
               </p>
-              <div className='flex flex-wrap items-center gap-3'>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className='h-10 rounder-xl border border-blue-100 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className='h-8 sm:h-10 rounded-lg border border-blue-100 bg-white px-2 sm:px-4 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-200 w-full sm:w-auto'
+              >
+                <option value={10}>10 / Halaman</option>
+                <option value={20}>20 / Halaman</option>
+                <option value={50}>50 / Halaman</option>
+                <option value={100}>100 / Halaman</option>
+              </select>
+            </div>
+            <div className='flex items-center justify-center gap-1 sm:gap-2 flex-wrap'>
+              <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
+                ⏮
+              </PageBtn>
+              <PageBtn onClick={() => gotoPage(page - 1)} ariaLabel="Previous">
+                ◀
+              </PageBtn>
+
+              {getPageWindow(safePage, totalPages, 5).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => gotoPage(p)}
+                  aria-label={p.toString()}
+                  className={`grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-lg sm:rounded-xl border text-xs sm:text-sm ${
+                    p === safePage
+                      ? 'border-blue-500 bg-blue-600 text-white font-bold'
+                      : 'border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40'
+                  }`}
                 >
-                  <option value={10}>10 / Halaman</option>
-                  <option value={20}>20 / Halaman</option>
-                  <option value={50}>50 / Halaman</option>
-                  <option value={100}>100 / Halaman</option>
-                </select>
-                <div className='flex items-center gap-2'>
-                  <PageBtn onClick={() => gotoPage(1)} ariaLabel="First">
-                    ⏮
-                  </PageBtn>
-                  <PageBtn onClick={() => gotoPage(page - 1)} ariaLabel="Previous">
-                    ◀
-                  </PageBtn>
+                  {p}
+                </button>
+              ))}
 
-                  {getPageWindow(safePage, totalPages, 5).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => gotoPage(p)}
-                      aria-label={p.toString()}
-                      className="grid h-10 w-10 place-items-center rounded-xl border border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40"
-                    >
-                      {p}
-                    </button>
-                  ))}
-
-                  <PageBtn onClick={() => gotoPage(page + 1)} ariaLabel="Next">
-                    ▶
-                  </PageBtn>
-                  <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">
-                    ⏭
-                  </PageBtn>
-
-                </div>
-              </div>
+              <PageBtn onClick={() => gotoPage(page + 1)} ariaLabel="Next">
+                ▶
+              </PageBtn>
+              <PageBtn onClick={() => gotoPage(totalPages)} ariaLabel="Last">
+                ⏭
+              </PageBtn>
             </div>
           </section>
           {/* Legend Footer */}
-          <div className='flex flex-wrap items-center mt-4 gap-100 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
-            <span className='flex items-center gap-1'>👁<strong>Tombol Lihat Detail</strong></span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-amber-500'></span>Tombol <strong>Revisi Data</strong></span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span><BarChart2Icon className='w-3 h-3 text-green-500' />Klik baris analisa untuk drill-down data</span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span>Centang <strong>☑</strong> untuk submit massal</span>
+          <div className='flex flex-wrap items-center mt-4 gap-x-4 gap-y-1 px-3 sm:px-4 py-2 bg-gray-50 border-b border-gray-200 text-[9px] sm:text-[10px] text-gray-500 rounded-lg'>
+            <span className='flex items-center gap-1'>👁<strong>Lihat Detail</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-amber-500'></span><strong>Revisi Data</strong></span>
+            <span className='flex items-center gap-1'><BarChart2Icon className='w-3 h-3 text-green-500' />Drill-down data</span>
           </div>
         </div>
       </div>
@@ -1266,7 +1280,7 @@ function PageBtn({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className="grid h-10 w-10 place-items-center rounded-xl border border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40"
+      className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-lg sm:rounded-xl border border-blue-100 bg-white text-gray-700 hover:bg-blue-50/40 text-xs sm:text-sm"
     >
       {children}
     </button>

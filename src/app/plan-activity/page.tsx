@@ -352,7 +352,7 @@ export default function PlanActivityPage() {
 
             {/* TABLE */}
             <div className="w-full overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-black/5">
-              <div className="grid grid-cols-8 bg-blue-100 px-4 py-3 text-sm font-semibold text-black uppercase tracking-wider border-b border-gray-200">
+              <div className="hidden md:grid grid-cols-8 bg-blue-100 px-4 py-3 text-sm font-semibold text-black uppercase tracking-wider border-b border-gray-200">
                 <div>Tanggal</div>
                 <div>Kota</div>
                 <div>K/L/PD</div>
@@ -416,41 +416,54 @@ export default function PlanActivityPage() {
                           {rows.map((r, index) => (
                             <div
                               key={r.id}
-                              className={`grid grid-cols-8 items-center px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-blue-50/50 ${
+                              className={`flex flex-col md:grid md:grid-cols-8 md:items-center px-4 py-4 md:py-3 text-sm text-gray-700 transition-colors hover:bg-blue-50/50 gap-3 md:gap-0 ${
                                 index !== rows.length - 1
                                   ? "border-b border-gray-100"
                                   : ""
                               }`}
                             >
-                              <div className="opacity-0 select-none">
+                              <div className="hidden md:block opacity-0 select-none">
                                 {r.tanggal}
                               </div>
 
-                              <div
-                                className="uppercase text-xs font-medium truncate pr-2"
-                                title={r.kota || "-"}
-                              >
-                                {r.kota || "-"}
+                              <div className="flex md:block flex-col">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase mb-1">Kota</span>
+                                <div
+                                  className="uppercase text-xs font-medium truncate pr-2"
+                                  title={r.kota || "-"}
+                                >
+                                  {r.kota || "-"}
+                                </div>
                               </div>
-                              <div
-                                className="uppercase text-xs font-medium truncate pr-2"
-                                title={r.klpd || "-"}
-                              >
-                                {r.klpd || "-"}
+                              <div className="flex md:block flex-col">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase mb-1">K/L/PD</span>
+                                <div
+                                  className="uppercase text-xs font-medium truncate pr-2"
+                                  title={r.klpd || "-"}
+                                >
+                                  {r.klpd || "-"}
+                                </div>
                               </div>
-                              <div
-                                className="uppercase text-xs font-medium truncate pr-2"
-                                title={r.institusi_kerja || "-"}
-                              >
-                                {r.institusi_kerja || "-"}
+                              <div className="flex md:block flex-col">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase mb-1">Institusi Kerja</span>
+                                <div
+                                  className="uppercase text-xs font-medium truncate pr-2"
+                                  title={r.institusi_kerja || "-"}
+                                >
+                                  {r.institusi_kerja || "-"}
+                                </div>
                               </div>
-                              <div
-                                className="uppercase text-xs font-medium truncate pr-2"
-                                title={r.satuan_kerja || "-"}
-                              >
-                                {r.satuan_kerja || "-"}
+                              <div className="flex md:block flex-col">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase mb-1">Satuan Kerja</span>
+                                <div
+                                  className="uppercase text-xs font-medium truncate pr-2"
+                                  title={r.satuan_kerja || "-"}
+                                >
+                                  {r.satuan_kerja || "-"}
+                                </div>
                               </div>
-                              <div className="flex justify-center items-center">
+                              <div className="flex justify-between items-center md:justify-center lg:table-cell">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase">Bukti</span>
                                 {r.visit_image ? (
                                   <div
                                     className="w-10 h-10 rounded-lg cursor-pointer ring-1 ring-gray-200 hover:ring-blue-400 hover:shadow-md transition-all flex-shrink-0 bg-cover bg-center"
@@ -468,7 +481,8 @@ export default function PlanActivityPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="text-center">
+                              <div className="flex justify-between items-center md:justify-center lg:table-cell">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase">Status</span>
                                 <span
                                   className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                     r.status?.toLowerCase() === "visited"
@@ -482,7 +496,8 @@ export default function PlanActivityPage() {
                                 </span>
                               </div>
 
-                              <div className="text-center">
+                              <div className="flex justify-between items-center md:justify-center pt-2 md:pt-0 border-t md:border-t-0 border-dashed border-gray-200 lg:table-cell">
+                                <span className="lg:hidden text-[10px] font-bold text-gray-400 uppercase">Aksi</span>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEdit(r.id)}

@@ -139,7 +139,7 @@ export default function ReportProgresPage() {
                             </div>
                             {/* Baris 1: Filter Tanggal Input */}
                             <div className="border border-slate-200 rounded-lg p-2 flex flex-col sm:flex-row items-start sm:items-center bg-white shadow-sm max-w-full ">
-                                <div className="flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 sm:mb-0 mb-2">
+                                <div className="flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 lg:mb-0 mb-2">
                                     <Calendar
                                         size={14}
                                         className="mr-2 text-blue-500"
@@ -443,7 +443,7 @@ export default function ReportProgresPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 w-full h-[250px] mt-5">
                         <div className="flex flex-col rounded-lg border border-slate-100 overflow-hidden bg-slate-100 shadow-sm">
-                            <div className="flex justify-between items-center gap-1.5 px-2 pt-3 pb-2 border-b-2 bg-orange-100 border-yellow-700">
+                            <div className="flex justify-between items-center gap-1.5 px-2 pt-3 pb-2 border-b-2 bg-orange-100 border-yellow-700 lg:table-cell">
                                 <div className="flex items-center gap-1.5">
                                     <User size={12} strokeWidth={2} className="text-yellow-600" />
                                     <p className="text-[11px] font-bold text-[#1e293b]">
@@ -582,7 +582,7 @@ export default function ReportProgresPage() {
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 w-full gap-3 h-[350px] mt-5">
+                <div className="grid grid-cols-1 w-full gap-3 h-auto lg:h-[350px] mt-5">
                     <div className="flex flex-col rounded-lg border border-white overflow-hidden bg-white-100 shadow-sm">
                         <div className="flex items-center gap-1.5 px-2 pt-3 pb-2 border-b-2 bg-white-100 border-blue-600">
                             <CalendarCheckIcon size={12} strokeWidth={2} className="text-blue-600" />
@@ -591,8 +591,8 @@ export default function ReportProgresPage() {
                             </p>
                         </div>
                         <div className="overflow-y-auto max-h-[320px] shadow-sm" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
-                            <table className="border-collapse w-full">
-                                <thead className='w-full text-left border-collapse sticky top-0 z-10 bg-white'>
+                            <table className="border-collapse w-full block lg:table">
+                                <thead className='w-full text-left border-collapse sticky top-0 z-10 bg-white hidden lg:table-header-group'>
                                     <tr>
                                         <th className="px-2 py-1.5 text-[10px] text-black font-bold border-b border-slate-200">
                                             No
@@ -622,22 +622,42 @@ export default function ReportProgresPage() {
                                 </thead>
                                 <tbody
                                     id="tbodyDetailData"
-                                    className="divide-y divide-gray-200 px-2 items-center bg-white">
+                                    className="block lg:table-row-group divide-y divide-gray-200 px-2 bg-white">
                                     {Array(15).fill(0).map((_, index) => (
-                                        <tr key={index}>
-                                            <td className='py-1 px-2 items-center justify-between text-xs font-medium text-slate-900 border-b border-slate-200'>{index + 1}</td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200'>01/02/2024</td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200'>Budi</td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200'>PT. Maju Mundur</td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200'>Jakarta</td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200'>Indonesia</td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200'>
+                                        <tr key={index} className="block lg:table-row mb-4 lg:mb-0 bg-white lg:bg-transparent rounded-xl lg:rounded-none shadow-md lg:shadow-none border border-gray-200 lg:border-b lg:border-t-0 lg:border-x-0 p-3 lg:p-0">
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">No</span>
+                                                <span>{index + 1}</span>
+                                            </td>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">Tanggal</span>
+                                                <span>01/02/2024</span>
+                                            </td>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">PIC Sales</span>
+                                                <span>Budi</span>
+                                            </td>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">Perusahaan</span>
+                                                <span>PT. Maju Mundur</span>
+                                            </td>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">Kota</span>
+                                                <span>Jakarta</span>
+                                            </td>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">Provinsi</span>
+                                                <span>Indonesia</span>
+                                            </td>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-900 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">Validitas</span>
                                                 <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-green-100 border border-green-200 rounded-full text-xs font-medium text-green-700">
                                                     <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
                                                     Valid
                                                 </div>
                                             </td>
-                                            <td className='py-1 px-2 text-xs font-medium text-slate-700 border-b border-slate-200'>
+                                            <td className='flex justify-between items-center lg:table-cell py-1.5 lg:py-1 px-2 text-xs font-medium text-slate-700 border-b border-slate-200 border-dashed lg:border-solid lg:border-0 lg:border-b'>
+                                                <span className="lg:hidden font-bold text-gray-500">Detail</span>
                                                 <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 border border-blue-200 rounded-full text-xs font-medium text-blue-700">
                                                     <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>
                                                     View
