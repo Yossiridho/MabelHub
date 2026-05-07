@@ -34,6 +34,7 @@ type StatusWaSummary = {
   negatif: number
   aktif: number
   kosong: number
+  total: number
 }
 
 type BroadCastRow = {
@@ -85,6 +86,32 @@ type LatestRevision = {
   changed_fields?: { field: string; oldValue: string; newValue: string }[]
   snapshot_before?: any
 }
+
+
+type ApiStats = {
+  total_no_telp: number
+  total_provinsi: number
+  total_kota: number
+  total_nama: number
+  total_merek: number
+  total_kontak_unik: number
+  total_wa_unik: number
+  provinsi_kota: {
+    no: number
+    provinsi: string
+    kota: string
+    unik: number
+    pct: number
+  }[]
+  wa_provinsi_kota: {
+    no: number
+    provinsi: string
+    kota: string
+    unik: number
+    pct: number
+  }[]
+}
+
 
 interface DataItem {
   id: string;
@@ -206,7 +233,7 @@ export default function TrackingBroadcastPage() {
     { id: 'Ke Sales', icon: Users, label: 'Ke Sales' },
   ]
 
-  
+
   // Summary Status WA
   const [statusWaSummary, setStatusWaSummary] = useState<StatusWaSummary>({
     terkirim: 0,
@@ -217,6 +244,7 @@ export default function TrackingBroadcastPage() {
     negatif: 0,
     aktif: 0,
     kosong: 0,
+    total: 0,
   })
 
 
@@ -239,6 +267,16 @@ export default function TrackingBroadcastPage() {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     )
+  }
+
+  const handleFilterByStatus = (status: string) => {
+    setStatusWa(prev =>
+      prev.includes(status)
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    )
+    setPage(1)
+    setSelected(null)
   }
 
   // Kirim semua baris yang di-centang ke /api/tracking-broadcast/send
@@ -318,6 +356,10 @@ export default function TrackingBroadcastPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
+  // data - statistik & analitik
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<ApiStats | null>(null)
+  const [apiStats, setApiStats] = useState<ApiStats | null>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
@@ -553,6 +595,18 @@ export default function TrackingBroadcastPage() {
             negatif: json?.statusWaSummary?.negatif ?? 0,
             aktif: json?.statusWaSummary?.aktif ?? 0,
             kosong: json?.statusWaSummary?.kosong ?? 0,
+            total: json?.statusWaSummary?.total ?? 0,
+          })
+          setStats({
+            total_no_telp: json?.summaryStats?.total_no_telp ?? 0,
+            total_provinsi: json?.summaryStats?.total_provinsi ?? 0,
+            total_kota: json?.summaryStats?.total_kota ?? 0,
+            total_nama: json?.summaryStats?.total_nama ?? 0,
+            total_merek: json?.summaryStats?.total_merek ?? 0,
+            total_kontak_unik: json?.summaryStats?.total_kontak_unik ?? 0,
+            total_wa_unik: json?.summaryStats?.total_wa_unik ?? 0,
+            provinsi_kota: json?.summaryStats?.provinsi_kota ?? [],
+            wa_provinsi_kota: json?.summaryStats?.wa_provinsi_kota ?? [],
           })
           const pg = json?.pagination ?? {}
           setTotal(Number(pg?.total ?? 0))
@@ -877,66 +931,116 @@ export default function TrackingBroadcastPage() {
                       </span>
                     </div>
                     <div className='flex flex-wrap gap-1.5'>
+
                       {/* Terkirim (1C) */}
-                      <div className='flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-slate-400 shrink-0'></span>
-                        <span className='text-[10px] text-slate-600 font-medium whitespace-nowrap'>
-                          Terkirim (1C)
-                        </span>
-                        <span className='text-[10px] font-bold text-slate-700 ml-0.5'>{statusWaSummary.terkirim}</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('Terkirim(1C)')}
+                        className='cursor-pointer hover:bg-slate-400 hover:rounded-2xl'
+                      >
+                        <div className='flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-slate-400 shrink-0'></span>
+                          <span className='text-[10px] text-slate-600 font-medium whitespace-nowrap'>
+                            Terkirim (1C)
+                          </span>
+                          <span className='text-[10px] font-bold text-slate-700 ml-0.5'>{statusWaSummary.terkirim}</span>
+                        </div>
+                      </button>
+
                       {/* Diterima (2C) */}
-                      <div className='flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-blue-400 shrink-0'></span>
-                        <span className='text-[10px] text-blue-700 font-medium whitespace-nowrap'>
-                          Diterima (2C)
-                        </span>
-                        <span className='text-[10px] font-bold text-blue-800 ml-0.5' id='statDiterima'>{statusWaSummary.diterima}</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('Diterima(2C)')}
+                        className='cursor-pointer hover:bg-blue-400 hover:rounded-2xl'
+                      >
+                        <div className='flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-blue-400 shrink-0'></span>
+                          <span className='text-[10px] text-blue-700 font-medium whitespace-nowrap'>
+                            Diterima (2C)
+                          </span>
+                          <span className='text-[10px] font-bold text-blue-800 ml-0.5' id='statDiterima'>{statusWaSummary.diterima}</span>
+                        </div>
+                      </button>
+
                       {/* Dibaca - Belum Respons */}
-                      <div className='flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-yellow-400 shrink-0'></span>
-                        <span className='text-[10px] text-yellow-700 font-medium whitespace-nowrap'>
-                          Dibaca - Belum Respons
-                        </span>
-                        <span className='text-[10px] font-bold text-yellow-800 ml-0.5' id='statBelumRespons'>{statusWaSummary.belumRespon}</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('Dibaca - Belum Respons')}
+                        className='cursor-pointer hover:bg-yellow-400 hover:rounded-2xl'
+                      >
+                        <div className='flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-yellow-400 shrink-0'></span>
+                          <span className='text-[10px] text-yellow-700 font-medium whitespace-nowrap'>
+                            Dibaca - Belum Respons
+                          </span>
+                          <span className='text-[10px] font-bold text-yellow-800 ml-0.5' id='statBelumRespons'>{statusWaSummary.belumRespon}</span>
+                        </div>
+                      </button>
+
                       {/* Dibaca - Respons Positif */}
-                      <div className='flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-green-500 shrink-0'></span>
-                        <span className='text-[10px] text-green-700 font-medium whitespace-nowrap'>
-                          Dibaca - Respons Positif
-                        </span>
-                        <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>{statusWaSummary.positif}</span>
-                      </div>
-                      <div className='flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-green-500 shrink-0'></span>
-                        <span className='text-[10px] text-green-700 font-medium whitespace-nowrap'>
-                          Dibaca - Respons Netral
-                        </span>
-                        <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>{statusWaSummary.netral}</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('Dibaca - Respons - Positif')}
+                        className='cursor-pointer hover:bg-green-500 hover:rounded-2xl'
+                      >
+                        <div className='flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-green-500 shrink-0'></span>
+                          <span className='text-[10px] text-green-700 font-medium whitespace-nowrap'>
+                            Dibaca - Respons Positif
+                          </span>
+                          <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>{statusWaSummary.positif}</span>
+                        </div>
+                      </button>
+
+                      {/* Dibaca - Respon Netral */}
+                      <button
+                        onClick={() => handleFilterByStatus('Dibaca - Respons - Netral')}
+                        className='cursor-pointer hover:bg-green-700 hover:rounded-2xl'
+                      >
+                        <div className='flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-[#0891B2] shrink-0'></span>
+                          <span className='text-[10px] text-green-700 font-medium whitespace-nowrap'>
+                            Dibaca - Respons Netral
+                          </span>
+                          <span className='text-[10px] font-bold text-green-800 ml-0.5' id='statResponsPositif'>{statusWaSummary.netral}</span>
+                        </div>
+                      </button>
+
                       {/* Aktif Broadcast */}
-                      <div className='flex items-center gap-1 bg-purple-50 border border-purple-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-purple-400 shrink-0'></span>
-                        <span className='text-[10px] text-purple-700 font-medium whitespace-nowrap'>
-                          Aktif Broadcast
-                        </span>
-                        <span className='text-[10px] font-bold text-purple-800 ml-0.5' id='statAktif'>{statusWaSummary.aktif}</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('Aktif Progres')}
+                        className='cursor-pointer hover:bg-purple-400 hover:rounded-2xl'
+                      >
+                        <div className='flex items-center gap-1 bg-purple-50 border border-purple-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-purple-400 shrink-0'></span>
+                          <span className='text-[10px] text-purple-700 font-medium whitespace-nowrap'>
+                            Aktif Broadcast
+                          </span>
+                          <span className='text-[10px] font-bold text-purple-800 ml-0.5' id='statAktif'>{statusWaSummary.aktif}</span>
+                        </div>
+                      </button>
+
                       {/* Total angka */}
-                      <div className='flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-orange-400 shrink-0'></span>
-                        <span className='text-[10px] font-bold text-orange-700 ml-0.5' id='statTotal'>398</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('Total')}
+                        className='cursor-pointer hover:bg-orange-400 hover:rounded-2xl'>
+                        <div className='flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-orange-400 shrink-0'></span>
+                          <span className='text-[10px] text-orange-700 font-medium whitespace-nowrap'>
+                            Total
+                          </span>
+                          <span className='text-[10px] font-bold text-orange-700 ml-0.5' id='statTotal'>{statusWaSummary.total}</span>
+                        </div>
+                      </button>
+
                       {/* Kosong */}
-                      <div className='flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5'>
-                        <span className='w-2 h-2 rounded-full bg-amber-400 shrink-0'></span>
-                        <span className='text-[10px] text-amber-700 font-medium whitespace-nowrap'>
-                          (Kosong)
-                        </span>
-                        <span className='text-[10px] font-bold text-amber-800 ml-0.5' id='statKosong'>{statusWaSummary.kosong}</span>
-                      </div>
+                      <button
+                        onClick={() => handleFilterByStatus('')}
+                        className='cursor-pointer hover:bg-amber-400 hover:rounded-2xl'>
+                        <div className='flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5'>
+                          <span className='w-2 h-2 rounded-full bg-amber-400 shrink-0'></span>
+                          <span className='text-[10px] text-amber-700 font-medium whitespace-nowrap'>
+                            (Kosong)
+                          </span>
+                          <span className='text-[10px] font-bold text-amber-800 ml-0.5' id='statKosong'>{statusWaSummary.kosong}</span>
+                        </div>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -972,7 +1076,7 @@ export default function TrackingBroadcastPage() {
                       id='statProvinsiRows'
                       className='font-semibold text-blue-700'
                     >
-                      14
+                      {loading ? '...' : (stats?.provinsi_kota.length ?? 0)}
                     </span>
                     <span>baris</span>
                     <span className='mx-0.5 text-slate-300'>|</span>

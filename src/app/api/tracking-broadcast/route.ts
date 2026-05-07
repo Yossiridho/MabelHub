@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import { findSourceMap } from "module";
+import { data } from "@/app/tracking-database/filterUtils";
 
 type KontakTrackingItem = {
     id: string
@@ -18,6 +20,8 @@ export async function GET(req: NextRequest) {
         const col = db.collection("input_database")
 
         const { searchParams } = req.nextUrl
+
+        const filter: Record<string, any> = {}
 
         const bulanArr = searchParams.getAll("bulan")
         const produkArr = searchParams.getAll("produk")
@@ -73,7 +77,28 @@ export async function GET(req: NextRequest) {
         }
 
         const matchAfterLookup: Record<string, any> = {}
-        if (statusWaArr.length > 0) matchAfterLookup["broadcast.status_wa"] = { $in: statusWaArr }
+        if (statusWaArr.length > 0) {
+            const hasKosong = statusWaArr.includes("")
+            const nonKosong = statusWaArr.filter(s => s !== "")
+
+            if (hasKosong && nonKosong.length > 0) {
+                // Filter kosong + status lain sekaligus
+                matchAfterLookup["$or"] = [
+                    { "broadcast.status_wa": { $in: nonKosong } },
+                    { "broadcast.status_wa": { $in: ["", null] } },
+                    { "broadcast": null },
+                ]
+            } else if (hasKosong) {
+                // Filter kosong saja
+                matchAfterLookup["$or"] = [
+                    { "broadcast.status_wa": { $in: ["", null] } },
+                    { "broadcast": null },
+                ]
+            } else {
+                // Filter status biasa (tanpa kosong)
+                matchAfterLookup["broadcast.status_wa"] = { $in: nonKosong }
+            }
+        }
         if (keSalesArr.length > 0) matchAfterLookup["broadcast.ke_sales"] = { $in: keSalesArr }
 
         const pipeline: any[] = [
@@ -137,6 +162,76 @@ export async function GET(req: NextRequest) {
         const totalCount = countResult[0]?.total ?? 0
         const countMap = Object.fromEntries(statusWaCounts.map((s: any) => [s._id, s.count]))
 
+        const uniqueNoTelp = await col.distinct("no_telp", { ...filter, no_telp: { $ne: "" } })
+        const uniqueProvinsi = await col.distinct("provinsi", { ...filter, provinsi: { $ne: "" } })
+        const uniqueKota = await col.distinct("kota", { ...filter, kota: { $ne: "" } })
+        const uniqueNama = await col.distinct("nama", { ...filter, nama: { $ne: "" } })
+        const uniqueMerek = await col.distinct("merek_tayang", { ...filter, merek_tayang: { $ne: "" } })
+
+        // Total kontak unik (nama + no_telp)
+        const uniqueCombinedAgg = await col.aggregate([
+            { $match: { ...filter, nama: { $ne: "" }, no_telp: { $ne: "" } } },
+            { $group: { _id: { nama: "$nama", no_telp: "$no_telp" } } },
+            { $count: "total" }
+        ]).toArray()
+        const totalKontakUnik = uniqueCombinedAgg[0]?.total ?? 0
+
+        // Total WA unik
+        const waFilter = { ...filter, tipe_kontak: "WhatsApp", nama: { $ne: "" }, no_telp: { $ne: "" } }
+        const uniqueWaAgg = await col.aggregate([
+            { $match: waFilter },
+            { $group: { _id: { nama: "$nama", no_telp: "$no_telp" } } },
+            { $count: "total" }
+        ]).toArray()
+        const totalWaUnik = uniqueWaAgg[0]?.total ?? 0
+
+        // --- Tabel Analitik: Unik per Provinsi & Kota ---
+        const provinsiKotaAgg = await col.aggregate([
+            {
+                $match: {
+                    ...filter,
+                    provinsi: { $ne: "" }, kota: { $ne: "" },
+                    nama: { $ne: "" }, no_telp: { $ne: "" },
+                }
+            },
+            { $group: { _id: { provinsi: "$provinsi", kota: "$kota", nama: "$nama", no_telp: "$no_telp" } } },
+            { $group: { _id: { provinsi: "$_id.provinsi", kota: "$_id.kota" }, unik: { $sum: 1 } } },
+            { $sort: { "_id.provinsi": 1, "_id.kota": 1 } }
+        ]).toArray()
+
+        const totalUnikSeluruh = provinsiKotaAgg.reduce((sum, r) => sum + r.unik, 0)
+        const tableProvinsiKota = provinsiKotaAgg.map((r, idx) => ({
+            no: idx + 1,
+            provinsi: r._id.provinsi,
+            kota: r._id.kota,
+            unik: r.unik,
+            pct: totalUnikSeluruh > 0 ? Math.round((r.unik / totalUnikSeluruh) * 100) : 0,
+        }))
+
+        // --- Tabel Analitik: WA Unik per Provinsi & Kota ---
+        const waProvinsiKotaAgg = await col.aggregate([
+            {
+                $match: {
+                    ...filter,
+                    tipe_kontak: "WhatsApp",
+                    provinsi: { $ne: "" }, kota: { $ne: "" },
+                    nama: { $ne: "" }, no_telp: { $ne: "" },
+                }
+            },
+            { $group: { _id: { provinsi: "$provinsi", kota: "$kota", nama: "$nama", no_telp: "$no_telp" } } },
+            { $group: { _id: { provinsi: "$_id.provinsi", kota: "$_id.kota" }, unik: { $sum: 1 } } },
+            { $sort: { "_id.provinsi": 1, "_id.kota": 1 } }
+        ]).toArray()
+
+        const totalWaSeluruh = waProvinsiKotaAgg.reduce((sum, r) => sum + r.unik, 0)
+        const tableWaProvinsiKota = waProvinsiKotaAgg.map((r, idx) => ({
+            no: idx + 1,
+            provinsi: r._id.provinsi,
+            kota: r._id.kota,
+            unik: r.unik,
+            pct: totalWaSeluruh > 0 ? Math.round((r.unik / totalWaSeluruh) * 100) : 0,
+        }))
+
         const items = pageRows.map((r) => ({
             _id: r._id?.toString() ?? "",
             kode: r.code_input ?? "",
@@ -170,6 +265,18 @@ export async function GET(req: NextRequest) {
                 : "",
         }))
 
+        const summaryStats = {
+            total_no_telp: uniqueNoTelp.length,
+            total_provinsi: uniqueProvinsi.length,
+            total_kota: uniqueKota.length,
+            total_nama: uniqueNama.length,
+            total_merek: uniqueMerek.length,
+            total_kontak_unik: totalKontakUnik,
+            total_wa_unik: totalWaUnik,
+            provinsi_kota: tableProvinsiKota,
+            wa_provinsi_kota: tableWaProvinsiKota,
+        }
+
         return NextResponse.json({
             items,
             pagination: {
@@ -177,17 +284,19 @@ export async function GET(req: NextRequest) {
                 limit,
                 total: totalCount,
                 totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+                ...summaryStats, rows: data
             },
             statusWaSummary: {
-                terkirim:    countMap["Terkirim(1C)"] ?? 0,
-                diterima:    countMap["Diterima(2C)"] ?? 0,
+                terkirim: countMap["Terkirim(1C)"] ?? 0,
+                diterima: countMap["Diterima(2C)"] ?? 0,
                 belumRespon: countMap["Dibaca - Belum Respons"] ?? 0,
-                positif:     countMap["Dibaca - Respons - Positif"] ?? 0,
-                netral:      countMap["Dibaca - Respons - Netral"] ?? 0,
-                negatif:     countMap["Dibaca - Respons - Negatif"] ?? 0,
-                aktif:       countMap["Aktif Progres"] ?? 0,
-                kosong:      countMap[""] ?? 0,
-            }
+                positif: countMap["Dibaca - Respons - Positif"] ?? 0,
+                netral: countMap["Dibaca - Respons - Netral"] ?? 0,
+                negatif: countMap["Dibaca - Respons - Negatif"] ?? 0,
+                aktif: countMap["Aktif Progres"] ?? 0,
+                kosong: countMap[""] ?? 0,
+                total: statusWaCounts.reduce((acc, s) => acc + s.count, 0),
+            },
         })
 
     } catch (error) {
