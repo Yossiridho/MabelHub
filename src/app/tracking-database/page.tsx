@@ -1255,10 +1255,11 @@ export default function TrackingDatabasePage() {
             </div>
           </section>
           {/* Legend Footer */}
-          <div className='flex flex-wrap items-center mt-4 gap-x-4 gap-y-1 px-3 sm:px-4 py-2 bg-gray-50 border-b border-gray-200 text-[9px] sm:text-[10px] text-gray-500 rounded-lg'>
-            <span className='flex items-center gap-1'>👁<strong>Lihat Detail</strong></span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-amber-500'></span><strong>Revisi Data</strong></span>
-            <span className='flex items-center gap-1'><BarChart2Icon className='w-3 h-3 text-green-500' />Drill-down data</span>
+          <div className='flex flex-wrap items-center mt-4 gap-60 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
+            <span className='flex items-center gap-1'>👁<strong>Tombol Lihat Detail</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-amber-500'></span>Tombol <strong>Revisi Data</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span><BarChart2Icon className='w-3 h-3 text-green-500' />Klik baris analisa untuk drill-down data</span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span>Centang <strong>☑</strong> untuk submit massal</span>
           </div>
         </div>
       </div>

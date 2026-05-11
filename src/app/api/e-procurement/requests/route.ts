@@ -153,14 +153,9 @@ export async function GET(req: Request) {
     ];
   } else if (mode === "all") {
     // untuk halaman rekapitulasi & dashboard response
-    if (auth.session.role === "ADMIN") {
-      // ✅ Admin only sees items they have taken + untaken items (incoming queue)
-      filter.$or = [
-        { takenByAdminId: null },
-        { takenByAdminId: auth.session.userId },
-      ];
-    } else if (auth.session.role !== "SUPERADMIN") {
-      // ✅ Sales/Leader sees only their own or assigned
+    // SUPERADMIN & ADMIN: lihat semua e-proc
+    if (auth.session.role !== "SUPERADMIN" && auth.session.role !== "ADMIN") {
+      // Sales/Leader sees only their own or assigned
       filter.$or = [
         { "createdBy.userId": auth.session.userId },
         { "assignedTo.userId": auth.session.userId },
