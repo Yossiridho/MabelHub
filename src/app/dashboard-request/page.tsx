@@ -328,7 +328,7 @@ export default function DashboardRequestPage() {
         
 
         {/* CONTENT */}
-        <div className="flex-1 p-6 ">
+        <div className="flex-1 p-3 sm:p-6">
           {/* TOP BAR */}
           <div className="mb-4 px-4 pt-2 pb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -1066,9 +1066,9 @@ export default function DashboardRequestPage() {
                 See All
               </button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-white">
+            <div className="overflow-x-hidden sm:overflow-x-auto">
+              <table className="w-full text-sm block lg:table">
+                <thead className="bg-white hidden lg:table-header-group">
                   <tr className="border-b border-black/10">
                     <th className="px-3 py-2 text-left font-bold text-blue-600">
                       Nama Sales
@@ -1090,7 +1090,7 @@ export default function DashboardRequestPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="block lg:table-row-group">
                   {loadingTable ? (
                     <tr>
                       <td
@@ -1117,41 +1117,47 @@ export default function DashboardRequestPage() {
                           <tr
                             onClick={() => setSelected(active ? null : v)}
                             className={cn(
-                              "cursor-pointer border-b border-black/5 transition-colors",
+                              "cursor-pointer border border-slate-200 lg:border-0 border-b border-black/5 transition-colors block lg:table-row p-4 lg:p-0 mb-4 lg:mb-0 rounded-xl lg:rounded-none shadow-sm lg:shadow-none bg-white",
                               active ? "bg-blue-50/60" : "hover:bg-gray-50",
                             )}
                           >
                             <td
                               className={cn(
-                                "px-3 py-3 text-black font-medium",
+                                "flex justify-between items-center lg:table-cell px-1 py-1.5 sm:px-3 lg:py-3 text-black font-medium border-b border-dashed border-gray-100 lg:border-0",
                                 active
-                                  ? "border-l-[4px] border-blue-600 pl-2"
-                                  : "border-l-[4px] border-transparent pl-2",
+                                  ? "sm:border-l-[4px] lg:border-blue-600 sm:pl-2"
+                                  : "sm:border-l-[4px] sm:border-transparent sm:pl-2",
                               )}
                             >
-                              {v.nama_sales || "-"}
+                              <span className="lg:hidden font-bold text-[10px] text-gray-400">NAMA SALES</span>
+                              <span className="text-right lg:text-left">{v.nama_sales || "-"}</span>
                             </td>
-                            <td className="px-3 py-3 text-black">
-                              {v.satuan_kerja || "-"}
+                            <td className="flex justify-between items-center lg:table-cell px-1 py-1.5 sm:px-3 lg:py-3 text-black border-b border-dashed border-gray-100 lg:border-0">
+                              <span className="lg:hidden font-bold text-[10px] text-gray-400">SATUAN KERJA</span>
+                              <span className="text-right lg:text-left">{v.satuan_kerja || "-"}</span>
                             </td>
-                            <td className="px-3 py-3 text-black">
-                              {v.city || "-"}
+                            <td className="flex justify-between items-center lg:table-cell px-1 py-1.5 sm:px-3 lg:py-3 text-black border-b border-dashed border-gray-100 lg:border-0">
+                              <span className="lg:hidden font-bold text-[10px] text-gray-400">CITY</span>
+                              <span className="text-right lg:text-left">{v.city || "-"}</span>
                             </td>
-                            <td className="px-3 py-3 text-black">
+                            <td className="flex justify-between items-center lg:table-cell px-1 py-1.5 sm:px-3 lg:py-3 text-black border-b border-dashed border-gray-100 lg:border-0">
+                              <span className="lg:hidden font-bold text-[10px] text-gray-400">STATUS</span>
                               <StatusPill value={v.status_visit} />
                             </td>
-                            <td className="px-3 py-3 font-bold text-[#0B6AA9]">
-                              {v.status_ring || "-"}
+                            <td className="flex justify-between items-center lg:table-cell px-1 py-1.5 sm:px-3 lg:py-3 font-bold text-[#0B6AA9] border-b border-dashed border-gray-100 lg:border-0">
+                              <span className="lg:hidden font-bold text-[10px] text-gray-400">RING</span>
+                              <span className="text-right lg:text-left">{v.status_ring || "-"}</span>
                             </td>
-                            <td className="px-3 py-3 text-black">
-                              {formatDateID(v.visit_date)}
+                            <td className="flex justify-between items-center lg:table-cell px-1 py-1.5 sm:px-3 lg:py-3 text-black border-b border-dashed border-gray-100 lg:border-0">
+                              <span className="lg:hidden font-bold text-[10px] text-gray-400">VISIT DATE</span>
+                              <span className="text-right lg:text-left">{formatDateID(v.visit_date)}</span>
                             </td>
                           </tr>
                           {active && (
-                            <tr className="bg-blue-50/30">
+                            <tr className="bg-blue-50/30 flex lg:table-row -mt-6 lg:mt-0 pt-4 sm:pt-0 relative z-0 lg:z-auto rounded-b-xl lg:rounded-none border lg:border-0 border-t-0 border-slate-200">
                               <td
                                 colSpan={6}
-                                className="border-b border-blue-100 border-l-[4px] border-blue-600 px-3 py-4"
+                                className="border-b border-blue-100 border-l-0 sm:border-l-[4px] border-blue-600 px-3 py-4 w-full"
                               >
                                 <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-blue-100">
                                   <div className="mb-4 flex items-center gap-3 text-lg font-extrabold text-gray-900">

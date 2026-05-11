@@ -25,7 +25,7 @@ export default function AppLayoutWrapper({
     <div className="flex h-[100dvh] bg-blue-50 overflow-hidden relative">
       <Sidebar />
       <div 
-        className="flex-1 w-full min-w-0 h-[100dvh] overflow-y-auto relative"
+        className="flex-1 w-full min-w-0 h-[100dvh] overflow-y-auto relative main-content-area"
       >
         {children}
       </div>

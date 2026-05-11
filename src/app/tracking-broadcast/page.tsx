@@ -644,7 +644,7 @@ export default function TrackingBroadcastPage() {
   return (
     <div className='min-h-screen bg-blue-50'>
       <div className='flex'>
-        <div className='flex-1 p-6'>
+        <div className='flex-1 p-3 sm:p-6'>
           <div className='bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100'>
             <div className='flex flex-col'>
               <h4 className='text-[20px] mb-1 font-extrabold text-(--gray-800) m-0 tracking-[-0.5px]'>
@@ -882,26 +882,26 @@ export default function TrackingBroadcastPage() {
                 <strong className='text-[8px] font-bold tracking-wide'>
                   Analis Data Broadcast
                 </strong>
-                <span className='text-[8px] ml-2 text-blue-100 font-normal tracking-wide'>
+                <span className='text-[9px] sm:text-[8px] ml-1 sm:ml-2 text-blue-100 font-normal tracking-wide hidden sm:inline'>
                   (Klik baris tabel untuk drill-down)
                 </span>
               </div>
-              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer' aria-label={isFilterOpen ? "Tutup filter" : "Buka filter"}>
+              <button className='bg-white text-blue-600 p-1 rounded hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0' aria-label={isFilterOpen2 ? "Tutup filter" : "Buka filter"}>
                 <ChevronDown
                   size={16}
                   strokeWidth={2.5}
                   onClick={() => setIsFilterOpen2(!isFilterOpen2)}
-                  className={isFilterOpen2 ? "rotate-180" : ""}
+                  className={`transition-transform duration-200 ${isFilterOpen2 ? "rotate-180" : ""}`}
                 />
               </button>
             </div>
 
             {/* {Konten Filter 2} */}
             <div
-              className='p-4 flex flex-col gap-3'
+              className='p-3 sm:p-4 flex flex-col gap-3'
               style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
             >
-              <div className='flex flex-col md:flex-row gap-3 w-full'>
+              <div className='flex flex-col sm:flex-row gap-3 w-full'>
                 {/* Card Kiri: Total Unik No HP */}
                 <div className='shrink-0 md:w-auto w-full'>
                   <div className='flex items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 h-full min-w-[200px]'>
@@ -1059,7 +1059,7 @@ export default function TrackingBroadcastPage() {
             </div>
             {/* Konten Filter */}
             <div
-              className='flex flex-col md:flex-row gap-3 w-full px-4 pb-4 mt-1.5'
+              className='flex flex-col sm:flex-row gap-3 w-full px-3 sm:px-4 pb-3 sm:pb-4 mt-1.5'
               style={{ display: isFilterOpen2 ? 'flex' : 'none' }}
             >
               {/* Panel Kiri: Data Unik per Provinsi & Kota */}
@@ -1626,12 +1626,12 @@ export default function TrackingBroadcastPage() {
             </div>
           </section>
           {/* Legend Footer */}
-          <div className='flex flex-wrap items-center mt-4 gap-4 px-4 py-2 bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500'>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-[#0DCAF0]'></span>Data dari sheet <strong>DATA_WA</strong></span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-blue-500'></span>Klik <strong>👁</strong> untuk detail lengkap</span>
-            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span>Centang <strong>☑</strong> untuk submit massal</span>
-            <span className='flex items-center gap-1 ml-auto'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-green-500 text-white font-bold text-[9px]'>STATUS WA</span> = Respons</span>
-            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-yellow-400 text-white font-bold text-[9px]'>KE SALES</span> = Forward</span>
+          <div className='flex flex-wrap items-center mt-4 gap-2 sm:gap-4 px-3 sm:px-4 py-2 bg-gray-50 border-b border-gray-200 text-[9px] sm:text-[10px] text-gray-500 rounded-lg lg:rounded-none'>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-[#0DCAF0]'></span><strong>DATA_WA</strong></span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-full bg-blue-500'></span><strong>👁</strong> detail</span>
+            <span className='flex items-center gap-1'><span className='inline-flex w-3 h-3 rounded-sm bg-gray-300'></span><strong>☑</strong> massal</span>
+            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-green-500 text-white font-bold text-[9px]'>STATUS</span></span>
+            <span className='flex items-center gap-1'><span className='inline-flex px-1.5 py-0.5 rounded-sm bg-yellow-400 text-white font-bold text-[9px]'>SALES</span></span>
           </div>
         </div>
       </div>

@@ -583,8 +583,8 @@ export default function InstansiPage() {
             {/* Table */}
             <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-left">
-                  <thead className="bg-blue-100 border-b border-gray-200">
+                <table className="min-w-full text-sm text-left block lg:table">
+                  <thead className="bg-blue-100 border-b border-gray-200 hidden lg:table-header-group">
                     <tr>
                       {[
                         "Kota/Kab",
@@ -626,40 +626,51 @@ export default function InstansiPage() {
                       resp.items.map((c) => (
                         <tr
                           key={c._id}
-                          className="hover:bg-gray-50/50 transition-colors group"
+                          className="hover:bg-gray-50/50 transition-colors group block lg:table-row border-b border-gray-200 lg:border-0 mb-4 lg:mb-0 pb-4 lg:pb-0"
                         >
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.kota_kab ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Kota/Kab</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.kota_kab ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.klpd ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">KLPD</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.klpd ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 font-bold">
-                            {c.institusi_kerja ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 font-bold flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px] font-normal">Institusi Kerja</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.institusi_kerja ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.satuan_kerja ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Satuan Kerja</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.satuan_kerja ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.kode_dinas ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Kode Dinas</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.kode_dinas ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.pic_default?.nama ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Nama PIC</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.pic_default?.nama ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.pic_default?.no_telp ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">No. HP PIC</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.pic_default?.no_telp ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.pic_default?.jabatan ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Jabatan PIC</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.pic_default?.jabatan ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {c.pic_default?.role ?? "-"}
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Role PIC</span>
+                            <span className="truncate max-w-[200px] lg:max-w-none text-right lg:text-left">{c.pic_default?.role ?? "-"}</span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-center">
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 text-center flex justify-between lg:table-cell items-center border-b border-dashed border-gray-200 lg:border-0">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Status Ring</span>
                             <StatusPill value={c.status_ring} />
                           </td>
 
-                          <td className="whitespace-nowrap px-6 py-4 text-center">
+                          <td className="whitespace-nowrap px-6 py-2 lg:py-4 text-center flex justify-between lg:table-cell items-center">
+                            <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Aksi</span>
                             <div className="flex items-center justify-center gap-2">
                             <button
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-black/70 hover:text-blue-600 hover:bg-blue-50 transition-all mx-auto"

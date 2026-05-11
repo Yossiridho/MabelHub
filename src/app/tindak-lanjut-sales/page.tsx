@@ -70,7 +70,7 @@ export default function TindakLanjutSalesPage() {
     return (
         <div className="min-h-screen bg-blue-50">
             <div className="flex">
-                <div className="flex-1 p-6">
+                <div className="flex-1 p-3 sm:p-6">
                     <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
                         <div className="flex flex-col">
                             <h4 className="text-[16px] mb-1 font-extrabold  text-(--gray-800) m-0 tracking-[0-.5px]">
@@ -108,7 +108,7 @@ export default function TindakLanjutSalesPage() {
                         >
                             {/* Baris 1: Filter Tanggal Input */}
                             <div className="border border-slate-200 rounded-lg p-2 flex flex-col sm:flex-row items-start sm:items-center bg-white shadow-sm max-w-full ">
-                                <div className="flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 sm:mb-0 mb-2">
+                                <div className="flex items-center text-xs font-semibold text-gray-600 min-w-max mr-3 px-1 lg:mb-0 mb-2">
                                     <Calendar
                                         size={14}
                                         className="mr-2 text-blue-500"
@@ -134,13 +134,13 @@ export default function TindakLanjutSalesPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="flex flex-wrap lg:flex-nowrap gap-2 w-full mt-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 w-full mt-1">
                                 {filterButtons.map((btn, idx) => {
                                     const IconComponent = btn.icon
                                     return (
                                         <button
                                             key={idx}
-                                            className="flex flex-1 items-center justify-center gap-1.5 py-[7px] px-2 text-xs font-semibold border-[1.5px] border-[#ced4da] rounded-lg bg-white cursor-pointer text-[#495057] transition-all duration-150 select-none box-border truncate hover:bg-slate-50 hover:border-slate-400 min-w-[120px]"
+                                            className="flex items-center justify-center gap-1.5 py-[7px] px-2 text-xs font-semibold border-[1.5px] border-[#ced4da] rounded-lg bg-white cursor-pointer text-[#495057] transition-all duration-150 select-none box-border truncate hover:bg-slate-50 hover:border-slate-400"
                                         >
                                             <IconComponent
                                                 size={10}
@@ -262,7 +262,7 @@ export default function TindakLanjutSalesPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className='grid grid-cols-3 gap-3'>
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-3'>
                                 <div className='flex flex-col rounded-lg border border-blue-100 overflow-hidden shadow-sm'>
                                     {/* Header Panel Kiri */}
                                     <div
@@ -582,8 +582,8 @@ export default function TindakLanjutSalesPage() {
                     <div className="mt-6 overflow-hidden rounded-2xl bg-blue shadow-sm ring-1 ring-gray-200">
                         <div className="overflow-x-auto">
                             <div className="min-w-full text-sm text-left items-center bg-white">
-                                <table className="min-w-full text-sm text-left items-center bg-white">
-                                    <thead className="bg-blue-100 justify-center ">
+                                <table className="w-full text-sm text-left items-center bg-transparent lg:bg-white block lg:table">
+                                    <thead className="bg-blue-100 justify-center hidden lg:table-header-group">
                                         <tr>
                                             {[
                                                 'NO',
@@ -605,35 +605,47 @@ export default function TindakLanjutSalesPage() {
                                             ))}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-300">
+                                    <tbody className="divide-y lg:divide-gray-300 block lg:table-row-group">
                                         {Array(10).fill(0).map((_, i) => (
                                             <tr
                                                 key={i}
-                                                className="hover:bg-green-50/50 transition-colors cursor-pointer"
+                                                className="block lg:table-row mb-4 lg:mb-0 rounded-xl lg:rounded-none shadow-md lg:shadow-none border border-gray-200 lg:border-b lg:border-t-0 lg:border-x-0 p-3 lg:p-0 transition-colors cursor-pointer bg-white hover:bg-green-50/50"
                                             >
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-400">
-                                                    <option value="1">1</option>
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-400 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">NO</span>
+                                                    <span>1</span>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-700 font-medium">
-                                                    081231849271
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-700 font-medium border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">LIHAT</span>
+                                                    <span className="text-right">081231849271</span>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                                    Ramadhan
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">PIC SALES</span>
+                                                    <span className="text-right">Ramadhan</span>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                                    Maju Mundur
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">PERUSAHAAN</span>
+                                                    <span className="text-right">Maju Mundur</span>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                                    Jakarta
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">INFO LOKASI</span>
+                                                    <span className="text-right">Jakarta</span>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                                    087899878888
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">KONTAK PIC</span>
+                                                    <span className="text-right">087899878888</span>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                                    <option value="True">True</option>
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">VALIDITAS</span>
+                                                    <select className="bg-white border border-gray-300 rounded px-1 py-0.5 text-right lg:text-left">
+                                                        <option value="True">True</option>
+                                                    </select>
                                                 </td>
-                                                <td className="px-2 py-1.5 text-[10px] text-slate-600">
-                                                    <option value="True">True</option>
+                                                <td className="flex justify-between items-center px-1 py-1.5 lg:px-2 lg:py-1.5 text-[10px] text-slate-600 border-b border-dashed border-gray-100 lg:border-0 lg:table-cell">
+                                                    <span className="lg:hidden font-bold text-gray-400">DETAIL VALIDITAS</span>
+                                                    <select className="bg-white border border-gray-300 rounded px-1 py-0.5 text-right lg:text-left">
+                                                        <option value="True">True</option>
+                                                    </select>
                                                 </td>
                                             </tr>
                                         ))}

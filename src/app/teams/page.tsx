@@ -291,8 +291,8 @@ export default function TeamsPage() {
 
           <div className="mt-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
             <div className="overflow-x-auto px-5 py-4">
-              <table className="w-full text-left text-md">
-                <thead className="bg-white font-semibold text-black">
+              <table className="w-full text-left text-md block lg:table">
+                <thead className="bg-white font-semibold text-black hidden lg:table-header-group">
                   <tr>
                     <th className="px-5 py-3">Nama</th>
                     <th className="px-5 py-3">Leader</th>
@@ -302,15 +302,21 @@ export default function TeamsPage() {
                 </thead>
                 <tbody>
                   {teams.map((t) => (
-                    <tr key={t._id} className="border-t border-gray-200">
-                      <td className="px-5 py-3">{t.name}</td>
-                      <td className="px-5 py-3">
-                        {t.leaderName || t.leaderId}
+                    <tr key={t._id} className="border-t border-gray-200 block lg:table-row mb-4 lg:mb-0 pb-4 lg:pb-0">
+                      <td className="px-5 py-2 lg:py-3 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0 items-center">
+                        <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Nama</span>
+                        <span className="text-right lg:text-left">{t.name}</span>
                       </td>
-                      <td className="px-5 py-3">
-                        {(t.memberIds || []).length}
+                      <td className="px-5 py-2 lg:py-3 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0 items-center">
+                        <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Leader</span>
+                        <span className="text-right lg:text-left">{t.leaderName || t.leaderId}</span>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-2 lg:py-3 flex justify-between lg:table-cell border-b border-dashed border-gray-200 lg:border-0 items-center">
+                        <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Jumlah Sales</span>
+                        <span className="text-right lg:text-left">{(t.memberIds || []).length}</span>
+                      </td>
+                      <td className="px-5 py-2 lg:py-3 flex justify-between lg:table-cell items-center">
+                        <span className="lg:hidden font-bold text-gray-500 uppercase text-[10px]">Aksi</span>
                         <Link
                           className="rounded-lg border border-gray-400 px-3 py-1 text-sm font-semibold hover:bg-gray-100"
                           href={`/teams/${encodeURIComponent(t._id)}`}

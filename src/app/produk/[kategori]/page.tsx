@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/components/session/SessionProvider";
 import {
@@ -12,6 +12,10 @@ import {
   Package,
   ChevronRight,
   Shield,
+  Lock,
+  Unlock,
+  Trash2,
+  Plus,
 } from "lucide-react";
 
 // ─── Static category meta ─────────────────────────────────────────────────────
@@ -41,14 +45,15 @@ type DocFile = {
   size: string;
   updatedAt: string;
   url: string;
+  isLocked?: boolean;
 };
 
 function getMockDocs(categoryId: string): DocFile[] {
   const templates: DocFile[] = [
-    { id: "1", name: `${categoryId}_v1.pdf`, type: "PDF", size: "2.4 MB", updatedAt: "15 Apr 2026", url: "#" },
-    { id: "2", name: `${categoryId}_presentation.pptx`, type: "PPTX", size: "8.1 MB", updatedAt: "10 Apr 2026", url: "#" },
-    { id: "3", name: `${categoryId}_datasheet.xlsx`, type: "XLSX", size: "1.2 MB", updatedAt: "3 Apr 2026", url: "#" },
-    { id: "4", name: `${categoryId}_2026.pdf`, type: "PDF", size: "5.6 MB", updatedAt: "1 Mar 2026", url: "#" },
+    { id: "1", name: `${categoryId}_v1.pdf`, type: "PDF", size: "2.4 MB", updatedAt: "15 Apr 2026", url: "#", isLocked: false },
+    { id: "2", name: `${categoryId}_presentation.pptx`, type: "PPTX", size: "8.1 MB", updatedAt: "10 Apr 2026", url: "#", isLocked: true },
+    { id: "3", name: `${categoryId}_datasheet.xlsx`, type: "XLSX", size: "1.2 MB", updatedAt: "3 Apr 2026", url: "#", isLocked: false },
+    { id: "4", name: `${categoryId}_2026.pdf`, type: "PDF", size: "5.6 MB", updatedAt: "1 Mar 2026", url: "#", isLocked: false },
   ];
   return templates;
 }
@@ -84,9 +89,22 @@ export default function ProdukDetailPage({
 
   const [search, setSearch] = useState("");
   const [docs, setDocs] = useState<DocFile[]>([]);
+  const [meta, setMeta] = useState<{name: string, description: string, superAdminOnly: boolean} | undefined>(CATEGORY_META[kategori]);
+  const [isClient, setIsClient] = useState(false);
 
-  const meta = CATEGORY_META[kategori];
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSuperAdmin = user?.role === "SUPERADMIN";
+
+  useEffect(() => {
+    setIsClient(true);
+    const savedMetaStr = localStorage.getItem("mabelhub_category_meta");
+    if (savedMetaStr) {
+      const savedMeta = JSON.parse(savedMetaStr);
+      if (savedMeta[kategori]) {
+        setMeta(savedMeta[kategori]);
+      }
+    }
+  }, [kategori]);
 
   // Access guard
   useEffect(() => {
@@ -104,11 +122,44 @@ export default function ProdukDetailPage({
     setDocs(getMockDocs(kategori));
   }, [kategori]);
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    
+    // Create local object URL for preview/download
+    const fileUrl = URL.createObjectURL(file);
+    
+    const newDoc: DocFile = {
+      id: Date.now().toString(),
+      name: file.name,
+      type: file.name.split('.').pop()?.toUpperCase() || "FILE",
+      size: (file.size / 1024 / 1024).toFixed(2) + " MB",
+      updatedAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+      url: fileUrl,
+      isLocked: false,
+    };
+    setDocs([newDoc, ...docs]);
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDeleteDoc = (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) {
+      setDocs(docs.filter(d => d.id !== id));
+    }
+  };
+
+  const handleToggleLock = (id: string) => {
+    setDocs(docs.map(d => d.id === id ? { ...d, isLocked: !d.isLocked } : d));
+  };
+
   const filtered = docs.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (sessionLoading || !meta) {
+  if (sessionLoading || !isClient || !meta) {
     return (
       <div className="min-h-screen bg-blue-50 grid place-items-center">
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -159,15 +210,34 @@ export default function ProdukDetailPage({
               </div>
             </div>
 
-            {/* Search */}
-            <div className="relative w-full md:w-72">
-              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari dokumen..."
-                className="h-11 w-full rounded-full bg-white pl-11 pr-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-blue-400 transition"
-              />
+            {/* Actions & Search */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              {isSuperAdmin && (
+                <>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleFileUpload} 
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tambah Dokumen
+                  </button>
+                </>
+              )}
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari dokumen..."
+                  className="h-11 w-full rounded-full bg-white pl-11 pr-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-blue-400 transition"
+                />
+              </div>
             </div>
           </div>
 
@@ -203,7 +273,10 @@ export default function ProdukDetailPage({
 
                   <div className="p-4 flex flex-col gap-3 flex-1">
                     <div className="flex-1">
-                      <FileBadge type={doc.type} />
+                      <div className="flex items-center justify-between">
+                        <FileBadge type={doc.type} />
+                        {doc.isLocked && <Lock className="w-4 h-4 text-gray-400" />}
+                      </div>
                       <p
                         className="mt-2 text-sm font-bold text-gray-900 leading-tight line-clamp-2"
                         title={doc.name}
@@ -218,24 +291,54 @@ export default function ProdukDetailPage({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors ring-1 ring-blue-200"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Preview
-                      </a>
-                      <a
-                        href={doc.url}
-                        download
-                        className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-green-50 text-green-700 text-xs font-bold hover:bg-green-100 transition-colors ring-1 ring-green-200"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Unduh
-                      </a>
+                    <div className="flex flex-col gap-2 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors ring-1 ring-blue-200"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Preview
+                        </a>
+                        <a
+                          href={doc.url}
+                          download
+                          className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-bold transition-colors ring-1 ${
+                            doc.isLocked 
+                              ? "bg-gray-50 text-gray-400 ring-gray-200 cursor-not-allowed pointer-events-none" 
+                              : "bg-green-50 text-green-700 hover:bg-green-100 ring-green-200"
+                          }`}
+                          onClick={(e) => doc.isLocked && e.preventDefault()}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Unduh
+                        </a>
+                      </div>
+                      
+                      {isSuperAdmin && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleLock(doc.id)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-bold transition-colors ring-1 ${
+                              doc.isLocked 
+                                ? "bg-amber-50 text-amber-700 ring-amber-200 hover:bg-amber-100" 
+                                : "bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100"
+                            }`}
+                          >
+                            {doc.isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                            {doc.isLocked ? "Buka" : "Kunci"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDoc(doc.id)}
+                            className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 transition-colors ring-1 ring-red-200"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Hapus
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
