@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
             ),
         ]
 
-        const [countResult, pageRows, statusWaCounts] = await Promise.all([
+        const [countResult, pageRows, statusWaCounts, keSalesCounts] = await Promise.all([
             // Hitung total
             col.aggregate([...pipeline, { $count: "total" }]).toArray(),
 
@@ -157,10 +157,34 @@ export async function GET(req: NextRequest) {
                 },
                 { $sort: { _id: 1 } }
             ]).toArray(),
+
+            col.aggregate([
+                {
+                    $lookup: {
+                        from: "tracking_broadcast",
+                        localField: "code_input",
+                        foreignField: "kode",
+                        as: "broadcast"
+                    }
+                },
+                {
+                    $addFields: {
+                        broadcast: { $arrayElemAt: ["broadcast", -1] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $ifNull: ["$broadcast.ke_sales", ""] },
+                        count: { $sum: 1}
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]).toArray(),
         ])
 
         const totalCount = countResult[0]?.total ?? 0
         const countMap = Object.fromEntries(statusWaCounts.map((s: any) => [s._id, s.count]))
+        const salesMap = Object.fromEntries(keSalesCounts.map((s: any) => [s._id, s.count]))
 
         const uniqueNoTelp = await col.distinct("no_telp", { ...filter, no_telp: { $ne: "" } })
         const uniqueProvinsi = await col.distinct("provinsi", { ...filter, provinsi: { $ne: "" } })
@@ -284,7 +308,6 @@ export async function GET(req: NextRequest) {
                 limit,
                 total: totalCount,
                 totalPages: Math.max(1, Math.ceil(totalCount / limit)),
-                ...summaryStats, rows: data
             },
             statusWaSummary: {
                 terkirim: countMap["Terkirim(1C)"] ?? 0,
@@ -297,6 +320,13 @@ export async function GET(req: NextRequest) {
                 kosong: countMap[""] ?? 0,
                 total: statusWaCounts.reduce((acc, s) => acc + s.count, 0),
             },
+            summaryStats: { ...summaryStats },
+            keSalesSummary: {
+                arie: salesMap["Arie Muhamad Fajar"] ?? 0,
+                beffry: salesMap["Beffry Rizkana"] ?? 0,
+                ferrie: salesMap["Ferrie Ferdinal"] ?? 0,
+                kosong: salesMap[""] ?? 0,
+            }
         })
 
     } catch (error) {

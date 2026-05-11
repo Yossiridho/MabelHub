@@ -247,7 +247,13 @@ export default function TrackingBroadcastPage() {
     total: 0,
   })
 
-
+  // Summary Ke Sales
+  const [keSalesSummary, setKeSalesSummary] = useState({
+    arie: 0,
+    beffry: 0,
+    ferrie: 0,
+    kosong: 0,
+  })
 
   // function selected broadcast
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -359,7 +365,6 @@ export default function TrackingBroadcastPage() {
   // data - statistik & analitik
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<ApiStats | null>(null)
-  const [apiStats, setApiStats] = useState<ApiStats | null>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
@@ -607,6 +612,12 @@ export default function TrackingBroadcastPage() {
             total_wa_unik: json?.summaryStats?.total_wa_unik ?? 0,
             provinsi_kota: json?.summaryStats?.provinsi_kota ?? [],
             wa_provinsi_kota: json?.summaryStats?.wa_provinsi_kota ?? [],
+          })
+          setKeSalesSummary({
+            arie: json?.keSalesSummary?.arie ?? 0,
+            beffry: json?.keSalesSummary?.beffry ?? 0,
+            ferrie: json?.keSalesSummary?.ferrie ?? 0,
+            kosong: json?.keSalesSummary?.kosong ?? 0,
           })
           const pg = json?.pagination ?? {}
           setTotal(Number(pg?.total ?? 0))
@@ -914,7 +925,7 @@ export default function TrackingBroadcastPage() {
                         className='font-extrabold text-[1.8rem] leading-none text-green-500'
                         id='statWaUnik'
                       >
-                        559
+                        {loadingRows ? '...' : (stats?.total_wa_unik ?? 0)}
                       </div>
                       <div className='text-[10px] text-slate-400'>kontak</div>
                     </div>
@@ -1076,7 +1087,7 @@ export default function TrackingBroadcastPage() {
                       id='statProvinsiRows'
                       className='font-semibold text-blue-700'
                     >
-                      {loading ? '...' : (stats?.provinsi_kota.length ?? 0)}
+                      {loadingRows ? '...' : (stats?.provinsi_kota.length ?? 0)}
                     </span>
                     <span>baris</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
@@ -1084,7 +1095,7 @@ export default function TrackingBroadcastPage() {
                       id='statProvinsiTotal'
                       className='font-semibold text-blue-700'
                     >
-                      14
+                      {loadingRows ? '...' : (stats?.provinsi_kota.reduce((acc, row) => acc + row.unik, 0) ?? 0)}
                     </span>
                     <span>total</span>
                   </div>
@@ -1112,106 +1123,19 @@ export default function TrackingBroadcastPage() {
                       id='tbodyProvinsiUnik'
                       className='divide-y divide-gray-100'
                     >
-                      {[
-                        {
-                          no: 1,
-                          prov: 'Aceh',
-                          kota: 'Kabupaten Pidie',
-                          unik: 1,
-                          pct: 4,
-                        },
-                        {
-                          no: 2,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 36,
-                          pct: 90,
-                        },
-                        {
-                          no: 3,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Badung',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 4,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Gianyar',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 5,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Jembrana',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 6,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Klungkung',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 7,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 5,
-                        },
-                        {
-                          no: 8,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 3,
-                          pct: 8,
-                        },
-                        {
-                          no: 9,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 5,
-                          pct: 13,
-                        },
-                        {
-                          no: 10,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 5,
-                        },
-                        {
-                          no: 11,
-                          prov: 'Banten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 23,
-                        },
-                        {
-                          no: 12,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Pusat',
-                          unik: 4,
-                          pct: 10,
-                        },
-                        {
-                          no: 13,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Selatan',
-                          unik: 6,
-                          pct: 15,
-                        },
-                        {
-                          no: 14,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Utara',
-                          unik: 2,
-                          pct: 5,
-                        },
-                      ].map((row) => (
+                      {loadingRows ? (
+                        <tr>
+                          <td colSpan={4} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : (stats?.provinsi_kota ?? []).length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Tidak ada data
+                          </td>
+                        </tr>
+                      ) : (stats?.provinsi_kota ?? []).map((row) => (
                         <tr
                           key={row.no}
                           className='hover:bg-blue-50/50 transition-colors cursor-pointer'
@@ -1220,7 +1144,7 @@ export default function TrackingBroadcastPage() {
                             {row.no}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.prov}
+                            {row.provinsi}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-600'>
                             <div className='flex items-center gap-1.5'>
@@ -1246,19 +1170,19 @@ export default function TrackingBroadcastPage() {
               </div>
 
               {/* Panel Kanan: Kontak WA Unik per Provinsi & Kota */}
-              <div className='flex flex-col flex-1 rounded-lg border border-green-100 overflow-hidden shadow-sm'>
+              <div className='flex flex-col flex-1 rounded-lg border border-[#FEFBDE] overflow-hidden shadow-sm'>
                 {/* Header Panel Kanan */}
                 <div
                   className='flex items-center justify-between px-3 py-[6px]'
                   style={{
-                    background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                    borderBottom: '2px solid #16a34a',
+                    background: 'linear-gradient(135deg, #FEFBDE, #FEFBDE)',
+                    borderBottom: '2px solid #CA8A04',
                   }}
                 >
                   <div className='flex items-center gap-1.5'>
-                    <PhoneCallIcon
+                    <Users
                       size={13}
-                      className='text-green-600 shrink-0'
+                      className='text-[#FFC107] shrink-0'
                       strokeWidth={2.5}
                     />
                     <span className='text-[11px] font-bold text-[#1e293b]'>
@@ -1268,9 +1192,9 @@ export default function TrackingBroadcastPage() {
                   <div className='flex items-center gap-1 text-[10px] text-slate-500'>
                     <span
                       id='statWaProvinsiRows'
-                      className='font-semibold text-green-700'
+                      className='font-semibold text-green-600'
                     >
-                      14
+                      {loadingRows ? '...' : stats?.wa_provinsi_kota?.length}
                     </span>
                     <span>baris</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
@@ -1278,7 +1202,7 @@ export default function TrackingBroadcastPage() {
                       id='statWaProvinsiTotal'
                       className='font-semibold text-green-700'
                     >
-                      14
+                      {loadingRows ? '...' : stats?.total_wa_unik}
                     </span>
                     <span>total</span>
                   </div>
@@ -1292,143 +1216,55 @@ export default function TrackingBroadcastPage() {
                           #
                         </th>
                         <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500'>
-                          Provinsi
-                        </th>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500'>
-                          Kota/Kab
+                          Ke Sales
                         </th>
                         <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500 text-right'>
-                          WA Unik
+                          Unik
                         </th>
                       </tr>
                     </thead>
+                    {/* Ke Sales Summary */}
+                    
                     <tbody
                       id='tbodyWaProvinsi'
                       className='divide-y divide-gray-100'
                     >
-                      {[
-                        {
-                          no: 1,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 2,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 3,
-                          prov: 'Bali',
-                          kota: 'Kota Denpasar',
-                          unik: 4,
-                          pct: 40,
-                        },
-                        {
-                          no: 4,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 5,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 3,
-                          pct: 30,
-                        },
-                        {
-                          no: 6,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 7,
-                          prov: 'Danten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 90,
-                        },
-                        {
-                          no: 8,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 9,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 10,
-                          prov: 'Bali',
-                          kota: 'Kota Denpasar',
-                          unik: 4,
-                          pct: 40,
-                        },
-                        {
-                          no: 11,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 12,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 3,
-                          pct: 30,
-                        },
-                        {
-                          no: 13,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 14,
-                          prov: 'Danten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 90,
-                        },
-                      ].map((row) => (
+                      {loadingRows ? (
+                        <tr>
+                          <td colSpan={3} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : (stats?.total_nama ?? []).length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Tidak ada data
+                          </td>
+                        </tr>
+                      ) : (stats?.total_nama_sales_unik ?? []).map((row) => (
                         <tr
                           key={row.no}
-                          className='hover:bg-green-50/50 transition-colors cursor-pointer'
+                          className='hover:bg-blue-50/50 transition-colors cursor-pointer'
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
                             {row.no}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.prov}
+                            {row.provinsi}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-600'>
                             <div className='flex items-center gap-1.5'>
                               <span>{row.kota}</span>
-                              <div className='flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden'>
+                              <div className='flex-1 min-w-[36px] bg-blue-100 rounded-full h-[4px] overflow-hidden'>
                                 <div
-                                  className='bg-green-500 h-full rounded-full'
+                                  className='bg-blue-500 h-full rounded-full'
                                   style={{ width: `${row.pct}%` }}
                                 />
                               </div>
                             </div>
                           </td>
                           <td className='px-2 py-1.5 text-right'>
-                            <span className='inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-600 text-white'>
+                            <span className='inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-600 text-white'>
                               {row.unik}
                             </span>
                           </td>
