@@ -467,7 +467,7 @@ export default function TindakLanjutSalesPage() {
                                                                 <div className='flex-1 min-w-[36px] bg-orange-100 rounded-full h-[4px] overflow-hidden'>
                                                                     <div
                                                                         className='bg-orange-300 h-full rounded-full'
-                                                                        style={{ width: `${row.pct}%` }}
+                                                                        style={{ width: `${Math.round((row.unik / 5) * 100)}%` }}
                                                                     />
                                                                 </div>
                                                                 <span className='inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-orange-200 text-black'>

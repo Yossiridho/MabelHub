@@ -131,6 +131,23 @@ const ALL_CATEGORIES: Category[] = [
 
 // ─── Category Card ─────────────────────────────────────────────────────────────
 
+// ─── Helper Icon ─────────────────────────────────────────────────────────────────
+const getCategoryIcon = (id: string) => {
+  const map: Record<string, React.ReactNode> = {
+    brochure: <BookOpen className="w-7 h-7" />,
+    catalogue: <ShoppingBag className="w-7 h-7" />,
+    "company-profile": <Briefcase className="w-7 h-7" />,
+    datasheet: <FileText className="w-7 h-7" />,
+    "presentation-materials": <Monitor className="w-7 h-7" />,
+    pricelist: <Tag className="w-7 h-7" />,
+    "id-kit": <Layers className="w-7 h-7" />,
+    tools: <Wrench className="w-7 h-7" />,
+    certification: <Award className="w-7 h-7" />,
+    legalitas: <Shield className="w-7 h-7" />,
+  };
+  return map[id] || <Package className="w-7 h-7" />;
+};
+
 function CategoryCard({
   cat,
   onClick,
@@ -163,7 +180,7 @@ function CategoryCard({
         <div
           className={`w-14 h-14 rounded-xl flex items-center justify-center ${cat.iconBg} group-hover:scale-105 transition-transform duration-200`}
         >
-          {cat.icon || <Package className="w-7 h-7" />}
+          {cat.icon || getCategoryIcon(cat.id)}
         </div>
 
         {/* Info */}
@@ -215,42 +232,49 @@ export default function ProdukPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem("mabelhub_categories");
-    if (saved) {
-      // Remove ReactNode from saved items by not providing it and relying on fallback
-      setCategories(JSON.parse(saved));
-    } else {
-      setCategories(ALL_CATEGORIES);
-    }
+    fetch("/api/produk/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching categories:", err));
   }, []);
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCatName.trim()) return;
     const id = newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const newCategory: Category = {
+    const newCategory = {
       id,
       name: newCatName,
-      docCount: 0,
-      iconBg: "bg-blue-100 text-blue-600",
       description: newCatDesc,
       superAdminOnly: newCatSuperAdmin,
+      iconBg: "bg-blue-100 text-blue-600",
     };
-    const updated = [...categories, newCategory];
-    setCategories(updated);
-    
-    // Save stringified without icon to avoid cyclic issues
-    const toSave = updated.map(({ icon, ...rest }) => rest);
-    localStorage.setItem("mabelhub_categories", JSON.stringify(toSave));
-    
-    const savedMetaStr = localStorage.getItem("mabelhub_category_meta");
-    const savedMeta = savedMetaStr ? JSON.parse(savedMetaStr) : {};
-    savedMeta[id] = { name: newCatName, description: newCatDesc, superAdminOnly: newCatSuperAdmin };
-    localStorage.setItem("mabelhub_category_meta", JSON.stringify(savedMeta));
 
-    setShowAddModal(false);
-    setNewCatName("");
-    setNewCatDesc("");
-    setNewCatSuperAdmin(false);
+    try {
+      const res = await fetch("/api/produk/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCategory),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setCategories([...categories, data.category]);
+        setShowAddModal(false);
+        setNewCatName("");
+        setNewCatDesc("");
+        setNewCatSuperAdmin(false);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal menambahkan kategori");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan");
+    }
   };
 
   // Filter categories by role & search

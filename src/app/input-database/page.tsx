@@ -1,7 +1,7 @@
 'use client'
 
 import SearchableSelect from '@/components/ui/SearchableSelect'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession } from '@/components/session/SessionProvider'
 import { Building, Plus, Trash2, Save, Loader2, Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -101,7 +101,7 @@ function computeChangedFields(
   return changes
 }
 
-export default function InputDatabasePage() {
+function InputDatabaseContent() {
   const [codeInput, setcodeInput] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -273,7 +273,7 @@ export default function InputDatabasePage() {
     }[]
   >([
     {
-      id: crypto.randomUUID(),
+      id: Date.now().toString(36) + Math.random().toString(36).substring(2),
       nama: '',
       jabatan: '',
       tipeKontak: '',
@@ -286,7 +286,7 @@ export default function InputDatabasePage() {
     setItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: Date.now().toString(36) + Math.random().toString(36).substring(2),
         nama: '',
         jabatan: '',
         tipeKontak: '',
@@ -1056,5 +1056,13 @@ export default function InputDatabasePage() {
         </div>
       </div >
     </div >
+  )
+}
+
+export default function InputDatabasePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-blue-50 grid place-items-center"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>}>
+      <InputDatabaseContent />
+    </Suspense>
   )
 }

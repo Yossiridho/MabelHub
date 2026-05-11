@@ -153,7 +153,7 @@ export default function ReportProgresPage() {
                                         className="w-30 text-xs h-8 shadow-none border-1 border-slate-300 rounded-lg"
                                         placeholder="Dari"
                                         value={startDate}
-                                        onChange={(e) => { setStartDate(e.target.value); setPage(1); setSelected(null); }}
+                                        onChange={(e) => { setStartDate(e.target.value); setPage(1); setSelected([]); }}
                                     />
                                     <span className="text-gray-400 font-semibold">-</span>
                                     <input
@@ -161,7 +161,7 @@ export default function ReportProgresPage() {
                                         className="w-30 text-xs h-8 shadow-none border-1 border-slate-300 rounded-lg"
                                         placeholder="Sampai"
                                         value={endDate}
-                                        onChange={(e) => { setEndDate(e.target.value); setPage(1); setSelected(null); }}
+                                        onChange={(e) => { setEndDate(e.target.value); setPage(1); setSelected([]); }}
                                     />
                                 </div>
                             </div>
@@ -284,7 +284,7 @@ export default function ReportProgresPage() {
                                             ))}
                                         </Pie>
                                         <Tooltip
-                                            formatter={(value: number, name: string) => [value, name]}
+                                            formatter={(value: any, name: any) => [value, name]}
                                         />
                                         <Legend
                                             iconType="circle"
@@ -341,7 +341,7 @@ export default function ReportProgresPage() {
                                                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                                 fontSize: "11px",
                                             }}
-                                            formatter={(value: number) => [value, "Jumlah"]}
+                                            formatter={(value: any) => [value, "Jumlah"]}
                                         />
                                         <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={14}>
                                             {dataStatusWa.map((entry, index) => (
@@ -401,7 +401,7 @@ export default function ReportProgresPage() {
                                                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                                 fontSize: "11px",
                                             }}
-                                            formatter={(value: number, name: string) => [
+                                            formatter={(value: any, name: any) => [
                                                 value,
                                                 name === "validasiSales" ? "Validasi Sales" : "Report WA",
                                             ]}
@@ -570,7 +570,7 @@ export default function ReportProgresPage() {
                                             boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                             fontSize: "11px",
                                         }}
-                                        formatter={(value: number) => [value, "Jumlah"]}
+                                        formatter={(value: any) => [value, "Jumlah"]}
                                     />
                                     <Bar dataKey="value" radius={[5, 5, 0, 0]} barSize={50}>
                                         {dataProvinsi.map((entry, index) => (
