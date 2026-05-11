@@ -97,13 +97,13 @@ export default function ProdukDetailPage({
 
   useEffect(() => {
     setIsClient(true);
-    const savedMetaStr = localStorage.getItem("mabelhub_category_meta");
-    if (savedMetaStr) {
-      const savedMeta = JSON.parse(savedMetaStr);
-      if (savedMeta[kategori]) {
-        setMeta(savedMeta[kategori]);
-      }
-    }
+    fetch(`/api/produk/categories/${kategori}`)
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error("Category not found");
+      })
+      .then((data) => setMeta(data))
+      .catch((err) => console.error("Error fetching category meta:", err));
   }, [kategori]);
 
   // Access guard
