@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Search,
   Package,
+  Plus,
+  X,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,7 +27,7 @@ type Category = {
   id: string;
   name: string;
   docCount: number;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   iconBg: string;
   superAdminOnly: boolean;
   description: string;
@@ -161,7 +163,7 @@ function CategoryCard({
         <div
           className={`w-14 h-14 rounded-xl flex items-center justify-center ${cat.iconBg} group-hover:scale-105 transition-transform duration-200`}
         >
-          {cat.icon}
+          {cat.icon || <Package className="w-7 h-7" />}
         </div>
 
         {/* Info */}
@@ -200,11 +202,59 @@ export default function ProdukPage() {
   const { user, loading: sessionLoading } = useSession();
 
   const [search, setSearch] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isClient, setIsClient] = useState(false);
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+  const [newCatSuperAdmin, setNewCatSuperAdmin] = useState(false);
 
   const isSuperAdmin = user?.role === "SUPERADMIN";
 
+  useEffect(() => {
+    setIsClient(true);
+    const saved = localStorage.getItem("mabelhub_categories");
+    if (saved) {
+      // Remove ReactNode from saved items by not providing it and relying on fallback
+      setCategories(JSON.parse(saved));
+    } else {
+      setCategories(ALL_CATEGORIES);
+    }
+  }, []);
+
+  const handleAddCategory = () => {
+    if (!newCatName.trim()) return;
+    const id = newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const newCategory: Category = {
+      id,
+      name: newCatName,
+      docCount: 0,
+      iconBg: "bg-blue-100 text-blue-600",
+      description: newCatDesc,
+      superAdminOnly: newCatSuperAdmin,
+    };
+    const updated = [...categories, newCategory];
+    setCategories(updated);
+    
+    // Save stringified without icon to avoid cyclic issues
+    const toSave = updated.map(({ icon, ...rest }) => rest);
+    localStorage.setItem("mabelhub_categories", JSON.stringify(toSave));
+    
+    const savedMetaStr = localStorage.getItem("mabelhub_category_meta");
+    const savedMeta = savedMetaStr ? JSON.parse(savedMetaStr) : {};
+    savedMeta[id] = { name: newCatName, description: newCatDesc, superAdminOnly: newCatSuperAdmin };
+    localStorage.setItem("mabelhub_category_meta", JSON.stringify(savedMeta));
+
+    setShowAddModal(false);
+    setNewCatName("");
+    setNewCatDesc("");
+    setNewCatSuperAdmin(false);
+  };
+
   // Filter categories by role & search
-  const visibleCategories = ALL_CATEGORIES.filter((cat) => {
+  const visibleCategories = categories.filter((cat) => {
     if (cat.superAdminOnly && !isSuperAdmin) return false;
     if (search.trim()) {
       return cat.name.toLowerCase().includes(search.toLowerCase());
@@ -217,7 +267,7 @@ export default function ProdukPage() {
     if (!sessionLoading && !user) router.replace("/");
   }, [sessionLoading, user, router]);
 
-  if (sessionLoading) {
+  if (sessionLoading || !isClient) {
     return (
       <div className="min-h-screen bg-blue-50 grid place-items-center">
         <div className="flex flex-col items-center gap-4">
@@ -246,15 +296,26 @@ export default function ProdukPage() {
               </p>
             </div>
 
-            {/* Search */}
-            <div className="relative w-full md:w-80">
-              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari kategori dokumen..."
-                className="h-11 w-full rounded-full bg-white pl-11 pr-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-blue-400 transition"
-              />
+            {/* Actions & Search */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              {isSuperAdmin && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah Kategori
+                </button>
+              )}
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari kategori dokumen..."
+                  className="h-11 w-full rounded-full bg-white pl-11 pr-5 text-sm outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-blue-400 transition"
+                />
+              </div>
             </div>
           </div>
 
@@ -357,6 +418,66 @@ export default function ProdukPage() {
               <p className="text-sm font-semibold">
                 Tidak ada kategori yang sesuai dengan pencarian.
               </p>
+            </div>
+          )}
+
+          {/* ── Modal Tambah Kategori ── */}
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                  <h3 className="font-extrabold text-lg text-gray-900">Tambah Kategori Baru</h3>
+                  <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 transition">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-5 flex flex-col gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Nama Kategori</label>
+                    <input
+                      type="text"
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      placeholder="Contoh: Proposal"
+                      className="w-full h-11 px-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Deskripsi</label>
+                    <input
+                      type="text"
+                      value={newCatDesc}
+                      onChange={(e) => setNewCatDesc(e.target.value)}
+                      placeholder="Penjelasan singkat"
+                      className="w-full h-11 px-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <label className="flex items-center gap-3 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newCatSuperAdmin}
+                      onChange={(e) => setNewCatSuperAdmin(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-sm font-bold text-gray-700">Khusus SuperAdmin</span>
+                  </label>
+                </div>
+                <div className="p-5 border-t border-gray-100 flex gap-3">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleAddCategory}
+                    disabled={!newCatName.trim()}
+                    className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>
