@@ -261,6 +261,12 @@ export default function DashboardResponsePage() {
     }
   }, [sessionLoading, user, router]);
 
+  const getSegmenLabel = (segmen?: string) => {
+    if (!segmen) return "Unknown";
+    // Menghapus format seperti "ring1:", "Ring 1 -", dsb.
+    return segmen.replace(/^ring\s*\d+[\s:\-]*\s*/i, "").trim();
+  };
+
   // Dynamic summary
   const summary: Summary = useMemo(() => {
     // 1. Tdk masukkan yg blm di-take
@@ -274,7 +280,7 @@ export default function DashboardResponsePage() {
         return false;
       if (
         chartFilter.segment &&
-        (r.segmen || "Unknown") !== chartFilter.segment
+        getSegmenLabel(r.segmen) !== chartFilter.segment
       )
         return false;
       if (
@@ -314,14 +320,14 @@ export default function DashboardResponsePage() {
       return true;
     });
     segmenData.forEach((r) => {
-      const s = r.segmen || "Unknown";
+      const s = getSegmenLabel(r.segmen);
       countSegmen[s] = (countSegmen[s] || 0) + 1;
     });
 
     const companyData = takenRows.filter((r) => {
       if (
         chartFilter.segment &&
-        (r.segmen || "Unknown") !== chartFilter.segment
+        getSegmenLabel(r.segmen) !== chartFilter.segment
       )
         return false;
       if (
@@ -349,7 +355,7 @@ export default function DashboardResponsePage() {
         return false;
       if (
         chartFilter.segment &&
-        (r.segmen || "Unknown") !== chartFilter.segment
+        getSegmenLabel(r.segmen) !== chartFilter.segment
       )
         return false;
       if (
@@ -372,7 +378,7 @@ export default function DashboardResponsePage() {
         return false;
       if (
         chartFilter.segment &&
-        (r.segmen || "Unknown") !== chartFilter.segment
+        getSegmenLabel(r.segmen) !== chartFilter.segment
       )
         return false;
       if (
@@ -567,7 +573,7 @@ export default function DashboardResponsePage() {
 
         {/* Content */}
         <div className="flex-1 ">
-          <div className="w-full px-5 py-6">
+          <div className="w-full px-5 py-6 flex flex-col">
             <div className="ml-4 pt-2 pb-4  flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="text-3xl pl-4 font-extrabold text-black drop-shadow-sm">
@@ -740,7 +746,7 @@ export default function DashboardResponsePage() {
             )}
 
             {/* Takeable orders (putih, rounded, shadow) */}
-            <div className="mt-8 rounded-2xl bg-white p-5 shadow-sm border border-slate-200 transition-shadow">
+            <div className={`mt-8 rounded-2xl bg-white p-5 shadow-sm border border-slate-200 transition-shadow ${user?.role === "SUPERADMIN" ? "order-4" : "order-3"}`}>
               <div className="flex items-end justify-between gap-3 border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-indigo-50 rounded-lg text-indigo-500">
@@ -879,7 +885,7 @@ export default function DashboardResponsePage() {
             </div>
 
             {/* Overview (putih + shadow) */}
-            <div className="mt-6 rounded-xl bg-white p-4 shadow-md">
+            <div className={`mt-6 rounded-xl bg-white p-4 shadow-md ${user?.role === "SUPERADMIN" ? "order-3" : "order-4"}`}>
               <div className="text-sm font-semibold text-neutral-900">
                 Overview
               </div>
@@ -1171,7 +1177,7 @@ export default function DashboardResponsePage() {
               )}
             </div>
 
-            <div className="h-10" />
+            <div className="h-10 order-last" />
           </div>
         </div>
       </div>
@@ -1356,9 +1362,8 @@ function TakeCard({
         <Info label="REQUESTOR" value={row.requestor} />
         <Info label="DEADLINE USULAN" value={fmtDate(row.deadlineUsulan)} />
 
-        <div className="col-span-2">
-          <Info label="PEMOHON" value={row.pemohon} bold />
-        </div>
+        <Info label="PEMOHON" value={row.pemohon} bold />
+        <Info label="TANGGAL MASUK" value={fmtDate(row.tanggalSubmit)} />
 
         <Info label="SEGMEN" value={row.segmen} />
         <div>

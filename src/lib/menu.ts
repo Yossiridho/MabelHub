@@ -67,11 +67,14 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
       ],
     },
     {
+      title: "KONTRAK",
+      icon: "FileSignature",
+      items: [],
+    },
+    {
       title: "FINANCE",
       icon: "Banknote",
-      items: [
-        { label: "Finance", href: "/finance", icon: "Banknote" },
-      ],
+      items: [],
     },
     {
       title: "MANAJEMEN",
@@ -132,6 +135,16 @@ export const MENUS_BY_ROLE: Record<Role, MenuSection[]> = {
         { label: "Daftar Instansi", href: "/instansi", icon: "Building2" },
         { label: "Tambah Instansi", href: "/tambah-instansi", icon: "PlusSquare" },
       ],
+    },
+    {
+      title: "KONTRAK",
+      icon: "FileSignature",
+      items: [],
+    },
+    {
+      title: "FINANCE",
+      icon: "Banknote",
+      items: [],
     },
   ],
 

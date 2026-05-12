@@ -433,10 +433,10 @@ export default function RekapitulasiResponsePage() {
                           Pemohon
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
-                          Lokasi
+                          Total Barang
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
-                          Segmen
+                          Total Qty
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
                           Tanggal Masuk
@@ -725,10 +725,12 @@ function FragmentRow({
           <span>{r.requestor}</span>
         </td>
         <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
-        <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
+        <td className="px-5 py-4 text-slate-600 font-medium">
+          {r.items?.length || 0} Barang
+        </td>
         <td className="px-5 py-4">
-          <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200">
-            {r.segmen}
+          <span className="inline-flex items-center rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 border border-blue-200">
+            {r.items?.reduce((acc, it) => acc + (Number(it.qty) || 0), 0) || 0} Qty
           </span>
         </td>
         <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>

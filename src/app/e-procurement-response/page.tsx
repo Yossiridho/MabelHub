@@ -193,14 +193,12 @@ export default function EProcurementResponsePage() {
                         <th className="px-5 py-4 text-left whitespace-nowrap">
                           Requestor
                         </th>
+
                         <th className="px-5 py-4 text-left whitespace-nowrap">
-                          Pemohon
+                          Total Barang
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
-                          Lokasi
-                        </th>
-                        <th className="px-5 py-4 text-left whitespace-nowrap">
-                          Segmen
+                          Total Qty
                         </th>
                         <th className="px-5 py-4 text-left whitespace-nowrap">
                           Tanggal Masuk
@@ -301,11 +299,13 @@ function FragmentRow({
         <td className="px-5 py-4 text-slate-600">
           <span>{r.requestor}</span>
         </td>
-        <td className="px-5 py-4 text-slate-800 font-medium">{r.pemohon}</td>
-        <td className="px-5 py-4 text-slate-600">{r.lokasi}</td>
+
+        <td className="px-5 py-4 text-slate-600 font-medium">
+          {r.items?.length || 0} Barang
+        </td>
         <td className="px-5 py-4">
-          <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200">
-            {r.segmen}
+          <span className="inline-flex items-center rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 border border-blue-200">
+            {r.items?.reduce((acc, it) => acc + (Number(it.qty) || 0), 0) || 0} Qty
           </span>
         </td>
         <td className="px-5 py-4 text-slate-600">{fmtDate(r.tanggalSubmit)}</td>
@@ -365,7 +365,7 @@ function FragmentRow({
 
       {isOpen ? (
         <tr className="border-b border-slate-100 bg-slate-50/50">
-          <td colSpan={8} className="px-5 py-5 text-sm">
+          <td colSpan={7} className="px-5 py-5 text-sm">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
               <div>
                 <span className="font-semibold text-slate-700">
