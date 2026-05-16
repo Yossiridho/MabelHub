@@ -110,8 +110,28 @@ type ApiStats = {
     unik: number
     pct: number
   }[]
+  ke_sales_provinsi: {
+    no: number
+    ke_sales: string
+    provinsi: string
+    kota: string
+    unik: number
+    pct: number
+  }[]
+  per_sales: {
+    no: number
+    ke_sales: string
+    unik: number
+    pct: number
+  }[]
 }
 
+type keSalesSummary = {
+  arie: number
+  beffry: number
+  ferrie: number
+  kosong: number
+}
 
 interface DataItem {
   id: string;
@@ -248,7 +268,7 @@ export default function TrackingBroadcastPage() {
   })
 
   // Summary Ke Sales
-  const [keSalesSummary, setKeSalesSummary] = useState({
+  const [keSalesSummary, setKeSalesSummary] = useState<keSalesSummary>({
     arie: 0,
     beffry: 0,
     ferrie: 0,
@@ -612,6 +632,8 @@ export default function TrackingBroadcastPage() {
             total_wa_unik: json?.summaryStats?.total_wa_unik ?? 0,
             provinsi_kota: json?.summaryStats?.provinsi_kota ?? [],
             wa_provinsi_kota: json?.summaryStats?.wa_provinsi_kota ?? [],
+            ke_sales_provinsi: json?.summaryStats?.ke_sales_provinsi ?? [],
+            per_sales: json?.summaryStats?.per_sales ?? [],
           })
           setKeSalesSummary({
             arie: json?.keSalesSummary?.arie ?? 0,
@@ -1138,6 +1160,12 @@ export default function TrackingBroadcastPage() {
                       ) : (stats?.provinsi_kota ?? []).map((row) => (
                         <tr
                           key={row.no}
+                          onClick={() => {
+                            setProvinsi([row.provinsi])
+                            setKota([row.kota])
+                            setPage(1)
+                            setSelected(null)
+                          }}
                           className='hover:bg-blue-50/50 transition-colors cursor-pointer'
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
@@ -1169,20 +1197,20 @@ export default function TrackingBroadcastPage() {
                 </div>
               </div>
 
-              {/* Panel Kanan: Kontak WA Unik per Provinsi & Kota */}
-              <div className='flex flex-col flex-1 rounded-lg border border-[#FEFBDE] overflow-hidden shadow-sm'>
+              {/* Panel Kanan: Unik No HP per Ke Sales */}
+              <div className='flex flex-col flex-1 rounded-lg border border-[#FDE68A] overflow-hidden shadow-sm'>
                 {/* Header Panel Kanan */}
                 <div
                   className='flex items-center justify-between px-3 py-[6px]'
                   style={{
-                    background: 'linear-gradient(135deg, #FEFBDE, #FEFBDE)',
-                    borderBottom: '2px solid #CA8A04',
+                    background: 'linear-gradient(135deg, #FEF9C3, #FDE68A)',
+                    borderBottom: '2px solid #D97706',
                   }}
                 >
                   <div className='flex items-center gap-1.5'>
                     <Users
                       size={13}
-                      className='text-[#FFC107] shrink-0'
+                      className='text-[#D97706] shrink-0'
                       strokeWidth={2.5}
                     />
                     <span className='text-[11px] font-bold text-[#1e293b]'>
@@ -1191,43 +1219,38 @@ export default function TrackingBroadcastPage() {
                   </div>
                   <div className='flex items-center gap-1 text-[10px] text-slate-500'>
                     <span
-                      id='statWaProvinsiRows'
-                      className='font-semibold text-green-600'
+                      className='font-semibold text-amber-700'
                     >
-                      {loadingRows ? '...' : stats?.wa_provinsi_kota?.length}
+                      {loadingRows ? '...' : (stats?.per_sales?.length ?? 0)}
                     </span>
-                    <span>baris</span>
+                    <span>sales</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
                     <span
-                      id='statWaProvinsiTotal'
-                      className='font-semibold text-green-700'
+                      className='font-semibold text-amber-700'
                     >
-                      {loadingRows ? '...' : stats?.total_wa_unik}
+                      {loadingRows ? '...' : (stats?.per_sales?.reduce((acc, r) => acc + r.unik, 0) ?? 0)}
                     </span>
                     <span>total</span>
                   </div>
                 </div>
                 {/* Tabel */}
-                <div className='max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-green-50 [&::-webkit-scrollbar-thumb]:bg-green-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-green-400'>
+                <div className='max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-amber-50 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-amber-400'>
                   <table className='w-full text-left border-collapse'>
-                    <thead className='sticky top-0 z-10 bg-[#f1f5f9]'>
+                    <thead className='sticky top-0 z-10 bg-[#FFFBEB]'>
                       <tr>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500 w-7'>
+                        <th className='px-3 py-2 text-[10px] font-semibold text-slate-500 w-8'>
                           #
                         </th>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500'>
+                        <th className='px-3 py-2 text-[10px] font-semibold text-slate-500'>
                           Ke Sales
                         </th>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500 text-right'>
+                        <th className='px-3 py-2 text-[10px] font-semibold text-slate-500 text-right'>
                           Unik
                         </th>
                       </tr>
                     </thead>
-                    {/* Ke Sales Summary */}
-                    
                     <tbody
-                      id='tbodyWaProvinsi'
-                      className='divide-y divide-gray-100'
+                      className='divide-y divide-amber-100/60'
                     >
                       {loadingRows ? (
                         <tr>
@@ -1235,38 +1258,46 @@ export default function TrackingBroadcastPage() {
                             Memuat data...
                           </td>
                         </tr>
-                      ) : (stats?.total_nama ?? []).length === 0 ? (
+                      ) : (stats?.per_sales ?? []).length === 0 ? (
                         <tr>
                           <td colSpan={3} className='px-3 py-4 text-center text-[10px] text-slate-400'>
                             Tidak ada data
                           </td>
                         </tr>
-                      ) : (stats?.total_nama_sales_unik ?? []).map((row) => (
+                      ) : (stats?.per_sales ?? []).map((row) => (
                         <tr
                           key={row.no}
-                          className='hover:bg-blue-50/50 transition-colors cursor-pointer'
+                          onClick={() => {
+                            setToSales([row.ke_sales ?? ''])
+                            setPage(1)
+                            setSelected(null)
+                          }}
+                          className='hover:bg-amber-50/60 transition-colors cursor-pointer'
                         >
-                          <td className='px-2 py-1.5 text-[10px] text-slate-400'>
+                          <td className='px-3 py-2 text-[10px] text-slate-400'>
                             {row.no}
                           </td>
-                          <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.provinsi}
+                          <td className='px-3 py-2 text-[10px] text-slate-700 font-medium'>
+                            {/* ✅ Tampilkan "(Belum Diteruskan)" jika ke_sales null */}
+                            {row.ke_sales ?? '(Belum Diteruskan)'}
                           </td>
-                          <td className='px-2 py-1.5 text-[10px] text-slate-600'>
-                            <div className='flex items-center gap-1.5'>
-                              <span>{row.kota}</span>
-                              <div className='flex-1 min-w-[36px] bg-blue-100 rounded-full h-[4px] overflow-hidden'>
+                          <td className='px-3 py-2 text-right'>
+                            <div className='flex items-center gap-2 justify-end'>
+                              <div className='flex-1 min-w-[40px] max-w-[140px] bg-gray-200 rounded-full h-[5px] overflow-hidden'>
                                 <div
-                                  className='bg-blue-500 h-full rounded-full'
-                                  style={{ width: `${row.pct}%` }}
+                                  className='h-full rounded-full'
+                                  style={{
+                                    width: `${row.pct}%`,
+                                    background: row.ke_sales === '(Belum Diteruskan)'
+                                      ? 'linear-gradient(90deg, #9CA3AF, #6B7280)'
+                                      : 'linear-gradient(90deg, #F59E0B, #D97706)',
+                                  }}
                                 />
                               </div>
+                              <span className='inline-flex items-center justify-center min-w-[24px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-white shadow-sm'>
+                                {row.unik}
+                              </span>
                             </div>
-                          </td>
-                          <td className='px-2 py-1.5 text-right'>
-                            <span className='inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-600 text-white'>
-                              {row.unik}
-                            </span>
                           </td>
                         </tr>
                       ))}
