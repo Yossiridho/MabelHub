@@ -13,6 +13,7 @@ import { Menu, X, ChevronUp, LogOut } from "lucide-react";
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [sidebarScrollProgress, setSidebarScrollProgress] = useState(0);
@@ -145,8 +146,6 @@ export default function Sidebar() {
         : role === "LEADER"
           ? "Leader"
           : "Sales";
-
-  const searchParams = useSearchParams();
 
   const isActive = (href: string) => {
     const [basePath, query] = href.split("?");
