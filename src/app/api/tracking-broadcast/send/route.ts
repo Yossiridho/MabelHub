@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
                     jenis_entitas: body.jenis_entitas ?? "",
                     bulan_data: body.bulan_data ?? "",
                     status_wa: body.status_wa ?? "",
+                    detail_update: body.detail_update ?? "",
                     ke_sales: body.ke_sales ?? "",
                     sent_at: body.sent_at ?? now.toISOString(),
                     updated_at: now,

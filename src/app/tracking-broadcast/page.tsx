@@ -20,6 +20,7 @@ import {
   X,
   LucidePenBox,
   SendIcon,
+  PencilIcon,
 } from 'lucide-react'
 import router, { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
@@ -65,6 +66,7 @@ type BroadCastRow = {
   penginput: string
   jenis_entitas: string
   status_wa: string
+  detail_update: string
   ke_sales: string
 }
 
@@ -250,9 +252,36 @@ export default function TrackingBroadcastPage() {
     { id: 'Provinsi', icon: MapIcon, label: 'Provinsi' },
     { id: 'Kota', icon: MapPin, label: 'Kota/Kab' },
     { id: 'Status Wa', icon: MessageCircleCodeIcon, label: 'Status WA' },
+    { id: 'Detail Update', icon: PencilIcon, label: 'Detail Update' },
     { id: 'Ke Sales', icon: Users, label: 'Ke Sales' },
   ]
 
+
+  const detailOptions = [
+    { value: 'Baik, terima kasih informasinya.', label: 'Baik, terima kasih informasinya.' },
+    { value: 'Mohon ditunggu sebentar.', label: 'Mohon ditunggu sebentar.' },
+    { value: 'Kami pelajari terlebih dahulu.', label: 'Kami pelajari terlebih dahulu.' },
+    { value: 'Informasi sudah kami terima.', label: 'Informasi sudah kami terima.' },
+    { value: 'Terima kasih sudah menghubungi kami.', label: 'Terima kasih sudah menghubungi kami.' },
+    { value: 'Sudah ada sales', label: 'Sudah ada sales' },
+    { value: 'Hanya Menjawab Nama', label: 'Hanya Menjawab Nama' },
+    { value: 'Nanti jika ada kebutuhan kami hubungi.', label: 'Nanti jika ada kebutuhan kami hubungi.' },
+    { value: 'Bertanya status TKDN', label: 'Bertanya status TKDN' },
+    { value: 'Bertanya Spesifikasi', label: 'Bertanya Spesifikasi' },
+    { value: 'Bertanya Pricelist', label: 'Bertanya Pricelist' },
+    { value: 'Bersedia berdiskusi lebih lanjut dengan sales', label: 'Bersedia berdiskusi lebih lanjut dengan sales' },
+    { value: 'Bersedia di Presentasikan untuk presales', label: 'Bersedia di Presentasikan untuk presales' },
+    { value: 'Meminta & mengisi form reseller', label: 'Meminta & mengisi form reseller' },
+    { value: 'Meminta SPH', label: 'Meminta SPH' },
+    { value: 'Tidak tertarik', label: 'Tidak tertarik' },
+    { value: 'Belum butuh', label: 'Belum butuh' },
+    { value: 'Budget belum ada', label: 'Budget belum ada' },
+    { value: 'Sudah pakai brand lain', label: 'Sudah pakai brand lain' },
+    { value: 'Jangan hubungi lagi', label: 'Jangan hubungi lagi' },
+    { value: 'Harga terlalu mahal', label: 'Harga terlalu mahal' },
+    { value: 'Spesifikasi tidak cocok', label: 'Spesifikasi tidak cocok' },
+    { value: 'Nomor Invalid', label: 'Nomor Invalid' },
+  ]
 
   // Summary Status WA
   const [statusWaSummary, setStatusWaSummary] = useState<StatusWaSummary>({
@@ -422,6 +451,11 @@ export default function TrackingBroadcastPage() {
   // Update ke_sales per baris (optimistic update di local state)
   const updateRowKeSales = useCallback((id: string, value: string) => {
     setRows(prev => prev.map(r => r._id === id ? { ...r, ke_sales: value } : r))
+  }, [])
+
+  // Update detail update per baris (optimistic update di local state)
+  const updateRowDetailUpdate = useCallback((id: string, value: string) => {
+    setRows(prev => prev.map(r => r._id === id ? { ...r, detail_update: value } : r))
   }, [])
 
   // Kirim data satu baris ke database tracking_broadcast
@@ -1344,6 +1378,7 @@ export default function TrackingBroadcastPage() {
                       { label: "📍 INFO LOKASI" },
                       { label: "👤 KONTAK PIC" },
                       { label: "💬 STATUS WA" },
+                      { label: "📝 DETAIL UPDATE" },
                       { label: "➡ KE SALES" },
                       { label: "⚙" },
                     ].map((h) => (
@@ -1458,6 +1493,17 @@ export default function TrackingBroadcastPage() {
                               <option value='Dibaca - Respons - Netral'>Dibaca - Respons - Netral</option>
                               <option value='Dibaca - Respons - Negatif'>Dibaca - Respons - Negatif</option>
                               <option value='Aktif Progres'>Aktif Progres</option>
+                            </select>
+                          </td>
+                          <td className='px-1 py-1 w-12 text-[10px] text-slate-600'>
+                            <select
+                              value={row.detail_update || ''}
+                              onChange={(e) => updateRowDetailUpdate(row._id, e.target.value)}
+                              className='text-[10px] border border-gray-300 rounded-lg px-5 py-3 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-57 h-12 cursor-pointer'
+                            >
+                              {detailOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
                             </select>
                           </td>
                           <td className='px-5 py-3 text-[10px] text-slate-600'>
