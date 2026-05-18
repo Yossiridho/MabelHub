@@ -197,63 +197,72 @@ function FinancePageContent() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <main className="flex-1 overflow-y-auto relative p-4 lg:p-8 font-sans">
-        <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="mb-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-900/5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50 pointer-events-none" />
-            <div className="relative z-10">
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 mb-2">
-                <span className="bg-gradient-to-br from-emerald-500 to-emerald-700 bg-clip-text text-transparent">
-                  {perusahaanQuery ? `Manajemen Keuangan — ${perusahaanQuery}` : "Manajemen Keuangan"}
-                </span>
-              </h1>
-              <p className="text-slate-500 font-medium text-sm">
-                Data kontrak bersifat read-only. Klik baris untuk mengelola penagihan.
-              </p>
+    <div className="min-h-screen bg-blue-50">
+      <div className="flex min-h-screen">
+        <div className="flex-1 p-6">
+          <main className="mx-auto">
+            {/* Header */}
+            <div className="px-4 pt-4 space-y-1 mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-extrabold pl-4 text-black drop-shadow-sm uppercase">
+                    {perusahaanQuery ? `MANAJEMEN KEUANGAN — ${perusahaanQuery}` : "MANAJEMEN KEUANGAN"}
+                  </h1>
+                  <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                    Data kontrak bersifat read-only. Klik baris untuk mengelola penagihan.
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
           {error && (
             <div className="mb-6 rounded-2xl bg-rose-50 p-4 text-rose-600 text-sm font-semibold border border-rose-100">{error}</div>
           )}
 
           {/* Table */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border-collapse">
+          <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
+            <div className="border-b border-slate-100 bg-slate-50/50 flex items-center justify-between px-6 py-4">
+              <h3 className="text-sm font-semibold text-slate-800">
+                Data Keuangan
+              </h3>
+              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
+                {contracts.length} kontrak
+              </span>
+            </div>
+
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-fit w-full text-sm border-collapse">
                 <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold">
                   <tr className="border-b border-slate-100">
-                    <th className="px-4 py-3 text-left">No. Kontrak</th>
-                    <th className="px-4 py-3 text-left">Instansi</th>
-                    <th className="px-4 py-3 text-left">Nama Pengadaan</th>
-                    <th className="px-4 py-3 text-right">Nominal Kontrak</th>
-                    <th className="px-4 py-3 text-right">Nominal Penagihan</th>
-                    <th className="px-4 py-3 text-left">Tgl Penagihan</th>
-                    <th className="px-4 py-3 text-left">Tgl Berakhir</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">NO. KONTRAK</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">INSTANSI</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">NAMA PENGADAAN</th>
+                    <th className="px-5 py-4 text-right whitespace-nowrap">NOMINAL KONTRAK</th>
+                    <th className="px-5 py-4 text-right whitespace-nowrap">NOMINAL PENAGIHAN</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">TGL PENAGIHAN</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">TGL BERAKHIR</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {contracts.length === 0 ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">Belum ada data kontrak.</td></tr>
+                    <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-400 font-medium">Belum ada data kontrak.</td></tr>
                   ) : (
                     contracts.map((c) => (
                       <Fragment key={c.nomorKontrak}>
-                        <tr className={`hover:bg-slate-50 cursor-pointer transition-colors ${openRow === c.nomorKontrak ? "bg-indigo-50/30" : ""}`}
+                        <tr className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${openRow === c.nomorKontrak ? "bg-indigo-50/20" : ""}`}
                           onClick={() => setOpenRow(openRow === c.nomorKontrak ? null : c.nomorKontrak)}>
-                          <td className="px-4 py-3 font-semibold text-slate-800">{c.nomorKontrak}</td>
-                          <td className="px-4 py-3 text-slate-600">{c.instansi || "-"}</td>
-                          <td className="px-4 py-3 text-slate-600">{c.namaPengadaan || "-"}</td>
-                          <td className="px-4 py-3 text-right text-slate-800 font-medium">{fmtCurrency(c.nominalKontrak)}</td>
-                          <td className="px-4 py-3 text-right text-slate-800 font-medium">{fmtCurrency(c.penagihan?.nominalPenagihan)}</td>
-                          <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          <td className="px-5 py-4 font-semibold text-slate-800">{c.nomorKontrak}</td>
+                          <td className="px-5 py-4 text-slate-800">{c.instansi || "-"}</td>
+                          <td className="px-5 py-4 text-slate-600 font-medium">{c.namaPengadaan || "-"}</td>
+                          <td className="px-5 py-4 text-right text-slate-800 font-medium">{fmtCurrency(c.nominalKontrak)}</td>
+                          <td className="px-5 py-4 text-right text-slate-800 font-medium">{fmtCurrency(c.penagihan?.nominalPenagihan)}</td>
+                          <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
                             {c.penagihan?.tanggalMulai ? `${fmtDate(c.penagihan.tanggalMulai)} — ${fmtDate(c.penagihan.tanggalBerakhir)}` : "-"}
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{fmtDate(c.tanggalBerakhirKontrak)}</td>
+                          <td className="px-5 py-4 text-slate-600 font-medium">{fmtDate(c.tanggalBerakhirKontrak)}</td>
                         </tr>
                         {openRow === c.nomorKontrak && (
-                          <tr>
+                          <tr className="border-b border-neutral-100 bg-slate-50/50">
                             <td colSpan={7} className="p-0">
                               <PenagihanForm contract={c} onUpdated={handleUpdated} />
                             </td>
@@ -266,8 +275,9 @@ function FinancePageContent() {
               </table>
             </div>
           </div>
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
