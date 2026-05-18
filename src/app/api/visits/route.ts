@@ -1,0 +1,429 @@
+import { NextResponse } from "next/server";
+import clientPromise from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
+import { assertLoggedIn } from "@/lib/auth-server";
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(Math.max(n, min), max);
+}
+
+// escape regex search
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// "2025-12-03" -> "3-Dec-2025"
+function toVisitDateStr(yyyyMmDd: string) {
+  const d = new Date(yyyyMmDd);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = d.getDate();
+  const mon = d.toLocaleString("en-US", { month: "short" }); // Dec
+  const year = d.getFullYear();
+  return `${day}-${mon}-${year}`;
+}
+
+// Date -> "YYYY-MM-DD HH:mm:ss"
+function toCreatedAtStr(dt: Date) {
+  const pad = (x: number) => String(x).padStart(2, "0");
+  const y = dt.getFullYear();
+  const m = pad(dt.getMonth() + 1);
+  const d = pad(dt.getDate());
+  const hh = pad(dt.getHours());
+  const mm = pad(dt.getMinutes());
+  const ss = pad(dt.getSeconds());
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
+
+type TeamDoc = {
+  leaderId: string; // userId leader (string ObjectId)
+  memberIds: string[]; // userId sales (string ObjectId)
+};
+
+async function getLeaderAllowedUserIds(db: any, leaderId: string) {
+  const team = (await db
+    .collection("teams")
+    .findOne({ leaderId })) as TeamDoc | null;
+
+  const ids = [leaderId, ...(team?.memberIds ?? [])];
+  return Array.from(new Set(ids));
+}
+
+async function getUserLiteById(db: any, userId: string) {
+  if (!ObjectId.isValid(userId)) return null;
+  const u = await db
+    .collection("users")
+    .findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { _id: 1, role: 1, username: 1, fullName: 1 } },
+    );
+  if (!u) return null;
+  return {
+    userId: String((u as any)._id),
+    role: String((u as any).role || ""),
+    username: String((u as any).username || ""),
+    fullName: String((u as any).fullName || ""),
+  };
+}
+
+/**
+ * GET /api/visits?limit=25&page=1&q=...
+ * Optional:
+ *  - assignedTo=USER_ID  (leader/admin filter)
+ */
+export async function GET(req: Request) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const session = auth.session;
+
+  const { searchParams } = new URL(req.url);
+
+  const limit = clamp(Number(searchParams.get("limit") || 25), 1, 100000);
+  const page = Math.max(Number(searchParams.get("page") || 1), 1);
+  const skip = (page - 1) * limit;
+
+  const q = String(searchParams.get("q") || "").trim();
+  const assignedTo = String(searchParams.get("assignedTo") || "").trim();
+
+  // ====== FILTER PARAMS ======
+  const sales = searchParams.get("sales");
+  const status = searchParams.get("status");
+  const ring = searchParams.get("ring");
+  const city = searchParams.get("city");
+  const satker = searchParams.get("satker");
+  const startStr = searchParams.get("start");
+  const endStr = searchParams.get("end");
+  const statusGroup = searchParams.get("statusGroup");
+  const klpd = searchParams.get("klpd");
+  const dateStr = searchParams.get("date"); // specific date e.g. "01 Feb"
+
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB || "MabelHub");
+  const col = db.collection("VisitActivity");
+
+  // =========================
+  // ACCESS FILTER (ROLE)
+  // =========================
+  const match: any = {};
+
+  if (session.role === "SALES") {
+    match.user_id = session.userId;
+  } else if (session.role === "LEADER") {
+    const allowed = await getLeaderAllowedUserIds(db, session.userId);
+
+    if (assignedTo) {
+      if (!allowed.includes(assignedTo)) {
+        return NextResponse.json(
+          { error: "FORBIDDEN: bukan anggota tim" },
+          { status: 403 },
+        );
+      }
+      match.user_id = assignedTo;
+    } else {
+      match.user_id = { $in: allowed };
+    }
+  } else {
+    // ADMIN/SUPERADMIN
+    if (assignedTo) match.user_id = assignedTo;
+  }
+
+  // =========================
+  // SEARCH FILTER
+  // =========================
+  if (q) {
+    const rx = new RegExp(escapeRegex(q), "i");
+    match.$or = [
+      { visit_date: rx },
+      { city: rx },
+      { klpd: rx },
+      { institusi_kerja: rx },
+      { satuan_kerja: rx },
+      { status_visit: rx },
+      { nama_sales: rx },
+      { status_ring: rx },
+    ];
+  }
+
+  // =========================
+  // EXACT FILTERS
+  // =========================
+  if (sales) match.nama_sales = sales;
+  if (status) match.status_visit = status;
+  if (ring) match.status_ring = ring.toUpperCase(); // Ensure ring filter from dashboard is uppercase
+  if (city) match.city = city;
+  if (satker) match.satuan_kerja = satker;
+  if (klpd) match.klpd = klpd;
+
+  // Partial date matching from clicked trend chart
+  if (dateStr) {
+    const parts = dateStr.split(" ");
+    if (parts.length >= 2) {
+      const regexStr = `${parts[0]}-${parts[1]}`;
+      match.visit_date = { $regex: new RegExp(regexStr, "i") };
+    }
+  }
+
+  // =========================
+  // STATUS GROUP FILTER
+  // =========================
+  if (statusGroup) {
+    if (statusGroup === "Visits") {
+      if (!match.$and) match.$and = [];
+      match.$and.push({ status_visit: { $regex: /visit/i } });
+      match.$and.push({ status_visit: { $not: /not|belum/i } });
+    } else if (statusGroup === "Stay Office") {
+      match.status_visit = { $regex: /stay[\s_]*office/i };
+    } else if (statusGroup === "Not Visited") {
+      match.status_visit = {
+        $regex:
+          /not[\s_]*visited|not[\s_]*visit|belum[\s_]*visit|belum[\s_]*visited/i,
+      };
+    }
+  }
+
+  // =========================
+  // DATE RANGE FILTER (Post-Match)
+  // =========================
+  const postMatch: any = {};
+  if (startStr || endStr) {
+    postMatch.__visitDate = {};
+    if (startStr) postMatch.__visitDate.$gte = new Date(startStr);
+    if (endStr) {
+      const endDt = new Date(endStr);
+      endDt.setHours(23, 59, 59, 999);
+      postMatch.__visitDate.$lte = endDt;
+    }
+  }
+
+  // =========================
+  // PIPELINE
+  // =========================
+  const pipeline: any[] = [
+    { $match: match },
+    {
+      $addFields: {
+        __visitDate: {
+          $dateFromString: {
+            dateString: "$visit_date",
+            format: "%d-%b-%Y",
+            onError: null,
+            onNull: null,
+          },
+        },
+        __createdAt: {
+          $dateFromString: {
+            dateString: "$created_at",
+            format: "%Y-%m-%d %H:%M:%S",
+            onError: null,
+            onNull: null,
+          },
+        },
+      },
+    },
+  ];
+
+  if (Object.keys(postMatch).length > 0) {
+    pipeline.push({ $match: postMatch });
+  }
+
+  pipeline.push({ $sort: { __visitDate: -1, __createdAt: -1, _id: -1 } });
+  pipeline.push({
+    $facet: {
+      items: [
+        { $skip: skip },
+        { $limit: limit },
+        { $project: { __visitDate: 0, __createdAt: 0 } },
+      ],
+      total: [{ $count: "count" }],
+    },
+  });
+
+  const agg = await col.aggregate(pipeline).toArray();
+  const first = agg?.[0] || { items: [], total: [] };
+
+  const itemsRaw = Array.isArray(first.items) ? first.items : [];
+  const total = Number(first.total?.[0]?.count || 0);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const items = itemsRaw.map((it: any) => ({ ...it, _id: String(it._id) }));
+
+  return NextResponse.json({
+    items,
+    pagination: { total, page, limit, totalPages },
+  });
+}
+
+export async function POST(req: Request) {
+  const auth = assertLoggedIn(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  const session = auth.session;
+
+  try {
+    const body = await req.json().catch(() => ({}));
+
+    const tanggal = String(body?.tanggal || "").trim();
+    const status_ring = String(body?.status_ring || "").trim();
+    const institusi_kerja = String(body?.institusi_kerja || "").trim();
+    const kota_kab = String(body?.kota_kab || "").trim();
+    const klpd = String(body?.klpd || "").trim();
+    const satuan_kerja = String(body?.satuan_kerja || "").trim();
+
+    const assignedToUserIdRaw = String(body?.assignedToUserId || "").trim();
+
+    if (
+      !tanggal ||
+      !status_ring ||
+      !institusi_kerja ||
+      !kota_kab ||
+      !klpd ||
+      !satuan_kerja
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Field wajib: tanggal, status_ring, institusi_kerja, kota_kab, klpd, satuan_kerja",
+        },
+        { status: 400 },
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB || "MabelHub");
+
+    // =========================
+    // TARGET ASSIGNMENT RULES
+    // =========================
+    let targetUserId = session.userId;
+
+    if (assignedToUserIdRaw) {
+      // SALES tidak boleh assign
+      if (session.role === "SALES") {
+        return NextResponse.json(
+          { error: "FORBIDDEN: sales tidak boleh assign ke user lain" },
+          { status: 403 },
+        );
+      }
+
+      // LEADER: hanya self atau anggota team
+      if (session.role === "LEADER") {
+        const allowed = await getLeaderAllowedUserIds(db, session.userId);
+        if (!allowed.includes(assignedToUserIdRaw)) {
+          return NextResponse.json(
+            { error: "FORBIDDEN: bukan anggota tim" },
+            { status: 403 },
+          );
+        }
+      }
+
+      // SUPERADMIN/ADMIN: hanya boleh ke SALES/LEADER (atau self)
+      if (session.role === "SUPERADMIN" || session.role === "ADMIN") {
+        if (assignedToUserIdRaw !== session.userId) {
+          const u = await getUserLiteById(db, assignedToUserIdRaw);
+          if (!u) {
+            return NextResponse.json(
+              { error: "Target user tidak ditemukan" },
+              { status: 404 },
+            );
+          }
+          if (u.role !== "SALES" && u.role !== "LEADER") {
+            return NextResponse.json(
+              {
+                error:
+                  "FORBIDDEN: SUPERADMIN hanya boleh assign ke SALES/LEADER",
+              },
+              { status: 403 },
+            );
+          }
+        }
+      }
+
+      targetUserId = assignedToUserIdRaw;
+    }
+
+    // lookup assigned user info untuk nama_sales + assignedTo
+    const targetUser = await getUserLiteById(db, targetUserId);
+    const nama_sales =
+      targetUser?.fullName?.trim() ||
+      targetUser?.username?.trim() ||
+      session.fullName ||
+      session.username ||
+      null;
+
+    const visits = db.collection("VisitActivity");
+
+    // incremental numeric id
+    const last = await visits
+      .find({}, { projection: { id: 1 } })
+      .sort({ id: -1 })
+      .limit(1)
+      .toArray();
+    const nextId = Number((last?.[0] as any)?.id || 0) + 1;
+
+    const now = new Date();
+
+    const doc = {
+      id: nextId,
+
+      // legacy field (dipakai query existing)
+      user_id: targetUserId,
+
+      // new field (biar stats/team bisa pakai assignedTo.userId)
+      assignedTo: targetUser
+        ? {
+            userId: targetUser.userId,
+            role: targetUser.role,
+            username: targetUser.username,
+            fullName: targetUser.fullName,
+          }
+        : {
+            userId: targetUserId,
+            role: "",
+            username: "",
+            fullName: "",
+          },
+
+      visit_date: toVisitDateStr(tanggal),
+      city: kota_kab,
+      klpd,
+      institusi_kerja,
+      satuan_kerja,
+
+      pic_name: body?.pic_default?.nama ?? null,
+      pic_phone: body?.pic_default?.no_telp ?? null,
+      pic_position: body?.pic_default?.jabatan ?? null,
+      pic_role: body?.pic_default?.role ?? null,
+
+      created_at: toCreatedAtStr(now),
+
+      created_by_user_id: session.userId,
+      created_by_name: session.fullName || session.username,
+
+      visit_image: null,
+      status_visit: null,
+      status_market: null,
+      descriptions: null,
+      tindak_lanjut: null,
+      kegiatan_status: null,
+      no_visit_per_month: null,
+
+      status_ring,
+      nama_sales,
+    };
+
+    const ins = await visits.insertOne(doc as any);
+
+    return NextResponse.json(
+      { ok: true, data: { ...doc, _id: String(ins.insertedId) } },
+      { status: 201 },
+    );
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message ?? "Gagal menyimpan" },
+      { status: 500 },
+    );
+  }
+}
