@@ -1,360 +1,134 @@
 "use client";
 
-import { useEffect, useState, useMemo, Fragment } from "react";
+import { useEffect, useState, Fragment, Suspense } from "react";
 import { useSession } from "@/components/session/SessionProvider";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
-import SearchableSelect from "@/components/ui/SearchableSelect";
-
-// Tipe Data sesuai E-Procurement
-type ProductItem = {
-  id: string;
-  merek?: string;
-  subKategori?: string;
-  qty?: number | string;
-  tanggalProses?: string;
-  tanggalDone?: string;
-  statusBarangAdmin?: string;
-  tayangInaprocAdmin?: string;
-  catatanAdminItem?: string;
+type Penagihan = {
+  tanggalMulai: string;
+  tanggalBerakhir: string;
+  nominalPenagihan: number;
 };
 
-type EProcRow = {
-  requestId: string;
-  requestor: string;
-  pemohon: string;
-  lokasi: string;
-  segmen: string;
-  deadlineUsulan: string | Date;
-  tanggalSubmit: string | Date;
-  catatan?: string;
-  catatanAdmin?: string;
-
-  takenByAdminId?: string | null;
-  takenByAdminName?: string | null;
-  takenAt?: string | Date | null;
-
-  perusahaan?: string;
-  statusUsulan?: string;
-  statusAkhir?: string;
-
-  tanggalKontrak?: string;
-  nominalKontrak?: number | string;
-  tanggalPembayaran?: string;
-  nominalPembayaran?: number | string;
-
-  items: ProductItem[];
+type Contract = {
+  nomorKontrak: string;
+  perusahaan: string;
+  requestIds: string[];
+  instansi: string;
+  tanggalKontrak: string;
+  namaPengadaan: string;
+  nominalKontrak: number;
+  bendera: string;
+  marketing: string;
+  pic: string;
+  tanggalBerakhirKontrak: string;
+  penagihan: Penagihan;
+  [key: string]: any;
 };
 
-function formatDateTime(str: string | Date | undefined | null) {
-  if (!str) return "-";
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return "-";
-  return d.toLocaleString("id-ID", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function fmtDate(d: string) {
+  if (!d) return "-";
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return d;
+  return dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function formatSegmen(s: string) {
-  return s.replace(/_/g, " ").toUpperCase();
+function fmtCurrency(n: number) {
+  if (!n) return "-";
+  return `Rp ${n.toLocaleString("id-ID")}`;
 }
 
-function FinanceFormRow({
-  row,
-  statusAkhirOptions,
+/* ─── Penagihan Form (inline) ─── */
+function PenagihanForm({
+  contract,
   onUpdated,
-  onCancel,
 }: {
-  row: EProcRow;
-  statusAkhirOptions: string[];
-  onUpdated: (updated: EProcRow) => void;
-  onCancel: () => void;
+  contract: Contract;
+  onUpdated: (c: Contract) => void;
 }) {
+  const p = contract.penagihan || { tanggalMulai: "", tanggalBerakhir: "", nominalPenagihan: 0 };
+  const [form, setForm] = useState({
+    tanggalMulai: p.tanggalMulai || "",
+    tanggalBerakhir: p.tanggalBerakhir || "",
+    nominalPenagihan: p.nominalPenagihan || 0,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [form, setForm] = useState({
-    tanggalKontrak: row.tanggalKontrak || "",
-    nominalKontrak:
-      typeof row.nominalKontrak === "number" ? row.nominalKontrak : "",
-    tanggalPembayaran: row.tanggalPembayaran || "",
-    nominalPembayaran:
-      typeof row.nominalPembayaran === "number" ? row.nominalPembayaran : "",
-    statusAkhir: row.statusAkhir || "",
-  });
-
-  // Calculate editable zones
-  const currentOverallStatus = String(form.statusAkhir || "").toUpperCase();
-  const canEditKontrak =
-    currentOverallStatus === "RILIS KONTRAK" ||
-    currentOverallStatus === "TERBIT BAST" ||
-    currentOverallStatus === "PENAGIHAN" ||
-    currentOverallStatus === "LUNAS" ||
-    currentOverallStatus === "PENGUMPULAN DOKUMEN" ||
-    currentOverallStatus === "DONE PROJECT";
-
-  const canEditPembayaran =
-    currentOverallStatus === "TERBIT BAST" ||
-    currentOverallStatus === "PENAGIHAN" ||
-    currentOverallStatus === "LUNAS" ||
-    currentOverallStatus === "PENGUMPULAN DOKUMEN" ||
-    currentOverallStatus === "DONE PROJECT";
-
   const handleSave = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
     try {
-      setLoading(true);
-      setError("");
-      setSuccess("");
-
-      const res = await fetch(
-        `/api/e-procurement/requests/${encodeURIComponent(
-          row.requestId,
-        )}/admin-response`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            perusahaan: row.perusahaan,
-            catatanAdmin: row.catatanAdmin,
-            statusAkhir: form.statusAkhir,
-            items: row.items,
-
-            // New finance data payload
-            tanggalKontrak: form.tanggalKontrak,
-            nominalKontrak: Number(form.nominalKontrak),
-            tanggalPembayaran: form.tanggalPembayaran,
-            nominalPembayaran: Number(form.nominalPembayaran),
-          }),
-        },
-      );
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error ?? "Gagal menyimpan data");
-
-      setSuccess("Berhasil disimpan!");
-      if (json.data) {
-        onUpdated(json.data);
-      }
+      const res = await fetch(`/api/contracts/${encodeURIComponent(contract.nomorKontrak)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ penagihan: form }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal menyimpan");
+      setSuccess("Tersimpan!");
+      if (json.data) onUpdated(json.data);
       setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      setError(err?.message ?? "Terjadi kesalahan komputasi");
+    } catch (e: any) {
+      setError(e?.message ?? "Gagal menyimpan");
     } finally {
       setLoading(false);
     }
   };
 
+  const inputCls = "w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500/20 transition-all";
+  const labelCls = "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2";
+
   return (
     <div className="p-5 md:p-8 bg-slate-50 border-b border-indigo-100">
-      <div className="max-w-4xl space-y-8">
-        <div>
-          <h4 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-            <svg
-              className="w-5 h-5 text-indigo-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Data Keuangan Perusahaan
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Status Akhir List Dropdown */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                Pembaruan Status Keuangan
-              </label>
-              <SearchableSelect
-                className="mt-1 max-w-sm"
-                value={form.statusAkhir}
-                onChange={(val: string) =>
-                  setForm({ ...form, statusAkhir: val })
-                }
-                isDisabled={
-                  loading ||
-                  String(row.statusAkhir || "").toUpperCase() !== "TERBIT BAST"
-                }
-                options={statusAkhirOptions
-                  .filter((s) => {
-                    const low = s.toLowerCase();
-                    return (
-                      low.includes("penagihan") ||
-                      low.includes("lunas") ||
-                      low.includes("pengumpulan dokumen") ||
-                      low.includes("done project")
-                    );
-                  })
-                  .map((s) => ({
-                    value: s,
-                    label: s,
-                  }))}
-                placeholder={
-                  String(row.statusAkhir || "").toUpperCase() !== "TERBIT BAST"
-                    ? "Terkunci (Belum Terbit BAST)"
-                    : "Pilih Status Keuangan..."
-                }
-              />
-              <p className="text-[10px] items-center text-slate-500 font-medium ml-1 mt-1.5 inline-flex gap-1.5 leading-tight">
-                Hanya menampilkan status tingkat ke-2 (Penagihan, Lunas,
-                Pengumpulan Dokumen, Done Project). Terkunci sebelum Terbit
-                BAST.
-              </p>
-            </div>
+      <div className="max-w-4xl">
+        <h4 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+          <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Data Penagihan — {contract.nomorKontrak}
+        </h4>
 
-            {/* Tanggal Kontrak */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                Tanggal Kontrak
-              </label>
-              <input
-                type="date"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-                value={form.tanggalKontrak}
-                onChange={(e) =>
-                  setForm({ ...form, tanggalKontrak: e.target.value })
-                }
-                disabled={!canEditKontrak || loading}
-              />
-            </div>
-            {/* Nominal Kontrak */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                Nominal Kontrak
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 font-bold text-sm pointer-events-none">
-                  Rp
-                </span>
-                <input
-                  type="number"
-                  className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-                  placeholder="0"
-                  value={form.nominalKontrak}
-                  onChange={(e) =>
-                    setForm({ ...form, nominalKontrak: e.target.value })
-                  }
-                  disabled={!canEditKontrak || loading}
-                />
-              </div>
-              {!canEditKontrak && (
-                <p className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1.5 inline-flex gap-1.5 leading-tight">
-                  Terkunci: Status Akhir harus "Rilis Kontrak" / "Terbit BAST".
-                </p>
-              )}
-            </div>
+        {/* Read-only contract info */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 text-xs">
+          <div><span className="font-semibold text-slate-700">Instansi:</span> <span className="text-slate-600">{contract.instansi || "-"}</span></div>
+          <div><span className="font-semibold text-slate-700">Nominal Kontrak:</span> <span className="text-slate-600">{fmtCurrency(contract.nominalKontrak)}</span></div>
+          <div><span className="font-semibold text-slate-700">Tgl Kontrak:</span> <span className="text-slate-600">{fmtDate(contract.tanggalKontrak)}</span></div>
+          <div><span className="font-semibold text-slate-700">Tgl Berakhir:</span> <span className="text-slate-600">{fmtDate(contract.tanggalBerakhirKontrak)}</span></div>
+        </div>
 
-            {/* Tanggal Terbayar (SP2D) */}
-            <div className="pt-2 md:pt-4 border-t border-slate-200 md:border-none">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                Tanggal Terbayar (SP2D)
-              </label>
-              <input
-                type="date"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-                value={form.tanggalPembayaran}
-                onChange={(e) =>
-                  setForm({ ...form, tanggalPembayaran: e.target.value })
-                }
-                disabled={!canEditPembayaran || loading}
-              />
-            </div>
-            {/* Nominal Terbayar */}
-            <div className="pt-2 md:pt-4 border-t border-slate-200 md:border-none">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                Nominal Terbayar
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 font-bold text-sm pointer-events-none">
-                  Rp
-                </span>
-                <input
-                  type="number"
-                  className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none bg-white text-slate-800 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-                  placeholder="0"
-                  value={form.nominalPembayaran}
-                  onChange={(e) =>
-                    setForm({ ...form, nominalPembayaran: e.target.value })
-                  }
-                  disabled={!canEditPembayaran || loading}
-                />
-              </div>
-              {!canEditPembayaran && (
-                <p className="text-[10px] items-center text-amber-600/90 font-medium ml-1 mt-1.5 inline-flex gap-1.5 leading-tight">
-                  Terkunci: Status Akhir harus "Terbit BAST".
-                </p>
-              )}
+        {/* Penagihan form */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className={labelCls}>Tanggal Mulai Penagihan</label>
+            <input type="date" className={inputCls} value={form.tanggalMulai}
+              onChange={(e) => setForm({ ...form, tanggalMulai: e.target.value })} disabled={loading} />
+          </div>
+          <div>
+            <label className={labelCls}>Tanggal Berakhir Penagihan</label>
+            <input type="date" className={inputCls} value={form.tanggalBerakhir}
+              onChange={(e) => setForm({ ...form, tanggalBerakhir: e.target.value })} disabled={loading} />
+          </div>
+          <div>
+            <label className={labelCls}>Nominal Penagihan</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 font-bold text-sm pointer-events-none">Rp</span>
+              <input type="number" className={`${inputCls} pl-10`} value={form.nominalPenagihan || ""}
+                onChange={(e) => setForm({ ...form, nominalPenagihan: Number(e.target.value) })}
+                disabled={loading} placeholder="0" />
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end space-x-3 pt-4 sm:pt-6 border-t border-slate-200/60 mt-4">
-          {error && (
-            <span className="text-rose-500 text-xs font-bold mr-auto">
-              {error}
-            </span>
-          )}
-          {success && (
-            <span className="text-emerald-600 text-xs font-bold mr-auto flex items-center gap-1.5">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              {success}
-            </span>
-          )}
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-          >
-            Tutup
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 hover:shadow-md disabled:bg-indigo-400 transition-all active:scale-[0.98]"
-          >
-            {loading && (
-              <svg
-                className="w-4 h-4 animate-spin text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  className="opacity-25"
-                />
-                <path
-                  fill="currentColor"
-                  className="opacity-75"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-            )}
-            Simpan Perubahan
+        <div className="flex items-center justify-end gap-3 mt-5">
+          {error && <span className="text-rose-500 text-xs font-bold mr-auto">{error}</span>}
+          {success && <span className="text-emerald-600 text-xs font-bold mr-auto">{success}</span>}
+          <button onClick={handleSave} disabled={loading}
+            className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-400 transition-all active:scale-[0.98]">
+            {loading ? "Menyimpan..." : "Simpan Penagihan"}
           </button>
         </div>
       </div>
@@ -362,276 +136,146 @@ function FinanceFormRow({
   );
 }
 
-export default function FinancePage() {
+/* ─── Main ─── */
+function FinancePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const perusahaanQuery = searchParams.get("perusahaan") || "";
   const { user, loading: sessionLoading } = useSession();
 
-  const [data, setData] = useState<EProcRow[]>([]);
-  const [loadingConfig, setLoadingConfig] = useState(true);
-  const [errorConfig, setErrorConfig] = useState("");
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [openRow, setOpenRow] = useState<string | null>(null);
 
-  const [openRequestId, setOpenRequestId] = useState<string | null>(null);
-  const [statusAkhirOpts, setStatusAkhirOpts] = useState<string[]>([]);
-
-  // Akses eksklusif SUPERADMIN
   useEffect(() => {
     if (!sessionLoading) {
       if (!user) {
         router.replace("/");
-      } else if (user.role !== "SUPERADMIN") {
+      } else if (user.role !== "SUPERADMIN" && user.role !== "ADMIN") {
         router.replace("/dashboard-response");
       } else {
         fetchData();
       }
     }
-  }, [user, sessionLoading, router]);
+  }, [user, sessionLoading, router, perusahaanQuery]);
 
   async function fetchData() {
     try {
-      setLoadingConfig(true);
-      setErrorConfig("");
-      // Menggunakan API yang sama, karena SUPERADMIN mendapat "all"
-      const [reqRes, paramsRes] = await Promise.all([
-        fetch("/api/e-procurement/requests?mode=all"),
-        fetch("/api/parameters"),
-      ]);
-
-      const reqJson = await reqRes.json();
-      const paramsJson = await paramsRes.json();
-
-      if (!reqRes.ok) throw new Error(reqJson.error || "Gagal mengambil data");
-
-      setData(reqJson.data || []);
-      if (paramsJson?.data?.status_akhir) {
-        setStatusAkhirOpts(paramsJson.data.status_akhir);
-      }
+      setLoading(true);
+      setError("");
+      const url = perusahaanQuery
+        ? `/api/contracts?perusahaan=${encodeURIComponent(perusahaanQuery)}`
+        : "/api/contracts";
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal mengambil data");
+      setContracts(json.data || []);
     } catch (e: any) {
-      setErrorConfig(e.message);
+      setError(e.message);
     } finally {
-      setLoadingConfig(false);
+      setLoading(false);
     }
   }
 
-  const renderContent = () => {
-    if (sessionLoading || loadingConfig) {
-      return (
-        <div className="flex w-full mt-12 items-center justify-center p-8 text-slate-500 font-medium animate-pulse">
-          <svg
-            className="mr-3 h-6 w-6 animate-spin text-slate-400"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          Memuat data finansial...
-        </div>
-      );
-    }
-
-    if (errorConfig) {
-      return (
-        <div className="m-4 lg:m-8 mt-12 rounded-2xl bg-rose-50 p-6 text-rose-600 shadow-sm border border-rose-100 flex items-center gap-3">
-          <svg
-            className="w-6 h-6 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span className="font-semibold">{errorConfig}</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm block lg:table">
-            <thead className="bg-slate-50/80 border-b border-slate-200 backdrop-blur-sm hidden lg:table-header-group">
-              <tr>
-                <th className="px-5 py-4 text-left font-bold text-slate-700 uppercase tracking-widest text-[11px]">
-                  Information
-                </th>
-                <th className="px-5 py-4 text-left font-bold text-slate-700 uppercase tracking-widest text-[11px]">
-                  Status
-                </th>
-                <th className="px-5 py-4 text-left font-bold text-slate-700 uppercase tracking-widest text-[11px]">
-                  Finansial
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {data.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-6 py-12 text-center text-slate-500"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <svg
-                        className="w-12 h-12 text-slate-300"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <span className="font-medium text-slate-400">
-                        Tidak ada data ditemukan.
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                data.map((row) => (
-                  <Fragment key={row.requestId}>
-                    {/* TABLE ROW PLACEHOLDER (Will expand later) */}
-                    <tr
-                      className={`cursor-pointer transition-colors hover:bg-slate-50 block lg:table-row border-b border-slate-100 lg:border-0 ${openRequestId === row.requestId ? "bg-indigo-50/30" : ""}`}
-                      onClick={() =>
-                        setOpenRequestId(
-                          openRequestId === row.requestId
-                            ? null
-                            : row.requestId,
-                        )
-                      }
-                    >
-                      <td className="px-5 py-3 lg:py-4 align-top block lg:table-cell">
-                        <div className="sm:hidden text-[10px] font-bold text-slate-400 uppercase mb-1">Information</div>
-                        <div className="font-bold text-slate-900 mb-1">
-                          {row.perusahaan || "Tanpa Perusahaan"}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          ID: {row.requestId}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          Pemohon: {row.pemohon} ({formatSegmen(row.segmen)})
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 lg:py-4 align-top block lg:table-cell border-t border-slate-50 lg:border-0">
-                        <div className="sm:hidden text-[10px] font-bold text-slate-400 uppercase mb-1">Status</div>
-                        <div className="flex flex-col gap-2 items-start">
-                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-500/10">
-                            {row.statusAkhir || "Belum Ada Status"}
-                          </span>
-                          <span className="text-xs text-slate-500 whitespace-nowrap">
-                            Progress: {row.statusUsulan || "-"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 lg:py-4 align-top block lg:table-cell border-t border-slate-50 lg:border-0">
-                        <div className="sm:hidden text-[10px] font-bold text-slate-400 uppercase mb-1">Finansial</div>
-                        <div className="flex flex-col gap-2">
-                          <div className="text-xs">
-                            <span className="font-semibold text-slate-700">
-                              Kontrak:
-                            </span>{" "}
-                            <span className="text-slate-600">
-                              {typeof row.nominalKontrak === "number" &&
-                              row.nominalKontrak > 0
-                                ? `Rp ${row.nominalKontrak.toLocaleString("id-ID")}`
-                                : "-"}
-                            </span>
-                          </div>
-                          <div className="text-xs">
-                            <span className="font-semibold text-slate-700">
-                              SP2D:
-                            </span>{" "}
-                            <span className="text-slate-600">
-                              {typeof row.nominalPembayaran === "number" &&
-                              row.nominalPembayaran > 0
-                                ? `Rp ${row.nominalPembayaran.toLocaleString("id-ID")}`
-                                : "-"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* EXPANDED ROW (The Form) */}
-                    {openRequestId === row.requestId && (
-                      <tr className="block lg:table-row">
-                        <td colSpan={3} className="p-0 block lg:table-cell">
-                          <FinanceFormRow
-                            row={row}
-                            statusAkhirOptions={statusAkhirOpts}
-                            onCancel={() => setOpenRequestId(null)}
-                            onUpdated={(updatedRow) => {
-                              // Update row in local state
-                              setData((prev) =>
-                                prev.map((r) =>
-                                  r.requestId === updatedRow.requestId
-                                    ? updatedRow
-                                    : r,
-                                ),
-                              );
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  const handleUpdated = (updated: Contract) => {
+    setContracts((prev) =>
+      prev.map((c) => (c.nomorKontrak === updated.nomorKontrak ? updated : c)),
     );
   };
+
+  if (sessionLoading || loading) {
+    return (
+      <div className="flex w-full mt-12 items-center justify-center p-8 text-slate-500 font-medium animate-pulse">
+        <svg className="mr-3 h-6 w-6 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        Memuat data keuangan...
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-50">
-      
       <main className="flex-1 overflow-y-auto relative p-4 lg:p-8 font-sans">
         <div className="mx-auto max-w-7xl">
-          {/* Header Section */}
-          <div className="mb-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-900/5 backdrop-blur-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-50 rounded-full blur-2xl -ml-10 -mb-10 opacity-50 pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3 mb-2">
-                  <span className="bg-gradient-to-br from-indigo-500 to-indigo-700 bg-clip-text text-transparent">
-                    Manajemen Keuangan & Kontrak
-                  </span>
-                </h1>
-                <p className="text-slate-500 font-medium text-sm md:text-base max-w-2xl">
-                  Pantau, kelola, dan validasi data kontrak serta realisasi
-                  permohonan SP2D.
-                </p>
-              </div>
+          {/* Header */}
+          <div className="mb-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-900/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50 pointer-events-none" />
+            <div className="relative z-10">
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 mb-2">
+                <span className="bg-gradient-to-br from-emerald-500 to-emerald-700 bg-clip-text text-transparent">
+                  {perusahaanQuery ? `Manajemen Keuangan — ${perusahaanQuery}` : "Manajemen Keuangan"}
+                </span>
+              </h1>
+              <p className="text-slate-500 font-medium text-sm">
+                Data kontrak bersifat read-only. Klik baris untuk mengelola penagihan.
+              </p>
             </div>
           </div>
 
-          {/* Content Table */}
-          {renderContent()}
+          {error && (
+            <div className="mb-6 rounded-2xl bg-rose-50 p-4 text-rose-600 text-sm font-semibold border border-rose-100">{error}</div>
+          )}
+
+          {/* Table */}
+          <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm border-collapse">
+                <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                  <tr className="border-b border-slate-100">
+                    <th className="px-4 py-3 text-left">No. Kontrak</th>
+                    <th className="px-4 py-3 text-left">Instansi</th>
+                    <th className="px-4 py-3 text-left">Nama Pengadaan</th>
+                    <th className="px-4 py-3 text-right">Nominal Kontrak</th>
+                    <th className="px-4 py-3 text-right">Nominal Penagihan</th>
+                    <th className="px-4 py-3 text-left">Tgl Penagihan</th>
+                    <th className="px-4 py-3 text-left">Tgl Berakhir</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {contracts.length === 0 ? (
+                    <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">Belum ada data kontrak.</td></tr>
+                  ) : (
+                    contracts.map((c) => (
+                      <Fragment key={c.nomorKontrak}>
+                        <tr className={`hover:bg-slate-50 cursor-pointer transition-colors ${openRow === c.nomorKontrak ? "bg-indigo-50/30" : ""}`}
+                          onClick={() => setOpenRow(openRow === c.nomorKontrak ? null : c.nomorKontrak)}>
+                          <td className="px-4 py-3 font-semibold text-slate-800">{c.nomorKontrak}</td>
+                          <td className="px-4 py-3 text-slate-600">{c.instansi || "-"}</td>
+                          <td className="px-4 py-3 text-slate-600">{c.namaPengadaan || "-"}</td>
+                          <td className="px-4 py-3 text-right text-slate-800 font-medium">{fmtCurrency(c.nominalKontrak)}</td>
+                          <td className="px-4 py-3 text-right text-slate-800 font-medium">{fmtCurrency(c.penagihan?.nominalPenagihan)}</td>
+                          <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                            {c.penagihan?.tanggalMulai ? `${fmtDate(c.penagihan.tanggalMulai)} — ${fmtDate(c.penagihan.tanggalBerakhir)}` : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{fmtDate(c.tanggalBerakhirKontrak)}</td>
+                        </tr>
+                        {openRow === c.nomorKontrak && (
+                          <tr>
+                            <td colSpan={7} className="p-0">
+                              <PenagihanForm contract={c} onUpdated={handleUpdated} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function FinancePage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <FinancePageContent />
+    </Suspense>
   );
 }

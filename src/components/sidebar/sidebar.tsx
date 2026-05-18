@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Role, MenuSection } from "@/lib/menu";
 import { getMenuByRole } from "@/lib/menu";
 import { useSession } from "@/components/session/SessionProvider";
@@ -36,7 +36,46 @@ export default function Sidebar() {
   );
 
   const role = user?.role as Role;
-  const sections: MenuSection[] = user ? getMenuByRole(role) : [];
+  const rawSections: MenuSection[] = user ? getMenuByRole(role) : [];
+
+  const [companies, setCompanies] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/parameters")
+      .then(res => res.json())
+      .then(json => {
+        if (json?.data?.perusahaan) {
+          setCompanies(json.data.perusahaan);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const sections = useMemo(() => {
+    return rawSections.map(section => {
+      if (section.title === "FINANCE") {
+        return {
+          ...section,
+          items: companies.map(company => ({
+            label: company,
+            href: `/finance?perusahaan=${encodeURIComponent(company)}`,
+            icon: "Building"
+          }))
+        };
+      }
+      if (section.title === "KONTRAK") {
+        return {
+          ...section,
+          items: companies.map(company => ({
+            label: company,
+            href: `/kontrak?perusahaan=${encodeURIComponent(company)}`,
+            icon: "Building"
+          }))
+        };
+      }
+      return section;
+    });
+  }, [rawSections, companies]);
 
   const toggleSection = (e: React.MouseEvent, title: string) => {
     e.stopPropagation();
@@ -107,8 +146,24 @@ export default function Sidebar() {
           ? "Leader"
           : "Sales";
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+  const searchParams = useSearchParams();
+
+  const isActive = (href: string) => {
+    const [basePath, query] = href.split("?");
+    // Check if the current pathname matches the basePath
+    if (pathname !== basePath && !pathname.startsWith(basePath + "/")) {
+      return false;
+    }
+    // If the menu item has a query string, it must perfectly match the current URL's query parameters
+    if (query) {
+       const urlParams = new URLSearchParams(query);
+       for (const [key, value] of Array.from(urlParams.entries())) {
+          if (searchParams.get(key) !== value) return false;
+       }
+       return true;
+    }
+    return true;
+  };
 
   const isSectionActive = (section: MenuSection) =>
     section.items.some(item => isActive(item.href));
