@@ -301,19 +301,12 @@ function FragmentRow({
           <span className="lg:hidden text-[10px] font-bold text-slate-400">REQUESTOR</span>
           <span className="text-right">{r.requestor}</span>
         </td>
-        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-800 font-medium flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
-          <span className="lg:hidden text-[10px] font-bold text-slate-400">PEMOHON</span>
-          <span className="text-right">{r.pemohon}</span>
+        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-600 font-medium flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">TOTAL BARANG</span>
+          <span className="text-right">{r.items?.length || 0} Barang</span>
         </td>
-        <td className="px-1 py-2 sm:px-5 lg:py-4 text-slate-600 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
-          <span className="lg:hidden text-[10px] font-bold text-slate-400">LOKASI</span>
-          <span className="text-right">{r.lokasi}</span>
-        </td>
-
-        <td className="px-5 py-4 text-slate-600 font-medium">
-          {r.items?.length || 0} Barang
-        </td>
-        <td className="px-5 py-4">
+        <td className="px-1 py-2 sm:px-5 lg:py-4 flex justify-between items-center lg:table-cell border-b lg:border-0 border-slate-100 border-dashed">
+          <span className="lg:hidden text-[10px] font-bold text-slate-400">TOTAL QTY</span>
           <span className="inline-flex items-center rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 border border-blue-200">
             {r.items?.reduce((acc, it) => acc + (Number(it.qty) || 0), 0) || 0} Qty
           </span>
@@ -378,8 +371,8 @@ function FragmentRow({
       </tr>
 
       {isOpen ? (
-        <tr className="border-b border-slate-100 bg-slate-50/50">
-          <td colSpan={7} className="px-5 py-5 text-sm">
+        <tr className="border border-slate-200 lg:border-0 lg:border-b sm:border-slate-100 bg-slate-50/50 block lg:table-row relative sm:static -mt-6 lg:mt-0 z-0 lg:z-auto rounded-b-xl lg:rounded-none pt-4 sm:pt-0 pb-2 lg:pb-0">
+          <td colSpan={7} className="px-5 py-5 text-sm block lg:table-cell">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
               <div>
                 <span className="font-semibold text-slate-700">
