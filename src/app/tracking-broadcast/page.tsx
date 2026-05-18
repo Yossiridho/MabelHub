@@ -161,6 +161,7 @@ interface DataItem {
   jenis_entitas: string,
   bulan_data: string,
   status_wa: string,
+  detail_update: string,
   ke_sales: string,
 }
 
@@ -258,6 +259,7 @@ export default function TrackingBroadcastPage() {
 
 
   const detailOptions = [
+    { value: 'Belum ada update', label: 'Belum ada update' },
     { value: 'Baik, terima kasih informasinya.', label: 'Baik, terima kasih informasinya.' },
     { value: 'Mohon ditunggu sebentar.', label: 'Mohon ditunggu sebentar.' },
     { value: 'Kami pelajari terlebih dahulu.', label: 'Kami pelajari terlebih dahulu.' },
@@ -374,6 +376,7 @@ export default function TrackingBroadcastPage() {
               jenis_entitas: row.jenis_entitas,
               bulan_data: row.bulan_data,
               status_wa: row.status_wa,
+              detail_update: row.detail_update,
               ke_sales: row.ke_sales,
               sent_at: new Date().toISOString(),
             }),
@@ -491,6 +494,7 @@ export default function TrackingBroadcastPage() {
         jenis_entitas: row.jenis_entitas,
         bulan_data: row.bulan_data,
         status_wa: row.status_wa,
+        detail_update: row.detail_update,
         ke_sales: row.ke_sales,
         sent_at: new Date().toISOString(),
       }
@@ -1499,7 +1503,7 @@ export default function TrackingBroadcastPage() {
                             <select
                               value={row.detail_update || ''}
                               onChange={(e) => updateRowDetailUpdate(row._id, e.target.value)}
-                              className='text-[10px] border border-gray-300 rounded-lg px-5 py-3 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-57 h-12 cursor-pointer'
+                              className='text-[10px] border text-wrap border-gray-300 rounded-lg px-1 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-57 h-12 cursor-pointer'
                             >
                               {detailOptions.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
