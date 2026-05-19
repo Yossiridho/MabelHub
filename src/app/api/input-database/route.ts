@@ -82,8 +82,10 @@ export async function POST(req: Request) {
             segmentasi: header.segmentasi || "",
             produk_relevan: header.produkRelevan || "",
             merek_tayang: header.merekTayang || "",
+            merek_lainnya: header.merekLainnya || "",
             brand_owner: header.brandOwner || "",
             sumber_data: header.sumberData || "",
+            sales_internal: header.salesInternal || "",
             link_produk: header.linkProduk || "",
             link_toko: header.linkToko || "",
             // Data kontak
@@ -163,8 +165,10 @@ export async function PUT(req: Request) {
             segmentasi: header.segmentasi || "",
             produk_relevan: header.produkRelevan || "",
             merek_tayang: header.merekTayang || "",
+            merek_lainnya: header.merekLainnya || "",
             brand_owner: header.brandOwner || "",
             sumber_data: header.sumberData || "",
+            sales_internal: header.salesInternal || "",
             link_produk: header.linkProduk || "",
             link_toko: header.linkToko || "",
             // Data kontak (dari item, bukan header)
