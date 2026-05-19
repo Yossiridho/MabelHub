@@ -67,8 +67,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-blue-100">
-      <div className="flex w-225 rounded-3xl bg-white p-10 shadow-lg border-l-8 border-blue-500">
+    <div className="flex min-h-screen items-center justify-center bg-blue-100 dark:bg-[#0d1117] transition-colors duration-200">
+      <div className="flex w-225 rounded-3xl bg-white dark:bg-[#161b22] p-10 shadow-lg border-l-8 border-blue-500 dark:border-blue-600">
         <div className="flex w-1/2 flex-col items-center justify-center">
           <Image
             src="/logo.png"
@@ -77,14 +77,14 @@ export default function LoginPage() {
             height={160}
             className="mt-7"
           />
-          <h1 className="text-2xl font-semibold text-black">MabelHub</h1>
+          <h1 className="text-2xl font-semibold text-black dark:text-white">MabelHub</h1>
         </div>
 
         <div className="flex w-1/2 flex-col justify-center px-10">
-          <h2 className="mb-8 text-center text-3xl font-semibold">LOGIN</h2>
+          <h2 className="mb-8 text-center text-3xl font-semibold dark:text-white">LOGIN</h2>
 
           <div className="mb-5">
-            <label className="mb-2 block text-sm">Username</label>
+            <label className="mb-2 block text-sm dark:text-slate-300">Username</label>
             <input
               value={identity}
               onChange={(e) => setIdentity(e.target.value)}
@@ -94,12 +94,12 @@ export default function LoginPage() {
                 }
               }}
               placeholder="Username atau Email"
-              className="h-11 w-full rounded-lg border px-3 outline-none focus:ring-2 focus:ring-blue-300"
+              className="h-11 w-full rounded-lg border border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#1e2430] px-3 outline-none focus:ring-2 focus:ring-blue-300 dark:text-white dark:placeholder-slate-500 transition-colors"
             />
           </div>
 
           <div className="mb-8">
-            <label className="mb-2 block text-sm">Password</label>
+            <label className="mb-2 block text-sm dark:text-slate-300">Password</label>
             <input
               id="passwordInput"
               type="password"
@@ -109,16 +109,16 @@ export default function LoginPage() {
                 if (e.key === "Enter") onLogin();
               }}
               placeholder="Password"
-              className="h-11 w-full rounded-lg border px-3 outline-none focus:ring-2 focus:ring-blue-300"
+              className="h-11 w-full rounded-lg border border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#1e2430] px-3 outline-none focus:ring-2 focus:ring-blue-300 dark:text-white dark:placeholder-slate-500 transition-colors"
             />
           </div>
 
-          {err ? <div className="mb-4 text-sm text-red-600">{err}</div> : null}
+          {err ? <div className="mb-4 text-sm text-red-600 dark:text-red-400">{err}</div> : null}
 
           <button
             disabled={loading}
             onClick={onLogin}
-            className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700"
+            className="h-11 rounded-full bg-blue-600 text-sm text-white transition hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
           >
             {loading ? "Logging in..." : "LOGIN"}
           </button>
