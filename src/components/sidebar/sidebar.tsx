@@ -53,13 +53,18 @@ export default function Sidebar() {
   }, []);
 
   const sections = useMemo(() => {
+    const toTitleCase = (str: string) => {
+      if (!str) return "";
+      return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+    };
+
     return rawSections.map(section => {
       if (section.title === "FINANCE") {
         return {
           ...section,
           items: companies.map(company => ({
-            label: company,
-            href: `/finance?perusahaan=${encodeURIComponent(company)}`,
+            label: toTitleCase(company),
+            href: `/finance?perusahaan=${encodeURIComponent(company || "")}`,
             icon: "Building"
           }))
         };
@@ -68,8 +73,8 @@ export default function Sidebar() {
         return {
           ...section,
           items: companies.map(company => ({
-            label: company,
-            href: `/kontrak?perusahaan=${encodeURIComponent(company)}`,
+            label: toTitleCase(company),
+            href: `/kontrak?perusahaan=${encodeURIComponent(company || "")}`,
             icon: "Building"
           }))
         };

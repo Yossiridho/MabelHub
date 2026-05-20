@@ -20,6 +20,7 @@ import {
   X,
   LucidePenBox,
   SendIcon,
+  PencilIcon,
 } from 'lucide-react'
 import router, { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
@@ -65,6 +66,7 @@ type BroadCastRow = {
   penginput: string
   jenis_entitas: string
   status_wa: string
+  detail_update: string
   ke_sales: string
 }
 
@@ -110,8 +112,28 @@ type ApiStats = {
     unik: number
     pct: number
   }[]
+  ke_sales_provinsi: {
+    no: number
+    ke_sales: string
+    provinsi: string
+    kota: string
+    unik: number
+    pct: number
+  }[]
+  per_sales: {
+    no: number
+    ke_sales: string
+    unik: number
+    pct: number
+  }[]
 }
 
+type keSalesSummary = {
+  arie: number
+  beffry: number
+  ferrie: number
+  kosong: number
+}
 
 interface DataItem {
   id: string;
@@ -139,6 +161,7 @@ interface DataItem {
   jenis_entitas: string,
   bulan_data: string,
   status_wa: string,
+  detail_update: string,
   ke_sales: string,
 }
 
@@ -230,9 +253,37 @@ export default function TrackingBroadcastPage() {
     { id: 'Provinsi', icon: MapIcon, label: 'Provinsi' },
     { id: 'Kota', icon: MapPin, label: 'Kota/Kab' },
     { id: 'Status Wa', icon: MessageCircleCodeIcon, label: 'Status WA' },
+    { id: 'Detail Update', icon: PencilIcon, label: 'Detail Update' },
     { id: 'Ke Sales', icon: Users, label: 'Ke Sales' },
   ]
 
+
+  const detailOptions = [
+    { value: 'Belum ada update', label: 'Belum ada update' },
+    { value: 'Baik, terima kasih informasinya.', label: 'Baik, terima kasih informasinya.' },
+    { value: 'Mohon ditunggu sebentar.', label: 'Mohon ditunggu sebentar.' },
+    { value: 'Kami pelajari terlebih dahulu.', label: 'Kami pelajari terlebih dahulu.' },
+    { value: 'Informasi sudah kami terima.', label: 'Informasi sudah kami terima.' },
+    { value: 'Terima kasih sudah menghubungi kami.', label: 'Terima kasih sudah menghubungi kami.' },
+    { value: 'Sudah ada sales', label: 'Sudah ada sales' },
+    { value: 'Hanya Menjawab Nama', label: 'Hanya Menjawab Nama' },
+    { value: 'Nanti jika ada kebutuhan kami hubungi.', label: 'Nanti jika ada kebutuhan kami hubungi.' },
+    { value: 'Bertanya status TKDN', label: 'Bertanya status TKDN' },
+    { value: 'Bertanya Spesifikasi', label: 'Bertanya Spesifikasi' },
+    { value: 'Bertanya Pricelist', label: 'Bertanya Pricelist' },
+    { value: 'Bersedia berdiskusi lebih lanjut dengan sales', label: 'Bersedia berdiskusi lebih lanjut dengan sales' },
+    { value: 'Bersedia di Presentasikan untuk presales', label: 'Bersedia di Presentasikan untuk presales' },
+    { value: 'Meminta & mengisi form reseller', label: 'Meminta & mengisi form reseller' },
+    { value: 'Meminta SPH', label: 'Meminta SPH' },
+    { value: 'Tidak tertarik', label: 'Tidak tertarik' },
+    { value: 'Belum butuh', label: 'Belum butuh' },
+    { value: 'Budget belum ada', label: 'Budget belum ada' },
+    { value: 'Sudah pakai brand lain', label: 'Sudah pakai brand lain' },
+    { value: 'Jangan hubungi lagi', label: 'Jangan hubungi lagi' },
+    { value: 'Harga terlalu mahal', label: 'Harga terlalu mahal' },
+    { value: 'Spesifikasi tidak cocok', label: 'Spesifikasi tidak cocok' },
+    { value: 'Nomor Invalid', label: 'Nomor Invalid' },
+  ]
 
   // Summary Status WA
   const [statusWaSummary, setStatusWaSummary] = useState<StatusWaSummary>({
@@ -247,7 +298,13 @@ export default function TrackingBroadcastPage() {
     total: 0,
   })
 
-
+  // Summary Ke Sales
+  const [keSalesSummary, setKeSalesSummary] = useState<keSalesSummary>({
+    arie: 0,
+    beffry: 0,
+    ferrie: 0,
+    kosong: 0,
+  })
 
   // function selected broadcast
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -319,6 +376,7 @@ export default function TrackingBroadcastPage() {
               jenis_entitas: row.jenis_entitas,
               bulan_data: row.bulan_data,
               status_wa: row.status_wa,
+              detail_update: row.detail_update,
               ke_sales: row.ke_sales,
               sent_at: new Date().toISOString(),
             }),
@@ -359,7 +417,6 @@ export default function TrackingBroadcastPage() {
   // data - statistik & analitik
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<ApiStats | null>(null)
-  const [apiStats, setApiStats] = useState<ApiStats | null>(null)
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
@@ -399,6 +456,11 @@ export default function TrackingBroadcastPage() {
     setRows(prev => prev.map(r => r._id === id ? { ...r, ke_sales: value } : r))
   }, [])
 
+  // Update detail update per baris (optimistic update di local state)
+  const updateRowDetailUpdate = useCallback((id: string, value: string) => {
+    setRows(prev => prev.map(r => r._id === id ? { ...r, detail_update: value } : r))
+  }, [])
+
   // Kirim data satu baris ke database tracking_broadcast
   const [sendingRows, setSendingRows] = useState<Set<string>>(new Set())
 
@@ -432,6 +494,7 @@ export default function TrackingBroadcastPage() {
         jenis_entitas: row.jenis_entitas,
         bulan_data: row.bulan_data,
         status_wa: row.status_wa,
+        detail_update: row.detail_update,
         ke_sales: row.ke_sales,
         sent_at: new Date().toISOString(),
       }
@@ -607,6 +670,14 @@ export default function TrackingBroadcastPage() {
             total_wa_unik: json?.summaryStats?.total_wa_unik ?? 0,
             provinsi_kota: json?.summaryStats?.provinsi_kota ?? [],
             wa_provinsi_kota: json?.summaryStats?.wa_provinsi_kota ?? [],
+            ke_sales_provinsi: json?.summaryStats?.ke_sales_provinsi ?? [],
+            per_sales: json?.summaryStats?.per_sales ?? [],
+          })
+          setKeSalesSummary({
+            arie: json?.keSalesSummary?.arie ?? 0,
+            beffry: json?.keSalesSummary?.beffry ?? 0,
+            ferrie: json?.keSalesSummary?.ferrie ?? 0,
+            kosong: json?.keSalesSummary?.kosong ?? 0,
           })
           const pg = json?.pagination ?? {}
           setTotal(Number(pg?.total ?? 0))
@@ -914,7 +985,7 @@ export default function TrackingBroadcastPage() {
                         className='font-extrabold text-[1.8rem] leading-none text-green-500'
                         id='statWaUnik'
                       >
-                        559
+                        {loadingRows ? '...' : (stats?.total_wa_unik ?? 0)}
                       </div>
                       <div className='text-[10px] text-slate-400'>kontak</div>
                     </div>
@@ -1076,7 +1147,7 @@ export default function TrackingBroadcastPage() {
                       id='statProvinsiRows'
                       className='font-semibold text-blue-700'
                     >
-                      {loading ? '...' : (stats?.provinsi_kota.length ?? 0)}
+                      {loadingRows ? '...' : (stats?.provinsi_kota.length ?? 0)}
                     </span>
                     <span>baris</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
@@ -1084,7 +1155,7 @@ export default function TrackingBroadcastPage() {
                       id='statProvinsiTotal'
                       className='font-semibold text-blue-700'
                     >
-                      14
+                      {loadingRows ? '...' : (stats?.provinsi_kota.reduce((acc, row) => acc + row.unik, 0) ?? 0)}
                     </span>
                     <span>total</span>
                   </div>
@@ -1112,115 +1183,34 @@ export default function TrackingBroadcastPage() {
                       id='tbodyProvinsiUnik'
                       className='divide-y divide-gray-100'
                     >
-                      {[
-                        {
-                          no: 1,
-                          prov: 'Aceh',
-                          kota: 'Kabupaten Pidie',
-                          unik: 1,
-                          pct: 4,
-                        },
-                        {
-                          no: 2,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 36,
-                          pct: 90,
-                        },
-                        {
-                          no: 3,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Badung',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 4,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Gianyar',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 5,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Jembrana',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 6,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Klungkung',
-                          unik: 1,
-                          pct: 3,
-                        },
-                        {
-                          no: 7,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 5,
-                        },
-                        {
-                          no: 8,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 3,
-                          pct: 8,
-                        },
-                        {
-                          no: 9,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 5,
-                          pct: 13,
-                        },
-                        {
-                          no: 10,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 5,
-                        },
-                        {
-                          no: 11,
-                          prov: 'Banten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 23,
-                        },
-                        {
-                          no: 12,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Pusat',
-                          unik: 4,
-                          pct: 10,
-                        },
-                        {
-                          no: 13,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Selatan',
-                          unik: 6,
-                          pct: 15,
-                        },
-                        {
-                          no: 14,
-                          prov: 'DKI Jakarta',
-                          kota: 'Jakarta Utara',
-                          unik: 2,
-                          pct: 5,
-                        },
-                      ].map((row) => (
+                      {loadingRows ? (
+                        <tr>
+                          <td colSpan={4} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : (stats?.provinsi_kota ?? []).length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Tidak ada data
+                          </td>
+                        </tr>
+                      ) : (stats?.provinsi_kota ?? []).map((row) => (
                         <tr
                           key={row.no}
+                          onClick={() => {
+                            setProvinsi([row.provinsi])
+                            setKota([row.kota])
+                            setPage(1)
+                            setSelected(null)
+                          }}
                           className='hover:bg-blue-50/50 transition-colors cursor-pointer'
                         >
                           <td className='px-2 py-1.5 text-[10px] text-slate-400'>
                             {row.no}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.prov}
+                            {row.provinsi}
                           </td>
                           <td className='px-2 py-1.5 text-[10px] text-slate-600'>
                             <div className='flex items-center gap-1.5'>
@@ -1245,20 +1235,20 @@ export default function TrackingBroadcastPage() {
                 </div>
               </div>
 
-              {/* Panel Kanan: Kontak WA Unik per Provinsi & Kota */}
-              <div className='flex flex-col flex-1 rounded-lg border border-green-100 overflow-hidden shadow-sm'>
+              {/* Panel Kanan: Unik No HP per Ke Sales */}
+              <div className='flex flex-col flex-1 rounded-lg border border-[#FDE68A] overflow-hidden shadow-sm'>
                 {/* Header Panel Kanan */}
                 <div
                   className='flex items-center justify-between px-3 py-[6px]'
                   style={{
-                    background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                    borderBottom: '2px solid #16a34a',
+                    background: 'linear-gradient(135deg, #FEF9C3, #FDE68A)',
+                    borderBottom: '2px solid #D97706',
                   }}
                 >
                   <div className='flex items-center gap-1.5'>
-                    <PhoneCallIcon
+                    <Users
                       size={13}
-                      className='text-green-600 shrink-0'
+                      className='text-[#D97706] shrink-0'
                       strokeWidth={2.5}
                     />
                     <span className='text-[11px] font-bold text-[#1e293b]'>
@@ -1267,170 +1257,85 @@ export default function TrackingBroadcastPage() {
                   </div>
                   <div className='flex items-center gap-1 text-[10px] text-slate-500'>
                     <span
-                      id='statWaProvinsiRows'
-                      className='font-semibold text-green-700'
+                      className='font-semibold text-amber-700'
                     >
-                      14
+                      {loadingRows ? '...' : (stats?.per_sales?.length ?? 0)}
                     </span>
-                    <span>baris</span>
+                    <span>sales</span>
                     <span className='mx-0.5 text-slate-300'>|</span>
                     <span
-                      id='statWaProvinsiTotal'
-                      className='font-semibold text-green-700'
+                      className='font-semibold text-amber-700'
                     >
-                      14
+                      {loadingRows ? '...' : (stats?.per_sales?.reduce((acc, r) => acc + r.unik, 0) ?? 0)}
                     </span>
                     <span>total</span>
                   </div>
                 </div>
                 {/* Tabel */}
-                <div className='max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-green-50 [&::-webkit-scrollbar-thumb]:bg-green-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-green-400'>
+                <div className='max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-amber-50 [&::-webkit-scrollbar-thumb]:bg-amber-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-amber-400'>
                   <table className='w-full text-left border-collapse'>
-                    <thead className='sticky top-0 z-10 bg-[#f1f5f9]'>
+                    <thead className='sticky top-0 z-10 bg-[#FFFBEB]'>
                       <tr>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500 w-7'>
+                        <th className='px-3 py-2 text-[10px] font-semibold text-slate-500 w-8'>
                           #
                         </th>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500'>
-                          Provinsi
+                        <th className='px-3 py-2 text-[10px] font-semibold text-slate-500'>
+                          Ke Sales
                         </th>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500'>
-                          Kota/Kab
-                        </th>
-                        <th className='px-2 py-1.5 text-[10px] font-semibold text-slate-500 text-right'>
-                          WA Unik
+                        <th className='px-3 py-2 text-[10px] font-semibold text-slate-500 text-right'>
+                          Unik
                         </th>
                       </tr>
                     </thead>
                     <tbody
-                      id='tbodyWaProvinsi'
-                      className='divide-y divide-gray-100'
+                      className='divide-y divide-amber-100/60'
                     >
-                      {[
-                        {
-                          no: 1,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 2,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 3,
-                          prov: 'Bali',
-                          kota: 'Kota Denpasar',
-                          unik: 4,
-                          pct: 40,
-                        },
-                        {
-                          no: 4,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 5,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 3,
-                          pct: 30,
-                        },
-                        {
-                          no: 6,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 7,
-                          prov: 'Danten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 90,
-                        },
-                        {
-                          no: 8,
-                          prov: 'Aceh',
-                          kota: 'Kota Banda Aceh',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 9,
-                          prov: 'Bali',
-                          kota: 'Kabupaten Tabanan',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 10,
-                          prov: 'Bali',
-                          kota: 'Kota Denpasar',
-                          unik: 4,
-                          pct: 40,
-                        },
-                        {
-                          no: 11,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Pandeglang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 12,
-                          prov: 'Banten',
-                          kota: 'Kabupaten Tangerang',
-                          unik: 3,
-                          pct: 30,
-                        },
-                        {
-                          no: 13,
-                          prov: 'Banten',
-                          kota: 'Kota Serang',
-                          unik: 2,
-                          pct: 20,
-                        },
-                        {
-                          no: 14,
-                          prov: 'Danten',
-                          kota: 'Kota Tangerang',
-                          unik: 9,
-                          pct: 90,
-                        },
-                      ].map((row) => (
+                      {loadingRows ? (
+                        <tr>
+                          <td colSpan={3} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : (stats?.per_sales ?? []).length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className='px-3 py-4 text-center text-[10px] text-slate-400'>
+                            Tidak ada data
+                          </td>
+                        </tr>
+                      ) : (stats?.per_sales ?? []).map((row) => (
                         <tr
                           key={row.no}
-                          className='hover:bg-green-50/50 transition-colors cursor-pointer'
+                          onClick={() => {
+                            setToSales([row.ke_sales ?? ''])
+                            setPage(1)
+                            setSelected(null)
+                          }}
+                          className='hover:bg-amber-50/60 transition-colors cursor-pointer'
                         >
-                          <td className='px-2 py-1.5 text-[10px] text-slate-400'>
+                          <td className='px-3 py-2 text-[10px] text-slate-400'>
                             {row.no}
                           </td>
-                          <td className='px-2 py-1.5 text-[10px] text-slate-700 font-medium'>
-                            {row.prov}
+                          <td className='px-3 py-2 text-[10px] text-slate-700 font-medium'>
+                            {/* ✅ Tampilkan "(Belum Diteruskan)" jika ke_sales null */}
+                            {row.ke_sales ?? '(Belum Diteruskan)'}
                           </td>
-                          <td className='px-2 py-1.5 text-[10px] text-slate-600'>
-                            <div className='flex items-center gap-1.5'>
-                              <span>{row.kota}</span>
-                              <div className='flex-1 min-w-[36px] bg-green-100 rounded-full h-[4px] overflow-hidden'>
+                          <td className='px-3 py-2 text-right'>
+                            <div className='flex items-center gap-2 justify-end'>
+                              <div className='flex-1 min-w-[40px] max-w-[140px] bg-gray-200 rounded-full h-[5px] overflow-hidden'>
                                 <div
-                                  className='bg-green-500 h-full rounded-full'
-                                  style={{ width: `${row.pct}%` }}
+                                  className='h-full rounded-full'
+                                  style={{
+                                    width: `${row.pct}%`,
+                                    background: row.ke_sales === '(Belum Diteruskan)'
+                                      ? 'linear-gradient(90deg, #9CA3AF, #6B7280)'
+                                      : 'linear-gradient(90deg, #F59E0B, #D97706)',
+                                  }}
                                 />
                               </div>
+                              <span className='inline-flex items-center justify-center min-w-[24px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-white shadow-sm'>
+                                {row.unik}
+                              </span>
                             </div>
-                          </td>
-                          <td className='px-2 py-1.5 text-right'>
-                            <span className='inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-600 text-white'>
-                              {row.unik}
-                            </span>
                           </td>
                         </tr>
                       ))}
@@ -1477,6 +1382,7 @@ export default function TrackingBroadcastPage() {
                       { label: "📍 INFO LOKASI" },
                       { label: "👤 KONTAK PIC" },
                       { label: "💬 STATUS WA" },
+                      { label: "📝 DETAIL UPDATE" },
                       { label: "➡ KE SALES" },
                       { label: "⚙" },
                     ].map((h) => (
@@ -1591,6 +1497,17 @@ export default function TrackingBroadcastPage() {
                               <option value='Dibaca - Respons - Netral'>Dibaca - Respons - Netral</option>
                               <option value='Dibaca - Respons - Negatif'>Dibaca - Respons - Negatif</option>
                               <option value='Aktif Progres'>Aktif Progres</option>
+                            </select>
+                          </td>
+                          <td className='px-1 py-1 w-12 text-[10px] text-slate-600'>
+                            <select
+                              value={row.detail_update || ''}
+                              onChange={(e) => updateRowDetailUpdate(row._id, e.target.value)}
+                              className='text-[10px] border text-wrap border-gray-300 rounded-lg px-1 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 w-57 h-12 cursor-pointer'
+                            >
+                              {detailOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
                             </select>
                           </td>
                           <td className='px-5 py-3 text-[10px] text-slate-600'>

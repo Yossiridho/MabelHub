@@ -1,10 +1,12 @@
 'use client'
 
 import SearchableSelect from '@/components/ui/SearchableSelect'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useMemo, useRef } from 'react'
 import { useSession } from '@/components/session/SessionProvider'
 import { Building, Plus, Trash2, Save, Loader2, Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { listProvinsi, listKabupatenKota } from '@/data/wilayah'
+import { useSearchPerusahaan, Perusahaan } from '@/hooks/useSearchPerusahaan'
 
 type TeamMember = {
   userId: string
@@ -102,6 +104,40 @@ function computeChangedFields(
 }
 
 function InputDatabaseContent() {
+  const [isOpen, setIsOpen] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSelect = (perusahaan: Perusahaan) => {
+    setNamaPerusahaan(perusahaan.nama)
+    setIsOpen(false)
+  }
+
+  const [provinsi, setProvinsi] = useState('')
+  const [kabupaten, setKabupaten] = useState('')
+
+  const listKabupatenFiltered = useMemo(() => {
+    if (!provinsi) return []
+    return listKabupatenKota
+      .filter(w => w.provinsi === provinsi)
+      .map(w => ({ value: w.nama, label: w.nama }))
+  }, [provinsi])
+
+  const handleProvinsiChange = (val: string) => {
+    setProvinsi(val)
+    setKabupaten('') // reset pilihan kabupaten saat provinsi berubah
+    setKota('') // reset pilihan kota saat provinsi berubah
+  }
+
   const [codeInput, setcodeInput] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -146,8 +182,10 @@ function InputDatabaseContent() {
         setSegmentasi(header?.segmentasi ?? '')
         setProdukRelevan(header?.produkRelevan ?? '')
         setMerekTayang(header?.merekTayang ?? '')
+        setMerekLainnya(header?.merekLainnya ?? '')
         setBrandOwner(header?.brandOwner ?? '')
         setSumberData(header?.sumberData ?? '')
+        setSalesInternal(header?.salesInternal ?? '')
         setLinkProduk(header?.linkProduk ?? '')
         setLinkToko(header?.linkToko ?? '')
 
@@ -174,7 +212,7 @@ function InputDatabaseContent() {
       })
       .catch(() => { /* silent fail */ })
       .finally(() => setIsLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
   const canPickAssignee =
     user?.role === 'LEADER' ||
@@ -220,14 +258,15 @@ function InputDatabaseContent() {
   const [kota, setKota] = useState<string>('')
   const [alamat, setAlamat] = useState('')
   const [namaPerusahaan, setNamaPerusahaan] = useState('')
-  const [provinsi, setProvinsi] = useState('')
-
+  const { results, isLoading: isLoadingSearch } = useSearchPerusahaan(namaPerusahaan)
   const [bidangPerusahaan, setBidangPerusahaan] = useState('')
   const [segmentasi, setSegmentasi] = useState('')
   const [produkRelevan, setProdukRelevan] = useState('')
   const [merekTayang, setMerekTayang] = useState('')
   const [brandOwner, setBrandOwner] = useState('')
   const [sumberData, setSumberData] = useState('')
+  const [salesInternal, setSalesInternal] = useState('')
+  const [merekLainnya, setMerekLainnya] = useState('')
   const [linkProduk, setLinkProduk] = useState('')
   const [linkToko, setLinkToko] = useState('')
 
@@ -242,6 +281,7 @@ function InputDatabaseContent() {
     segmentasi: string[]
     produkRelevan: string[]
     merekTayang: string[]
+    merekLainnya: string[]
     brandOwner: string[]
     sumberData: string[]
     linkProduk: string[]
@@ -256,6 +296,7 @@ function InputDatabaseContent() {
     segmentasi: [],
     produkRelevan: [],
     merekTayang: [],
+    merekLainnya: [],
     brandOwner: [],
     sumberData: [],
     linkProduk: [],
@@ -352,7 +393,10 @@ function InputDatabaseContent() {
       const kontakItems = data?.items ?? (Array.isArray(data) ? data : [])
 
       if (kontakItems.length > 0) {
-        setItems(kontakItems)
+        setItems(kontakItems.map((item: any) => ({
+          ...item,
+          noTelp: (item.noTelp ?? '').replace(/^62/, ''),
+        })))
       }
       setRequestor(header?.requestor ?? user?.fullName ?? user?.username ?? user?.userId ?? '')
       setSegmen(header?.segmen ?? '')
@@ -364,8 +408,10 @@ function InputDatabaseContent() {
       setSegmentasi(header?.segmentasi ?? '')
       setProdukRelevan(header?.produkRelevan ?? '')
       setMerekTayang(header?.merekTayang ?? '')
+      setMerekLainnya(header?.merekLainnya ?? '')
       setBrandOwner(header?.brandOwner ?? '')
       setSumberData(header?.sumberData ?? '')
+      setSalesInternal(header?.salesInternal ?? '')
       setLinkProduk(header?.linkProduk ?? '')
       setLinkToko(header?.linkToko ?? '')
 
@@ -382,6 +428,7 @@ function InputDatabaseContent() {
           segmentasi: header?.segmentasi ?? '',
           produkRelevan: header?.produkRelevan ?? '',
           merekTayang: header?.merekTayang ?? '',
+          merekLainnya: header?.merekLainnya ?? '',
           brandOwner: header?.brandOwner ?? '',
           sumberData: header?.sumberData ?? '',
           linkProduk: header?.linkProduk ?? '',
@@ -427,8 +474,10 @@ function InputDatabaseContent() {
         segmentasi: segmentasi,
         produkRelevan: produkRelevan,
         merekTayang: merekTayang,
+        merekLainnya: merekLainnya,
         brandOwner: brandOwner,
         sumberData: sumberData,
+        salesInternal: sumberData === 'Sales Internal' ? salesInternal : '',
         linkProduk: linkProduk,
         linkToko: linkToko,
       }
@@ -438,7 +487,7 @@ function InputDatabaseContent() {
         nama: item.nama,
         jabatan: item.jabatan,
         tipeKontak: item.tipeKontak,
-        noTelp: item.noTelp,
+        noTelp: item.noTelp ? `62${item.noTelp}` : '',
         email: item.email,
       }))
 
@@ -525,7 +574,7 @@ function InputDatabaseContent() {
                 disabled={isLoading}
                 className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20}/> : 'Cari Kode'}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Cari Kode'}
               </button>
             </div>
           </section>
@@ -595,16 +644,46 @@ function InputDatabaseContent() {
                 </div>
               </div>
 
-              <div>
+              <div ref={wrapperRef} className='relative'>
                 <label className='text-sm font-semibold text-blue-600'>
                   NAMA PERUSAHAAN
                 </label>
                 <input
                   value={namaPerusahaan}
-                  onChange={(e) => setNamaPerusahaan(e.target.value)}
+                  onChange={(e) => {
+                    setNamaPerusahaan(e.target.value)
+                    setIsOpen(true)
+                  }}
+                  onFocus={() => setIsOpen(true)}
+                  autoComplete='off'
                   placeholder='Ketik Nama Perusahaan...'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
+                {isOpen && namaPerusahaan && namaPerusahaan.trim().length >= 2 && (
+                  <div className='absolute z-50 w-full rounded-xl border border-gray-200 bg-white shadow-lg'>
+                    {isLoadingSearch ? (
+                      <div className='px-4 py-3 text-sm w-full text-gray-400'>
+                        Mencari...
+                      </div>
+                    ) : results.length > 0 ? (
+                      <ul className='max-h-100 overflow-y-auto'>
+                        {results.map((item) => (
+                          <li
+                            key={item.id}
+                            onMouseDown={() => handleSelect(item)} // pakai onMouseDown bukan onClick agar tidak bentrok dengan onBlur
+                            className='cursor-pointer px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-600'
+                          >
+                            {item.nama}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className='px-4 py-3 text-sm text-gray-400'>
+                        Perusahaan tidak ditemukan
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -613,60 +692,11 @@ function InputDatabaseContent() {
                 </label>
                 <SearchableSelect
                   value={provinsi}
-                  onChange={(val: string) => setProvinsi(val)}
-                  options={[
-                    { value: '', label: '-- Pilih --' },
-                    { value: 'Aceh', label: 'Aceh' },
-                    { value: 'Sumatera Utara', label: 'Sumatera Utara' },
-                    { value: 'Sumatera Barat', label: 'Sumatera Barat' },
-                    { value: 'Riau', label: 'Riau' },
-                    { value: 'Jambi', label: 'Jambi' },
-                    { value: 'Sumatera Selatan', label: 'Sumatera Selatan' },
-                    { value: 'Bengkulu', label: 'Bengkulu' },
-                    { value: 'Lampung', label: 'Lampung' },
-                    {
-                      value: 'Kepulauan Bangka Belitung',
-                      label: 'Kepulauan Bangka Belitung',
-                    },
-                    { value: 'Kepulauan Riau', label: 'Kepulauan Riau' },
-                    { value: 'DKI Jakarta', label: 'DKI Jakarta' },
-                    { value: 'Jawa Barat', label: 'Jawa Barat' },
-                    { value: 'Jawa Tengah', label: 'Jawa Tengah' },
-                    { value: 'DI Yogyakarta', label: 'DI Yogyakarta' },
-                    { value: 'Jawa Timur', label: 'Jawa Timur' },
-                    { value: 'Banten', label: 'Banten' },
-                    { value: 'Bali', label: 'Bali' },
-                    {
-                      value: 'Nusa Tenggara Barat',
-                      label: 'Nusa Tenggara Barat',
-                    },
-                    {
-                      value: 'Nusa Tenggara Timur',
-                      label: 'Nusa Tenggara Timur',
-                    },
-                    { value: 'Kalimantan Barat', label: 'Kalimantan Barat' },
-                    { value: 'Kalimantan Tengah', label: 'Kalimantan Tengah' },
-                    {
-                      value: 'Kalimantan Selatan',
-                      label: 'Kalimantan Selatan',
-                    },
-                    { value: 'Kalimantan Timur', label: 'Kalimantan Timur' },
-                    { value: 'Kalimantan Utara', label: 'Kalimantan Utara' },
-                    { value: 'Sulawesi Utara', label: 'Sulawesi Utara' },
-                    { value: 'Sulawesi Tengah', label: 'Sulawesi Tengah' },
-                    { value: 'Sulawesi Selatan', label: 'Sulawesi Selatan' },
-                    { value: 'Sulawesi Tenggara', label: 'Sulawesi Tenggara' },
-                    { value: 'Gorontalo', label: 'Gorontalo' },
-                    { value: 'Sulawesi Barat', label: 'Sulawesi Barat' },
-                    { value: 'Maluku', label: 'Maluku' },
-                    { value: 'Maluku Utara', label: 'Maluku Utara' },
-                    { value: 'Papua', label: 'Papua' },
-                    { value: 'Papua Barat', label: 'Papua Barat' },
-                    { value: 'Papua Selatan', label: 'Papua Selatan' },
-                    { value: 'Papua Tengah', label: 'Papua Tengah' },
-                    { value: 'Papua Pegunungan', label: 'Papua Pegunungan' },
-                    { value: 'Papua Barat Daya', label: 'Papua Barat Daya' },
-                  ]}
+                  onChange={(val: string) => handleProvinsiChange(val)}
+                  options={listProvinsi.map(p => ({
+                    value: p.value,
+                    label: p.label
+                  }))}
                   className='border-0 bg-white'
                   placeholder='Pilih Provinsi...'
                 />
@@ -677,63 +707,15 @@ function InputDatabaseContent() {
                 </label>
                 <SearchableSelect
                   value={kota}
-                  onChange={(val: string) => setKota(val)}
+                  onChange={(val: string) => {
+                    setKabupaten(val)
+                    setKota(val)
+                  }}
                   isDisabled={!provinsi}
-                  options={[
-                    { value: '', label: '-- Pilih --' },
-                    { value: 'Kota Bandung', label: 'Kota Bandung' },
-                    { value: 'Kota Cimahi', label: 'Kota Cimahi' },
-                    { value: 'Kabupaten Bandung', label: 'Kabupaten Bandung' },
-                    { value: 'Kabupaten Bandung Barat', label: 'Kabupaten Bandung Barat' },
-                    { value: 'Kabupaten Sumedang', label: 'Kabupaten Sumedang' },
-                    { value: 'Kabupaten Garut', label: 'Kabupaten Garut' },
-                    { value: 'Kabupaten Tasikmalaya', label: 'Kabupaten Tasikmalaya' },
-                    { value: 'Kabupaten Ciamis', label: 'Kabupaten Ciamis' },
-                    { value: 'Kabupaten Cianjur', label: 'Kabupaten Cianjur' },
-                    {
-                      value: 'Kabupaten Karawang',
-                      label: 'Kabupaten Karawang',
-                    },
-                    { value: 'Kabupaten Bekasi', label: 'Kabupaten Bekasi' },
-                    { value: 'Kota Depok', label: 'Kota Depok' },
-                    { value: 'Kota Bekasi', label: 'Kota Bekasi' },
-                    { value: 'Kota Bogor', label: 'Kota Bogor' },
-                    { value: 'Kota Depok', label: 'Kota Depok' },
-                    { value: 'Kota Tasikmalaya', label: 'Kota Tasikmalaya' },
-                    { value: 'Kabupaten Purwakarta', label: 'Kabupaten Purwakarta' },
-                    {
-                      value: 'Kabupaten Subang',
-                      label: 'Kabupaten Subang',
-                    },
-                    {
-                      value: 'Kabupaten Indramayu',
-                      label: 'Kabupaten Indramayu',
-                    },
-                    { value: 'Kabupaten Kuningan', label: 'Kabupaten Kuningan' },
-                    { value: 'Kabupaten Majalengka', label: 'Kabupaten Majalengka' },
-                    {
-                      value: 'Kabupaten Cirebon',
-                      label: 'Kabupaten Cirebon',
-                    },
-                    { value: 'Kota Cirebon', label: 'Kota Cirebon' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kota Sukabumi', label: 'Kota Sukabumi' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kabupaten Serang', label: 'Kabupaten Serang' },
-                    { value: 'Kabupaten Tangerang', label: 'Kabupaten Tangerang' },
-                    { value: 'Kabupaten Lebak', label: 'Kabupaten Lebak' },
-                    { value: 'Kabupaten Pandeglang', label: 'Kabupaten Pandeglang' },
-                    { value: 'Kabupaten Serang', label: 'Kabupaten Serang' },
-                    { value: 'Kabupaten Tangerang', label: 'Kabupaten Tangerang' },
-                    { value: 'Kabupaten Lebak', label: 'Kabupaten Lebak' },
-                    { value: 'Kabupaten Pandeglang', label: 'Kabupaten Pandeglang' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                    { value: 'Kabupaten Sukabumi', label: 'Kabupaten Sukabumi' },
-                  ]}
+                  options={listKabupatenFiltered.map(k => ({
+                    value: k.value,
+                    label: k.label
+                  }))}
                   className='border-0 bg-white'
                   placeholder='Pilih Kota/Kabupaten...'
                 />
@@ -821,12 +803,12 @@ function InputDatabaseContent() {
                           { value: '', label: '-Pilih-' },
                           { value: 'WhatsApp', label: 'WhatsApp' },
                           { value: 'Office', label: 'TELP' },
-                          { value: 'Phone Call', label: 'SMS' },
+                          { value: 'Phone', label: 'Phone' },
                         ]
-                       if (item.tipeKontak && !base.find((o) => o.value === item.tipeKontak)) {
-                         base.push({ value : item.tipeKontak, label : item.tipeKontak})
-                       }
-                       return base;
+                        if (item.tipeKontak && !base.find((o) => o.value === item.tipeKontak)) {
+                          base.push({ value: item.tipeKontak, label: item.tipeKontak })
+                        }
+                        return base;
                       })()}
                       className='w-full'
                     />
@@ -838,8 +820,17 @@ function InputDatabaseContent() {
                     <input
                       type='text'
                       value={item.noTelp}
-                      onChange={(e) => updateItem(index, 'noTelp', e.target.value)}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '')
+
+                        if (val.startsWith('0') || val.startsWith('6')) {
+                          val = val.substring(1)
+                        }
+
+                        updateItem(index, 'noTelp', val)
+                      }}
                       placeholder='6281234567890'
+                      maxLength={11}
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
                   </div>
@@ -870,7 +861,7 @@ function InputDatabaseContent() {
                 </p>
               </div>
             </div>
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
+            <div className='grid grid-cols-3 gap-6 md:grid-cols-5'>
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   BIDANG USAHA
@@ -898,6 +889,7 @@ function InputDatabaseContent() {
                   <option value="Pertanian, Perkebunan & Perikanan">Pertanian, Perkebunan & Perikanan</option>
                   <option value="Teknologi & Digital">Teknologi & Digital</option>
                   <option value="UMKM & Industri Rumah Tangga">UMKM & Industri Rumah Tangga</option>
+
                 </select>
               </div>
               <div>
@@ -950,7 +942,10 @@ function InputDatabaseContent() {
                 </label>
                 <SearchableSelect
                   value={merekTayang}
-                  onChange={(value) => setMerekTayang(value)}
+                  onChange={(value) => {
+                    setMerekTayang(value)
+                    if (value !== 'Lainnya') setMerekLainnya('')
+                  }}
                   options={(() => {
                     const base = [
                       { value: '', label: 'Pilih Merek Tayang' },
@@ -988,15 +983,32 @@ function InputDatabaseContent() {
                   className='w-full'
                 />
               </div>
+              {merekTayang === 'Lainnya' && (
+                <div className='col-span-full'>
+                  <label className='text-sm font-semibold text-blue-600'>
+                    MEREK LAINNYA
+                  </label>
+                  <input
+                    type='text'
+                    value={merekLainnya}
+                    onChange={(e) => setMerekLainnya(e.target.value)}
+                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                  />
+                </div>
+              )}
             </div>
-            <div className='grid grid-cols-1 gap-3 md:grid-cols-3 mt-6'>
+            <div className='grid grid-cols-4 gap-3 md:grid-cols-2 mt-6'>
               <div>
-                <label className='text-sm font-semibold text-blue-600'>
+                <label className='text-sm max-h-72 overflow-y-auto bottom-full mb-100 font-semibold text-blue-600'>
                   SUMBER DATA
                 </label>
                 <SearchableSelect
                   value={sumberData}
-                  onChange={(value) => setSumberData(value)}
+                  onChange={(value) => {
+                    setSumberData(value)
+                    // Reset sales internal jika pindah ke sumber lain
+                    if (value !== 'Sales Internal') setSalesInternal('')
+                  }}
                   options={(() => {
                     const base = [
                       { value: '', label: 'Pilih Sumber Data' },
@@ -1007,15 +1019,44 @@ function InputDatabaseContent() {
                       { value: 'SIPLah', label: 'SIPLah' },
                       { value: 'SPSE Pemda', label: 'SPSE Pemda' },
                       { value: 'Sistem Internal Instansi', label: 'Sistem Internal Instansi' },
+                      { value: 'Sales Internal', label: 'Sales Internal' },
                     ]
                     if (sumberData && !base.find((o) => o.value === sumberData)) {
                       base.push({ value: sumberData, label: sumberData })
                     }
                     return base
                   })()}
-                  className='w-full'
+                  className='mt-2 w-full'
                 />
               </div>
+
+              {/* Hanya muncul jika sumberData === 'Sales Internal' */}
+              {sumberData === 'Sales Internal' && (
+                <div>
+                  <label className='text-sm font-semibold text-blue-600'>
+                    NAMA SALES INTERNAL
+                  </label>
+                  <SearchableSelect
+                    value={salesInternal}
+                    onChange={(value) => {
+                      setSalesInternal(value)
+                    }}
+                    options={[
+                      { value: "", label: "--Pilih Nama Sales--" },
+                      { value: "Arie Muhammad Fajar", label: "Arie Muhammad Fajar" },
+                      { value: "Beffry Rizkana", label: "Beffry Rizkana" },
+                      { value: "Ferrie Ferdinal", label: "Ferrie Ferdinal" },
+                      { value: "Hery Nugraha", label: "Hery Nugraha" },
+                      { value: "Hendri", label: "Hendri" },
+                      { value: "Ema Dwi Jayanti", label: "Ema Dwi Jayanti" },
+                      { value: "Toni Ramdan", label: "Toni Ramdan" },
+                      { value: "Denden Permana", label: "Denden Permana" }
+                    ]}
+                    placeholder='Ketik nama sales...'
+                    className='mt-2 w-full'
+                  />
+                </div>
+              )}
               <div>
                 <label className='text-sm font-semibold text-blue-600'>
                   LINK PRODUK

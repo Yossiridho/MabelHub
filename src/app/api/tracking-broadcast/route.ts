@@ -99,7 +99,28 @@ export async function GET(req: NextRequest) {
                 matchAfterLookup["broadcast.status_wa"] = { $in: nonKosong }
             }
         }
-        if (keSalesArr.length > 0) matchAfterLookup["broadcast.ke_sales"] = { $in: keSalesArr }
+        if (keSalesArr.length > 0) {
+            const hasKosong = keSalesArr.includes("")
+            const nonKosong = keSalesArr.filter(s => s !== "")
+
+            if (hasKosong && nonKosong.length > 0) {
+                // Filter kosong + sales lain sekaligus
+                matchAfterLookup["$or"] = [
+                    { "broadcast.ke_sales": { $in: nonKosong } },
+                    { "broadcast.ke_sales": { $in: ["", null] } },
+                    { "broadcast": null },
+                ]
+            } else if (hasKosong) {
+                // Filter kosong saja
+                matchAfterLookup["$or"] = [
+                    { "broadcast.ke_sales": { $in: ["", null] } },
+                    { "broadcast": null },
+                ]
+            } else {
+                // Filter sales biasa
+                matchAfterLookup["broadcast.ke_sales"] = { $in: nonKosong }
+            }
+        }
 
         const pipeline: any[] = [
             { $match: matchStage },
@@ -122,9 +143,9 @@ export async function GET(req: NextRequest) {
             ),
         ]
 
-        const [countResult, pageRows, statusWaCounts] = await Promise.all([
+        const [countResult, pageRows, statusWaCounts, keSalesProvinsi, keSalesPerSales] = await Promise.all([
             // Hitung total
-            col.aggregate([...pipeline, { $count: "total" }]).toArray(),
+            col.aggregate([...pipeline, { $count: "total" }]).toArray() as Promise<any[]>,
 
             // Ambil data dengan pagination
             col.aggregate([
@@ -132,7 +153,7 @@ export async function GET(req: NextRequest) {
                 { $sort: { created_at: -1 } },
                 { $skip: skip },
                 { $limit: limit },
-            ]).toArray(),
+            ]).toArray() as Promise<any[]>,
 
             // Hitung per status_wa (selalu dari semua data, tanpa filter)
             col.aggregate([
@@ -156,11 +177,116 @@ export async function GET(req: NextRequest) {
                     }
                 },
                 { $sort: { _id: 1 } }
-            ]).toArray(),
+            ]).toArray() as Promise<any[]>,
+
+            col.aggregate([
+                {
+                    $lookup: {
+                        from: "tracking_broadcast",
+                        localField: "code_input",
+                        foreignField: "kode",
+                        as: "broadcast"
+                    }
+                },
+                {
+                    $addFields: {
+                        broadcast: {
+                            $cond: {
+                                if: { $isArray: "$broadcast" },
+                                then: { $arrayElemAt: ["$broadcast", -1] },
+                                else: null
+                            }
+                        }
+                    }
+                },
+                {
+                    $match: {
+                        "broadcast.ke_sales": { $nin: ["", null] },
+                        provinsi: { $ne: "" },
+                        kota: { $ne: "" },
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            ke_sales: "$broadcast.ke_sales",
+                            provinsi: "$provinsi",
+                            kota: "$kota",
+                        },
+                        unik: { $sum: 1 }
+                    }
+                },
+                { $sort: { "_id.ke_sales": 1, "_id.provinsi": 1, "_id.kota": 1 } }
+            ]).toArray() as Promise<any[]>,
+
+            // Agregasi per ke_sales saja (untuk tabel "Unik No HP per Ke Sales")
+            col.aggregate([
+                {
+                    $lookup: {
+                        from: "tracking_broadcast",
+                        localField: "code_input",
+                        foreignField: "kode",
+                        as: "broadcast"
+                    }
+                },
+                {
+                    $addFields: {
+                        broadcast: {
+                            $cond: {
+                                if: { $isArray: "$broadcast" },
+                                then: { $arrayElemAt: ["$broadcast", -1] },
+                                else: null
+                            }
+                        }
+                    }
+                },
+                {
+                    $addFields: {
+                        sales_label: {
+                            $cond: {
+                                if: {
+                                    $or: [
+                                        { $eq: ["$broadcast.ke_sales", ""] },
+                                        { $eq: ["$broadcast.ke_sales", null] },
+                                        { $eq: ["$broadcast", null] },
+                                    ]
+                                },
+                                then: "(Belum Diteruskan)",
+                                else: "$broadcast.ke_sales"
+                            }
+                        }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$sales_label",
+                        unik: { $sum: 1 }
+                    }
+                },
+                { $sort: { unik: -1 } }
+            ]).toArray() as Promise<any[]>,
         ])
 
         const totalCount = countResult[0]?.total ?? 0
         const countMap = Object.fromEntries(statusWaCounts.map((s: any) => [s._id, s.count]))
+        const totalKeSalesUnik = keSalesProvinsi.reduce((sum: number, r: any) => sum + r.unik, 0)
+        const tableKeSalesProvinsi = keSalesProvinsi.map((r: any, idx: number) => ({
+            no: idx + 1,
+            ke_sales: r._id.ke_sales,
+            provinsi: r._id.provinsi,
+            kota: r._id.kota,
+            unik: r.unik,
+            pct: totalKeSalesUnik > 0 ? Math.round((r.unik / totalKeSalesUnik) * 100) : 0,
+        }))
+
+        // Tabel per sales (grouped by ke_sales only)
+        const totalPerSalesUnik = keSalesPerSales.reduce((sum: number, r: any) => sum + r.unik, 0)
+        const tablePerSales = keSalesPerSales.map((r: any, idx: number) => ({
+            no: idx + 1,
+            ke_sales: r._id,
+            unik: r.unik,
+            pct: totalPerSalesUnik > 0 ? Math.round((r.unik / totalPerSalesUnik) * 100) : 0,
+        }))
 
         const uniqueNoTelp = await col.distinct("no_telp", { ...filter, no_telp: { $ne: "" } })
         const uniqueProvinsi = await col.distinct("provinsi", { ...filter, provinsi: { $ne: "" } })
@@ -232,6 +358,10 @@ export async function GET(req: NextRequest) {
             pct: totalWaSeluruh > 0 ? Math.round((r.unik / totalWaSeluruh) * 100) : 0,
         }))
 
+        console.log('keSalesArr:', keSalesArr)
+        console.log('matchAfterLookup:', JSON.stringify(matchAfterLookup))
+        console.log('pipeline:', JSON.stringify(pipeline))
+
         const items = pageRows.map((r) => ({
             _id: r._id?.toString() ?? "",
             kode: r.code_input ?? "",
@@ -275,6 +405,8 @@ export async function GET(req: NextRequest) {
             total_wa_unik: totalWaUnik,
             provinsi_kota: tableProvinsiKota,
             wa_provinsi_kota: tableWaProvinsiKota,
+            ke_sales_provinsi: tableKeSalesProvinsi,
+            per_sales: tablePerSales,
         }
 
         return NextResponse.json({
@@ -284,7 +416,6 @@ export async function GET(req: NextRequest) {
                 limit,
                 total: totalCount,
                 totalPages: Math.max(1, Math.ceil(totalCount / limit)),
-                ...summaryStats, rows: data
             },
             statusWaSummary: {
                 terkirim: countMap["Terkirim(1C)"] ?? 0,
@@ -297,6 +428,13 @@ export async function GET(req: NextRequest) {
                 kosong: countMap[""] ?? 0,
                 total: statusWaCounts.reduce((acc, s) => acc + s.count, 0),
             },
+            summaryStats: { ...summaryStats },
+            keSalesSummary: {
+                arie: 0,
+                beffry: 0,
+                ferrie: 0,
+                kosong: 0,
+            }
         })
 
     } catch (error) {

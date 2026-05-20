@@ -402,58 +402,69 @@ function KontrakPageContent() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <main className="flex-1 overflow-y-auto relative p-4 lg:p-8 font-sans">
-        <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="mb-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-900/5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50 pointer-events-none" />
-            <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 mb-2">
-                  <span className="bg-gradient-to-br from-indigo-500 to-indigo-700 bg-clip-text text-transparent">
-                    {perusahaanQuery ? `Manajemen Kontrak — ${perusahaanQuery}` : "Manajemen Kontrak"}
-                  </span>
-                </h1>
-                <p className="text-slate-500 font-medium text-sm">Kelola data kontrak, dokumen, dan PIC.</p>
+    <div className="min-h-screen bg-blue-50">
+      <div className="flex min-h-screen">
+        <div className="flex-1 p-6">
+          <main className="mx-auto">
+            {/* Header */}
+            <div className="px-4 pt-4 space-y-1 mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-extrabold pl-4 text-black drop-shadow-sm uppercase">
+                    {perusahaanQuery ? `MANAJEMEN KONTRAK — ${perusahaanQuery}` : "MANAJEMEN KONTRAK"}
+                  </h1>
+                  <div className="text-sm ml-4 mt-2 text-slate-500 font-medium">
+                    Kelola data kontrak, dokumen, dan PIC.
+                  </div>
+                </div>
+                <div className="px-4">
+                  <button onClick={() => setShowForm(true)}
+                    className="rounded-xl bg-[#0B6AA9] px-4 py-2 text-sm font-bold text-white shadow-sm ring-1 ring-blue-700 hover:bg-blue-700 transition">
+                    + Tambah Kontrak
+                  </button>
+                </div>
               </div>
-              <button onClick={() => setShowForm(true)}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition-all active:scale-[0.98]">
-                + Tambah Kontrak
-              </button>
             </div>
-          </div>
 
           {error && (
             <div className="mb-6 rounded-2xl bg-rose-50 p-4 text-rose-600 text-sm font-semibold border border-rose-100">{error}</div>
           )}
 
           {/* Table */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border-collapse">
+          <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
+            <div className="border-b border-slate-100 bg-slate-50/50 flex items-center justify-between px-6 py-4">
+              <h3 className="text-sm font-semibold text-slate-800">
+                Data Kontrak
+              </h3>
+              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 border border-indigo-100">
+                {contracts.length} kontrak
+              </span>
+            </div>
+
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-fit w-full text-sm border-collapse">
                 <thead className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold">
                   <tr className="border-b border-slate-100">
-                    <th className="px-4 py-3 text-left">No. Kontrak</th>
-                    <th className="px-4 py-3 text-left">Instansi</th>
-                    <th className="px-4 py-3 text-left">Nama Pengadaan</th>
-                    <th className="px-4 py-3 text-left">Bendera</th>
-                    <th className="px-4 py-3 text-left">Marketing</th>
-                    <th className="px-4 py-3 text-left">PIC</th>
-                    <th className="px-4 py-3 text-right">Nominal</th>
-                    <th className="px-4 py-3 text-left">Tgl Berakhir</th>
-                    <th className="px-4 py-3 text-center">Aksi</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">NO. KONTRAK</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">INSTANSI</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">NAMA PENGADAAN</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">BENDERA</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">MARKETING</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">PIC</th>
+                    <th className="px-5 py-4 text-right whitespace-nowrap">NOMINAL</th>
+                    <th className="px-5 py-4 text-left whitespace-nowrap">TGL BERAKHIR</th>
+                    <th className="px-5 py-4 text-center whitespace-nowrap">AKSI</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {contracts.length === 0 ? (
-                    <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-medium">Belum ada kontrak.</td></tr>
+                    <tr><td colSpan={9} className="px-5 py-12 text-center text-slate-400 font-medium">Belum ada kontrak.</td></tr>
                   ) : (
                     contracts.map((c) => (
                       <Fragment key={c.nomorKontrak}>
-                        <tr className={`hover:bg-slate-50 cursor-pointer transition-colors ${isExpiring(c.tanggalBerakhirKontrak) ? "bg-amber-50/50" : ""}`}
+                        <tr className={`border-b border-slate-100/80 hover:bg-slate-50 cursor-pointer transition-colors ${expandedRow === c.nomorKontrak ? "bg-indigo-50/20" : ""} ${isExpiring(c.tanggalBerakhirKontrak) && expandedRow !== c.nomorKontrak ? "bg-amber-50/50" : ""}`}
                           onClick={() => setExpandedRow(expandedRow === c.nomorKontrak ? null : c.nomorKontrak)}>
-                          <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
+                          <td className="px-5 py-4 font-semibold text-slate-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {c.nomorKontrak}
                               {isExpiring(c.tanggalBerakhirKontrak) && (
@@ -461,35 +472,35 @@ function KontrakPageContent() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{c.instansi || "-"}</td>
-                          <td className="px-4 py-3 text-slate-600">{c.namaPengadaan || "-"}</td>
-                          <td className="px-4 py-3 text-slate-600">{c.bendera || "-"}</td>
-                          <td className="px-4 py-3 text-slate-600">{c.marketing || "-"}</td>
-                          <td className="px-4 py-3 text-slate-600">{c.pic || "-"}</td>
-                          <td className="px-4 py-3 text-right text-slate-800 font-medium whitespace-nowrap">{fmtCurrency(c.nominalKontrak)}</td>
-                          <td className={`px-4 py-3 whitespace-nowrap ${isExpiring(c.tanggalBerakhirKontrak) ? "text-amber-600 font-semibold" : "text-slate-600"}`}>
+                          <td className="px-5 py-4 text-slate-800">{c.instansi || "-"}</td>
+                          <td className="px-5 py-4 text-slate-800">{c.namaPengadaan || "-"}</td>
+                          <td className="px-5 py-4 text-slate-800">{c.bendera || "-"}</td>
+                          <td className="px-5 py-4 text-slate-800">{c.marketing || "-"}</td>
+                          <td className="px-5 py-4 text-slate-800">{c.pic || "-"}</td>
+                          <td className="px-5 py-4 text-right text-slate-800 font-medium whitespace-nowrap">{fmtCurrency(c.nominalKontrak)}</td>
+                          <td className={`px-5 py-4 whitespace-nowrap ${isExpiring(c.tanggalBerakhirKontrak) ? "text-amber-600 font-semibold" : "text-slate-600 font-medium"}`}>
                             {fmtDate(c.tanggalBerakhirKontrak)}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-5 py-4 text-center">
                             <button onClick={(e) => { e.stopPropagation(); setEditTarget(c); }}
-                              className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200">
+                              className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
                               Edit
                             </button>
                           </td>
                         </tr>
                         {expandedRow === c.nomorKontrak && (
-                          <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <td colSpan={9} className="px-6 py-5 text-sm">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div><span className="font-semibold text-slate-700">Link:</span>{" "}<span className="text-slate-600">{c.link ? <a href={c.link} target="_blank" className="text-indigo-600 underline">{c.link}</a> : "-"}</span></div>
-                                <div><span className="font-semibold text-slate-700">Folder:</span> <span className="text-slate-600">{c.namaFolder || "-"}</span></div>
-                                <div><span className="font-semibold text-slate-700">Fisik:</span> <span className={`font-bold ${c.fisik === "YA" ? "text-emerald-600" : "text-slate-400"}`}>{c.fisik}</span></div>
-                                <div><span className="font-semibold text-slate-700">Scan:</span> <span className={`font-bold ${c.scan === "YA" ? "text-emerald-600" : "text-slate-400"}`}>{c.scan}</span></div>
-                                <div><span className="font-semibold text-slate-700">Tgl Kontrak:</span> <span className="text-slate-600">{fmtDate(c.tanggalKontrak)}</span></div>
-                                <div><span className="font-semibold text-slate-700">Tgl Penyerahan:</span> <span className="text-slate-600">{fmtDate(c.tanggalPenyerahan)}</span></div>
-                                <div className="md:col-span-2"><span className="font-semibold text-slate-700">Keterangan:</span> <span className="text-slate-600">{c.keterangan || "-"}</span></div>
-                                <div className="md:col-span-2"><span className="font-semibold text-slate-700">Catatan:</span> <span className="text-slate-600">{c.catatan || "-"}</span></div>
-                                <div className="md:col-span-2"><span className="font-semibold text-slate-700">Request IDs:</span> <span className="text-slate-600">{c.requestIds?.length ? c.requestIds.join(", ") : "-"}</span></div>
+                          <tr className="border-b border-neutral-100 bg-slate-50/50">
+                            <td colSpan={9} className="px-5 py-5 text-sm">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+                                <div><span className="font-semibold text-slate-500 text-xs block mb-1">Link:</span>{" "}<span className="text-slate-800">{c.link ? <a href={c.link} target="_blank" className="text-blue-600 hover:underline">{c.link}</a> : "-"}</span></div>
+                                <div><span className="font-semibold text-slate-500 text-xs block mb-1">Folder:</span> <span className="text-slate-800">{c.namaFolder || "-"}</span></div>
+                                <div><span className="font-semibold text-slate-500 text-xs block mb-1">Fisik:</span> <span className={`font-bold ${c.fisik === "YA" ? "text-emerald-600" : "text-slate-400"}`}>{c.fisik}</span></div>
+                                <div><span className="font-semibold text-slate-500 text-xs block mb-1">Scan:</span> <span className={`font-bold ${c.scan === "YA" ? "text-emerald-600" : "text-slate-400"}`}>{c.scan}</span></div>
+                                <div><span className="font-semibold text-slate-500 text-xs block mb-1">Tgl Kontrak:</span> <span className="text-slate-800 font-medium">{fmtDate(c.tanggalKontrak)}</span></div>
+                                <div><span className="font-semibold text-slate-500 text-xs block mb-1">Tgl Penyerahan:</span> <span className="text-slate-800 font-medium">{fmtDate(c.tanggalPenyerahan)}</span></div>
+                                <div className="md:col-span-2"><span className="font-semibold text-slate-500 text-xs block mb-1">Keterangan:</span> <span className="text-slate-800">{c.keterangan || "-"}</span></div>
+                                <div className="md:col-span-2"><span className="font-semibold text-slate-500 text-xs block mb-1">Catatan:</span> <span className="text-slate-800">{c.catatan || "-"}</span></div>
+                                <div className="md:col-span-2"><span className="font-semibold text-slate-500 text-xs block mb-1">Request IDs:</span> <span className="text-slate-800">{c.requestIds?.length ? c.requestIds.join(", ") : "-"}</span></div>
                               </div>
                             </td>
                           </tr>
@@ -501,8 +512,9 @@ function KontrakPageContent() {
               </table>
             </div>
           </div>
+          </main>
         </div>
-      </main>
+      </div>
 
       {/* Modals */}
       {showForm && (
