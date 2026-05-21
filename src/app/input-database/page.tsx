@@ -6,6 +6,7 @@ import { useSession } from '@/components/session/SessionProvider'
 import { Building, Plus, Trash2, Save, Loader2, Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { listProvinsi, listKabupatenKota } from '@/data/wilayah'
+import { listMerek } from '@/data/merek'
 import { useSearchPerusahaan, Perusahaan } from '@/hooks/useSearchPerusahaan'
 
 type TeamMember = {
@@ -56,7 +57,7 @@ const FIELD_LABELS: Record<string, string> = {
 function computeChangedFields(
   oldSnap: { header: Record<string, string>; items: any[] } | null,
   newHeader: Record<string, string>,
-  newItems: any[]
+  newItems: any[],
 ): { field: string; oldValue: string; newValue: string }[] {
   const changes: { field: string; oldValue: string; newValue: string }[] = []
   if (!oldSnap) return changes
@@ -77,11 +78,19 @@ function computeChangedFields(
     const newItem = newItems[i]
     const prefix = `Kontak ${i + 1}`
     if (!oldItem && newItem) {
-      changes.push({ field: `${prefix}`, oldValue: '(tidak ada)', newValue: `${newItem.nama} – ${newItem.jabatan}` })
+      changes.push({
+        field: `${prefix}`,
+        oldValue: '(tidak ada)',
+        newValue: `${newItem.nama} – ${newItem.jabatan}`,
+      })
       continue
     }
     if (oldItem && !newItem) {
-      changes.push({ field: `${prefix}`, oldValue: `${oldItem.nama} – ${oldItem.jabatan}`, newValue: '(dihapus)' })
+      changes.push({
+        field: `${prefix}`,
+        oldValue: `${oldItem.nama} – ${oldItem.jabatan}`,
+        newValue: '(dihapus)',
+      })
       continue
     }
     const kontakFields: { key: keyof typeof oldItem; label: string }[] = [
@@ -95,7 +104,11 @@ function computeChangedFields(
       const ov = String(oldItem[f.key] ?? '')
       const nv = String(newItem[f.key] ?? '')
       if (ov !== nv) {
-        changes.push({ field: `${prefix} – ${f.label}`, oldValue: ov, newValue: nv })
+        changes.push({
+          field: `${prefix} – ${f.label}`,
+          oldValue: ov,
+          newValue: nv,
+        })
       }
     }
   }
@@ -109,7 +122,10 @@ function InputDatabaseContent() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -128,8 +144,8 @@ function InputDatabaseContent() {
   const listKabupatenFiltered = useMemo(() => {
     if (!provinsi) return []
     return listKabupatenKota
-      .filter(w => w.provinsi === provinsi)
-      .map(w => ({ value: w.nama, label: w.nama }))
+      .filter((w) => w.provinsi === provinsi)
+      .map((w) => ({ value: w.nama, label: w.nama }))
   }, [provinsi])
 
   const handleProvinsiChange = (val: string) => {
@@ -138,32 +154,116 @@ function InputDatabaseContent() {
     setKota('') // reset pilihan kota saat provinsi berubah
   }
 
-  const [codeInput, setcodeInput] = useState('')
+  const handleMerekChange = (val: string) => {
+    setMerekLainnya(val) // otomatis isi merek tayang dengan merek lainnya yang dipilih
+  }
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: sessionLoading } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   // Snapshot data asli saat form pertama kali di-load (untuk diff history)
-  const [originalSnapshot, setOriginalSnapshot] = useState<{ header: Record<string, string>; items: any[] } | null>(null)
+  const [originalSnapshot, setOriginalSnapshot] = useState<{
+    header: Record<string, string>
+    items: any[]
+  } | null>(null)
+
   // Auto-isi requestor dari session user yang sedang login
-  useEffect(() => {
-    if (user) {
-      setRequestor(user.fullName.trim() || user.username.trim())
+  const [segmen, setSegmen] = useState<string>('')
+  const [kota, setKota] = useState<string>('')
+  const [alamat, setAlamat] = useState('')
+  const [namaPerusahaan, setNamaPerusahaan] = useState('')
+  const { results, isLoading: isLoadingSearch } =
+    useSearchPerusahaan(namaPerusahaan)
+  const [bidangPerusahaan, setBidangPerusahaan] = useState('')
+  const [segmentasi, setSegmentasi] = useState('')
+  const [produkRelevan, setProdukRelevan] = useState('')
+  const [merekTayang, setMerekTayang] = useState('')
+  const [brandOwner, setBrandOwner] = useState('')
+  const [sumberData, setSumberData] = useState('')
+  const [salesInternal, setSalesInternal] = useState('')
+  const [merekLainnya, setMerekLainnya] = useState('')
+  const [linkProduk, setLinkProduk] = useState('')
+  const [linkToko, setLinkToko] = useState('')
+  const [codeInput, setcodeInput] = useState('')
+  const [items, setItems] = useState<
+    {
+      id: string
+      nama: string
+      jabatan: string
+      tipeKontak: string
+      noTelp: string
+      email: string
+    }[]
+  >(() => [
+    {
+      id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+      nama: '',
+      jabatan: '',
+      tipeKontak: '',
+      noTelp: '',
+      email: '',
+    },
+  ])
+
+  const addItem = () => {
+    setItems((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+        nama: '',
+        jabatan: '',
+        tipeKontak: '',
+        noTelp: '',
+        email: '',
+      },
+    ])
+  }
+
+  const [rows, setRows] = useState<string[][]>([])
+  const newKontak: KontakItem[] = useMemo(
+    () =>
+      rows.map((row, index) => ({
+        id: `row-${index}`,
+        nama: row[0] ? String(row[0]).trim() : '',
+        jabatan: row[1] ? String(row[1]).trim() : '',
+        tipeKontak: row[2] ? String(row[2]).trim() : '',
+        noTelp: row[3] ? String(row[3]).trim() : '',
+        email: row[4] ? String(row[4]).trim() : '',
+      })),
+    [rows],
+  )
+
+  const updateItem = (index: number, field: string, value: string) => {
+    setItems((prev) => {
+      const newItems = [...prev]
+      newItems[index] = { ...newItems[index], [field]: value }
+      return newItems
+    })
+  }
+
+  const removeItem = (index: number) => {
+    if (items.length > 1) {
+      setItems((prev) => prev.filter((_, i) => i !== index))
     }
-  }, [user])
+  }
+
+  const [requestor, setRequestor] = useState(
+    () => user?.fullName?.trim() || user?.username?.trim() || '',
+  )
 
   // Auto-load data jika halaman dibuka dengan query param ?id=
   useEffect(() => {
     const idParam = searchParams.get('id')
     if (!idParam || !idParam.trim()) return
 
-    const code = idParam.trim()
-    setcodeInput(code)
+    const fetchData = async () => {
+      const code = idParam.trim()
+      setcodeInput(code)
+      setIsLoading(true)
 
-    // Auto-fetch data dengan kode dari URL
-    setIsLoading(true)
-    fetch(`/api/input-database/${code}`)
-      .then(async (res) => {
+      try {
+        const res = await fetch(`/api/input-database/${code}`)
         if (!res.ok) return
         const data = await res.json()
         if (!data) return
@@ -189,7 +289,6 @@ function InputDatabaseContent() {
         setLinkProduk(header?.linkProduk ?? '')
         setLinkToko(header?.linkToko ?? '')
 
-        // ── Simpan snapshot asli untuk diff history ──────────────────────
         setOriginalSnapshot({
           header: {
             requestor: header?.requestor ?? '',
@@ -209,69 +308,25 @@ function InputDatabaseContent() {
           },
           items: kontakItems,
         })
-      })
-      .catch(() => { /* silent fail */ })
-      .finally(() => setIsLoading(false))
+      } catch {
+        // silent fail
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
+
   const canPickAssignee =
     user?.role === 'LEADER' ||
     user?.role === 'SUPERADMIN' ||
     user?.role === 'ADMIN'
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([])
   const [assignedToUserId, setAssignedToUserId] = useState('')
-  const [requestor, setRequestor] = useState('')
-
-  const handleGenerate = async () => {
-    // Prefix = 3 huruf pertama nama user, uppercase (misal "Aliya" → "ALY")
-    const namaUser = user?.fullName?.trim() || user?.username?.trim() || ''
-    const prefix = namaUser.substring(0, 4).toUpperCase() || 'XXX'
-
-    const date = new Date()
-    // Format DDMMYY
-    const dmy = date
-      .toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-      })
-      .replace(/\//g, '')
-
-    // Fetch counter berikutnya dari database (0001, 0002, dst.)
-    let counter = '0001'
-    try {
-      const res = await fetch(`/api/input-database?prefix=${prefix}&dmy=${dmy}`)
-      if (res.ok) {
-        const data = await res.json()
-        counter = data.counter || '0001'
-      }
-    } catch {
-      // fallback ke 0001 jika gagal
-    }
-
-    setcodeInput(`${prefix}-${dmy}-${counter}`)
-
-    // Isi juga field PENGINPUT dengan nama user yang sedang login
-    if (namaUser) setRequestor(namaUser)
-  }
-  const [segmen, setSegmen] = useState<string>('')
-  const [kota, setKota] = useState<string>('')
-  const [alamat, setAlamat] = useState('')
-  const [namaPerusahaan, setNamaPerusahaan] = useState('')
-  const { results, isLoading: isLoadingSearch } = useSearchPerusahaan(namaPerusahaan)
-  const [bidangPerusahaan, setBidangPerusahaan] = useState('')
-  const [segmentasi, setSegmentasi] = useState('')
-  const [produkRelevan, setProdukRelevan] = useState('')
-  const [merekTayang, setMerekTayang] = useState('')
-  const [brandOwner, setBrandOwner] = useState('')
-  const [sumberData, setSumberData] = useState('')
-  const [salesInternal, setSalesInternal] = useState('')
-  const [merekLainnya, setMerekLainnya] = useState('')
-  const [linkProduk, setLinkProduk] = useState('')
-  const [linkToko, setLinkToko] = useState('')
 
   const [options, setOptions] = useState<{
-
     nama: string[]
     jabatan: string[]
     tipeKontak: string[]
@@ -303,67 +358,6 @@ function InputDatabaseContent() {
     linkToko: [],
   })
 
-  const [items, setItems] = useState<
-    {
-      id: string
-      nama: string
-      jabatan: string
-      tipeKontak: string
-      noTelp: string
-      email: string
-    }[]
-  >([
-    {
-      id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-      nama: '',
-      jabatan: '',
-      tipeKontak: '',
-      noTelp: '',
-      email: '',
-    },
-  ])
-
-  const addItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-        nama: '',
-        jabatan: '',
-        tipeKontak: '',
-        noTelp: '',
-        email: '',
-      },
-    ])
-  }
-
-  const [rows, setRows] = useState<string[][]>([]);
-  const newKontak: KontakItem[] = rows
-    .map((row, index) => ({
-      id: String(Date.now() + index),
-      nama: row[0] ? String(row[0]).trim() : "",
-      jabatan: row[1] ? String(row[1]).trim() : "",
-      tipeKontak: row[2] ? String(row[2]).trim() : "",
-      noTelp: row[3] ? String(row[3]).trim() : "",
-      email: row[4] ? String(row[4]).trim() : "",
-    }))
-
-
-
-  const updateItem = (index: number, field: string, value: string) => {
-    setItems((prev) => {
-      const newItems = [...prev]
-      newItems[index] = { ...newItems[index], [field]: value }
-      return newItems
-    })
-  }
-
-  const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems((prev) => prev.filter((_, i) => i !== index))
-    }
-  }
-
   const handleCariKode = async () => {
     try {
       if (!codeInput.trim()) {
@@ -393,12 +387,20 @@ function InputDatabaseContent() {
       const kontakItems = data?.items ?? (Array.isArray(data) ? data : [])
 
       if (kontakItems.length > 0) {
-        setItems(kontakItems.map((item: any) => ({
-          ...item,
-          noTelp: (item.noTelp ?? '').replace(/^62/, ''),
-        })))
+        setItems(
+          kontakItems.map((item: any) => ({
+            ...item,
+            noTelp: (item.noTelp ?? '').replace(/^62/, ''),
+          })),
+        )
       }
-      setRequestor(header?.requestor ?? user?.fullName ?? user?.username ?? user?.userId ?? '')
+      setRequestor(
+        header?.requestor ??
+          user?.fullName ??
+          user?.username ??
+          user?.userId ??
+          '',
+      )
       setSegmen(header?.segmen ?? '')
       setNamaPerusahaan(header?.namaPerusahaan ?? '')
       setProvinsi(header?.provinsi ?? '')
@@ -441,7 +443,7 @@ function InputDatabaseContent() {
       alert(
         error instanceof Error
           ? error.message
-          : 'Terjadi kesalahan saat mengambil data'
+          : 'Terjadi kesalahan saat mengambil data',
       )
     } finally {
       setIsLoading(false)
@@ -450,20 +452,45 @@ function InputDatabaseContent() {
 
   const handleKirim = async () => {
     try {
-      const isRevisionMode = !!(searchParams.get('id')?.trim() || originalSnapshot)
+      const isRevisionMode = !!(
+        searchParams.get('id')?.trim() || originalSnapshot
+      )
 
       // Gunakan kode yang sudah di-generate manual; fallback auto-generate jika masih kosong
-      const namaReq = requestor.trim() || user?.fullName?.trim() || user?.username?.trim() || ''
-      const prefixFallback = namaReq.substring(0, 3).toUpperCase() || 'XXX'
+      const namaReq =
+        requestor.trim() ||
+        user?.fullName?.trim() ||
+        user?.username?.trim() ||
+        ''
+      const makePrefix = (name: string): string => {
+        if (!name) return 'XXX'
+        const consonants = 'bcdfghjklmnpqrstvwxyz'
+        let result = name[0].toUpperCase()
+        for (let i = 1; i < name.length && result.length < 3; i++) {
+          if (consonants.includes(name[i].toLowerCase())) {
+            result += name[i].toUpperCase()
+          }
+        }
+        while (result.length < 3) result += 'X'
+        return result
+      }
+      const prefixFallback = makePrefix(namaReq)
       const date = new Date()
       const dmy = date
-        .toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
+        .toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+        })
         .replace(/\//g, '')
-      const generatedCode = codeInput.trim() || `${prefixFallback}-${dmy}-${String(Date.now()).slice(-4)}`
+      const generatedCode =
+        codeInput.trim() ||
+        `${prefixFallback}-${dmy}-${String(Date.now()).slice(-4)}`
 
       const headerPayload = {
         codeInput: generatedCode,
-        requestor: requestor || user?.fullName || user?.username || user?.userId || '',
+        requestor:
+          requestor || user?.fullName || user?.username || user?.userId || '',
         assignedToUserId: assignedToUserId || user?.userId || '',
         segmen: segmen,
         namaPerusahaan: namaPerusahaan,
@@ -498,7 +525,7 @@ function InputDatabaseContent() {
         const changedFields = computeChangedFields(
           originalSnapshot,
           headerPayload,
-          itemsPayload
+          itemsPayload,
         )
 
         // ── Mode REVISI: panggil PUT ─────────────────────────────────
@@ -509,8 +536,8 @@ function InputDatabaseContent() {
             id: generatedCode,
             header: headerPayload,
             items: itemsPayload,
-            oldData: originalSnapshot,      // snapshot sebelum revisi
-            changedFields,                  // daftar field yang berubah
+            oldData: originalSnapshot, // snapshot sebelum revisi
+            changedFields, // daftar field yang berubah
             revisedBy: requestor || user?.fullName || user?.username || '',
           }),
         })
@@ -528,7 +555,11 @@ function InputDatabaseContent() {
         throw new Error(errorData?.error || 'Gagal menyimpan database')
       }
 
-      alert(isRevisionMode ? 'Data berhasil direvisi!' : 'Database berhasil disimpan!')
+      alert(
+        isRevisionMode
+          ? 'Data berhasil direvisi!'
+          : 'Database berhasil disimpan!',
+      )
       router.push('/input-database')
       router.refresh()
     } catch (error) {
@@ -540,7 +571,6 @@ function InputDatabaseContent() {
       )
     }
   }
-
 
   return (
     <div className='min-h-screen bg-blue-50'>
@@ -574,7 +604,11 @@ function InputDatabaseContent() {
                 disabled={isLoading}
                 className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Cari Kode'}
+                {isLoading ? (
+                  <Loader2 className='animate-spin' size={20} />
+                ) : (
+                  'Cari Kode'
+                )}
               </button>
             </div>
           </section>
@@ -609,7 +643,10 @@ function InputDatabaseContent() {
                         { value: 'Aliya', label: 'Aliya' },
                       ]
                       // Jika requestor dari database belum ada di list, tambahkan otomatis
-                      if (requestor && !base.find((o) => o.value === requestor)) {
+                      if (
+                        requestor &&
+                        !base.find((o) => o.value === requestor)
+                      ) {
                         base.push({ value: requestor, label: requestor })
                       }
                       return base
@@ -659,31 +696,33 @@ function InputDatabaseContent() {
                   placeholder='Ketik Nama Perusahaan...'
                   className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                 />
-                {isOpen && namaPerusahaan && namaPerusahaan.trim().length >= 2 && (
-                  <div className='absolute z-50 w-full rounded-xl border border-gray-200 bg-white shadow-lg'>
-                    {isLoadingSearch ? (
-                      <div className='px-4 py-3 text-sm w-full text-gray-400'>
-                        Mencari...
-                      </div>
-                    ) : results.length > 0 ? (
-                      <ul className='max-h-100 overflow-y-auto'>
-                        {results.map((item) => (
-                          <li
-                            key={item.id}
-                            onMouseDown={() => handleSelect(item)} // pakai onMouseDown bukan onClick agar tidak bentrok dengan onBlur
-                            className='cursor-pointer px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-600'
-                          >
-                            {item.nama}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className='px-4 py-3 text-sm text-gray-400'>
-                        Perusahaan tidak ditemukan
-                      </div>
-                    )}
-                  </div>
-                )}
+                {isOpen &&
+                  namaPerusahaan &&
+                  namaPerusahaan.trim().length >= 2 && (
+                    <div className='absolute z-50 w-full rounded-xl border border-gray-200 bg-white shadow-lg'>
+                      {isLoadingSearch ? (
+                        <div className='px-4 py-3 text-sm w-full text-gray-400'>
+                          Mencari...
+                        </div>
+                      ) : results.length > 0 ? (
+                        <ul className='max-h-100 overflow-y-auto'>
+                          {results.map((item) => (
+                            <li
+                              key={item.id}
+                              onMouseDown={() => handleSelect(item)} // pakai onMouseDown bukan onClick agar tidak bentrok dengan onBlur
+                              className='cursor-pointer px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-600'
+                            >
+                              {item.nama}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className='px-4 py-3 text-sm text-gray-400'>
+                          Perusahaan tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
 
               <div>
@@ -693,9 +732,9 @@ function InputDatabaseContent() {
                 <SearchableSelect
                   value={provinsi}
                   onChange={(val: string) => handleProvinsiChange(val)}
-                  options={listProvinsi.map(p => ({
+                  options={listProvinsi.map((p) => ({
                     value: p.value,
-                    label: p.label
+                    label: p.label,
                   }))}
                   className='border-0 bg-white'
                   placeholder='Pilih Provinsi...'
@@ -712,9 +751,9 @@ function InputDatabaseContent() {
                     setKota(val)
                   }}
                   isDisabled={!provinsi}
-                  options={listKabupatenFiltered.map(k => ({
+                  options={listKabupatenFiltered.map((k) => ({
                     value: k.value,
-                    label: k.label
+                    label: k.label,
                   }))}
                   className='border-0 bg-white'
                   placeholder='Pilih Kota/Kabupaten...'
@@ -758,7 +797,6 @@ function InputDatabaseContent() {
                   key={item.id}
                   className='relative grid grid-cols-1 gap-3 md:grid-cols-5 p-4 border border-gray-100 rounded-xl bg-gray-50/50'
                 >
-
                   {items.length > 1 && (
                     <button
                       onClick={() => removeItem(index)}
@@ -774,7 +812,9 @@ function InputDatabaseContent() {
                     <input
                       type='text'
                       value={item.nama}
-                      onChange={(e) => updateItem(index, 'nama', e.target.value)}
+                      onChange={(e) =>
+                        updateItem(index, 'nama', e.target.value)
+                      }
                       placeholder='Masukkan Nama'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -786,7 +826,9 @@ function InputDatabaseContent() {
                     <input
                       type='text'
                       value={item.jabatan}
-                      onChange={(e) => updateItem(index, 'jabatan', e.target.value)}
+                      onChange={(e) =>
+                        updateItem(index, 'jabatan', e.target.value)
+                      }
                       placeholder='Masukkan Jabatan'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -797,18 +839,26 @@ function InputDatabaseContent() {
                     </label>
                     <SearchableSelect
                       value={item.tipeKontak}
-                      onChange={(value) => updateItem(index, 'tipeKontak', value as string)}
+                      onChange={(value) =>
+                        updateItem(index, 'tipeKontak', value as string)
+                      }
                       options={(() => {
                         const base = [
                           { value: '', label: '-Pilih-' },
                           { value: 'WhatsApp', label: 'WhatsApp' },
-                          { value: 'Office', label: 'TELP' },
+                          { value: 'Office', label: 'Office' },
                           { value: 'Phone', label: 'Phone' },
                         ]
-                        if (item.tipeKontak && !base.find((o) => o.value === item.tipeKontak)) {
-                          base.push({ value: item.tipeKontak, label: item.tipeKontak })
+                        if (
+                          item.tipeKontak &&
+                          !base.find((o) => o.value === item.tipeKontak)
+                        ) {
+                          base.push({
+                            value: item.tipeKontak,
+                            label: item.tipeKontak,
+                          })
                         }
-                        return base;
+                        return base
                       })()}
                       className='w-full'
                     />
@@ -830,7 +880,7 @@ function InputDatabaseContent() {
                         updateItem(index, 'noTelp', val)
                       }}
                       placeholder='6281234567890'
-                      maxLength={11}
+                      maxLength={13}
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
                   </div>
@@ -841,7 +891,9 @@ function InputDatabaseContent() {
                     <input
                       type='text'
                       value={item.email}
-                      onChange={(e) => updateItem(index, 'email', e.target.value)}
+                      onChange={(e) =>
+                        updateItem(index, 'email', e.target.value)
+                      }
                       placeholder='email@example.com'
                       className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
                     />
@@ -874,22 +926,43 @@ function InputDatabaseContent() {
                   <option className='text-gray-600' value=''>
                     Pilih Sumber Data
                   </option>
-                  <option value="Energi & Pertambangan">Energi & Pertambangan</option>
-                  <option value="Jasa Profesional">Jasa Profesional</option>
-                  <option value="Jasa Umum & Lainnya">Jasa Umum & Lainnya</option>
-                  <option value="Kesehatan">Kesehatan</option>
-                  <option value="Keuangan & Asuransi">Keuangan & Asuransi</option>
-                  <option value="Konstruksi & Properti">Konstruksi & Properti</option>
-                  <option value="Kreatif & Media">Kreatif & Media</option>
-                  <option value="Manufaktur & Industri">Manufaktur & Industri</option>
-                  <option value="Pemerintahan & BUMN">Pemerintahan & BUMN</option>
-                  <option value="Pendidikan">Pendidikan</option>
-                  <option value="Perdagangan (Trading)">Perdagangan (Trading)</option>
-                  <option value="Perhotelan & Pariwisata">Perhotelan & Pariwisata</option>
-                  <option value="Pertanian, Perkebunan & Perikanan">Pertanian, Perkebunan & Perikanan</option>
-                  <option value="Teknologi & Digital">Teknologi & Digital</option>
-                  <option value="UMKM & Industri Rumah Tangga">UMKM & Industri Rumah Tangga</option>
-
+                  <option value='Energi & Pertambangan'>
+                    Energi & Pertambangan
+                  </option>
+                  <option value='Jasa Profesional'>Jasa Profesional</option>
+                  <option value='Jasa Umum & Lainnya'>
+                    Jasa Umum & Lainnya
+                  </option>
+                  <option value='Kesehatan'>Kesehatan</option>
+                  <option value='Keuangan & Asuransi'>
+                    Keuangan & Asuransi
+                  </option>
+                  <option value='Konstruksi & Properti'>
+                    Konstruksi & Properti
+                  </option>
+                  <option value='Kreatif & Media'>Kreatif & Media</option>
+                  <option value='Manufaktur & Industri'>
+                    Manufaktur & Industri
+                  </option>
+                  <option value='Pemerintahan & BUMN'>
+                    Pemerintahan & BUMN
+                  </option>
+                  <option value='Pendidikan'>Pendidikan</option>
+                  <option value='Perdagangan (Trading)'>
+                    Perdagangan (Trading)
+                  </option>
+                  <option value='Perhotelan & Pariwisata'>
+                    Perhotelan & Pariwisata
+                  </option>
+                  <option value='Pertanian, Perkebunan & Perikanan'>
+                    Pertanian, Perkebunan & Perikanan
+                  </option>
+                  <option value='Teknologi & Digital'>
+                    Teknologi & Digital
+                  </option>
+                  <option value='UMKM & Industri Rumah Tangga'>
+                    UMKM & Industri Rumah Tangga
+                  </option>
                 </select>
               </div>
               <div>
@@ -904,13 +977,13 @@ function InputDatabaseContent() {
                   <option className='text-gray-600' value=''>
                     Pilih Segmentasi
                   </option>
-                  <option value="B2G-R1">B2G-R1</option>
-                  <option value="B2G-R2">B2G-R2</option>
-                  <option value="B2G-R3">B2G-R3</option>
-                  <option value="B2B">B2B</option>
-                  <option value="B2C">B2C</option>
-                  <option value="C2C">C2C</option>
-                  <option value="C2B">C2B</option>
+                  <option value='B2G-R1'>B2G-R1</option>
+                  <option value='B2G-R2'>B2G-R2</option>
+                  <option value='B2G-R3'>B2G-R3</option>
+                  <option value='B2B'>B2B</option>
+                  <option value='B2C'>B2C</option>
+                  <option value='C2C'>C2C</option>
+                  <option value='C2B'>C2B</option>
                 </select>
               </div>
               <div>
@@ -928,7 +1001,10 @@ function InputDatabaseContent() {
                       { value: 'VIDEOTRON', label: 'VIDEOTRON' },
                       { value: 'AIO', label: 'AIO' },
                     ]
-                    if (produkRelevan && !base.find((o) => o.value === produkRelevan)) {
+                    if (
+                      produkRelevan &&
+                      !base.find((o) => o.value === produkRelevan)
+                    ) {
                       base.push({ value: produkRelevan, label: produkRelevan })
                     }
                     return base
@@ -954,7 +1030,10 @@ function InputDatabaseContent() {
                       { value: 'MOBO POWER', label: 'MOBO POWER' },
                       { value: 'Lainnya', label: 'Lainnya' },
                     ]
-                    if (merekTayang && !base.find((o) => o.value === merekTayang)) {
+                    if (
+                      merekTayang &&
+                      !base.find((o) => o.value === merekTayang)
+                    ) {
                       base.push({ value: merekTayang, label: merekTayang })
                     }
                     return base
@@ -975,7 +1054,10 @@ function InputDatabaseContent() {
                       { value: 'YA', label: 'YA' },
                       { value: 'TIDAK', label: 'TIDAK' },
                     ]
-                    if (brandOwner && !base.find((o) => o.value === brandOwner)) {
+                    if (
+                      brandOwner &&
+                      !base.find((o) => o.value === brandOwner)
+                    ) {
                       base.push({ value: brandOwner, label: brandOwner })
                     }
                     return base
@@ -988,11 +1070,14 @@ function InputDatabaseContent() {
                   <label className='text-sm font-semibold text-blue-600'>
                     MEREK LAINNYA
                   </label>
-                  <input
-                    type='text'
+                  <SearchableSelect
                     value={merekLainnya}
-                    onChange={(e) => setMerekLainnya(e.target.value)}
-                    className='mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-blue-200'
+                    onChange={(val: string) => handleMerekChange(val)}
+                    options={listMerek.map((p) => ({
+                      value: p.nama,
+                      label: p.nama,
+                    }))}
+                    className='border-0 bg-white w-full'
                   />
                 </div>
               )}
@@ -1018,10 +1103,16 @@ function InputDatabaseContent() {
                       { value: 'Mbizmarket', label: 'Mbizmarket' },
                       { value: 'SIPLah', label: 'SIPLah' },
                       { value: 'SPSE Pemda', label: 'SPSE Pemda' },
-                      { value: 'Sistem Internal Instansi', label: 'Sistem Internal Instansi' },
+                      {
+                        value: 'Sistem Internal Instansi',
+                        label: 'Sistem Internal Instansi',
+                      },
                       { value: 'Sales Internal', label: 'Sales Internal' },
                     ]
-                    if (sumberData && !base.find((o) => o.value === sumberData)) {
+                    if (
+                      sumberData &&
+                      !base.find((o) => o.value === sumberData)
+                    ) {
                       base.push({ value: sumberData, label: sumberData })
                     }
                     return base
@@ -1042,15 +1133,18 @@ function InputDatabaseContent() {
                       setSalesInternal(value)
                     }}
                     options={[
-                      { value: "", label: "--Pilih Nama Sales--" },
-                      { value: "Arie Muhammad Fajar", label: "Arie Muhammad Fajar" },
-                      { value: "Beffry Rizkana", label: "Beffry Rizkana" },
-                      { value: "Ferrie Ferdinal", label: "Ferrie Ferdinal" },
-                      { value: "Hery Nugraha", label: "Hery Nugraha" },
-                      { value: "Hendri", label: "Hendri" },
-                      { value: "Ema Dwi Jayanti", label: "Ema Dwi Jayanti" },
-                      { value: "Toni Ramdan", label: "Toni Ramdan" },
-                      { value: "Denden Permana", label: "Denden Permana" }
+                      { value: '', label: '--Pilih Nama Sales--' },
+                      {
+                        value: 'Arie Muhammad Fajar',
+                        label: 'Arie Muhammad Fajar',
+                      },
+                      { value: 'Beffry Rizkana', label: 'Beffry Rizkana' },
+                      { value: 'Ferrie Ferdinal', label: 'Ferrie Ferdinal' },
+                      { value: 'Hery Nugraha', label: 'Hery Nugraha' },
+                      { value: 'Hendri', label: 'Hendri' },
+                      { value: 'Ema Dwi Jayanti', label: 'Ema Dwi Jayanti' },
+                      { value: 'Toni Ramdan', label: 'Toni Ramdan' },
+                      { value: 'Denden Permana', label: 'Denden Permana' },
                     ]}
                     placeholder='Ketik nama sales...'
                     className='mt-2 w-full'
@@ -1095,14 +1189,20 @@ function InputDatabaseContent() {
             </div>
           </div>
         </div>
-      </div >
-    </div >
+      </div>
+    </div>
   )
 }
 
 export default function InputDatabasePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-blue-50 grid place-items-center"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className='min-h-screen bg-blue-50 grid place-items-center'>
+          <div className='w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
+        </div>
+      }
+    >
       <InputDatabaseContent />
     </Suspense>
   )
