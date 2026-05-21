@@ -326,39 +326,6 @@ function InputDatabaseContent() {
   const [assigneeOptions, setAssigneeOptions] = useState<TeamMember[]>([])
   const [assignedToUserId, setAssignedToUserId] = useState('')
 
-  const handleGenerate = async () => {
-    // Prefix = 3 huruf pertama nama user, uppercase (misal "Aliya" → "ALY")
-    const namaUser = user?.fullName?.trim() || user?.username?.trim() || ''
-    const prefix = namaUser.substring(0, 4).toUpperCase() || 'XXX'
-
-    const date = new Date()
-    // Format DDMMYY
-    const dmy = date
-      .toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-      })
-      .replace(/\//g, '')
-
-    // Fetch counter berikutnya dari database (0001, 0002, dst.)
-    let counter = '0001'
-    try {
-      const res = await fetch(`/api/input-database?prefix=${prefix}&dmy=${dmy}`)
-      if (res.ok) {
-        const data = await res.json()
-        counter = data.counter || '0001'
-      }
-    } catch {
-      // fallback ke 0001 jika gagal
-    }
-
-    setcodeInput(`${prefix}-${dmy}-${counter}`)
-
-    // Isi juga field PENGINPUT dengan nama user yang sedang login
-    if (namaUser) setRequestor(namaUser)
-  }
-
   const [options, setOptions] = useState<{
     nama: string[]
     jabatan: string[]
@@ -495,7 +462,19 @@ function InputDatabaseContent() {
         user?.fullName?.trim() ||
         user?.username?.trim() ||
         ''
-      const prefixFallback = namaReq.substring(0, 3).toUpperCase() || 'XXX'
+      const makePrefix = (name: string): string => {
+        if (!name) return 'XXX'
+        const consonants = 'bcdfghjklmnpqrstvwxyz'
+        let result = name[0].toUpperCase()
+        for (let i = 1; i < name.length && result.length < 3; i++) {
+          if (consonants.includes(name[i].toLowerCase())) {
+            result += name[i].toUpperCase()
+          }
+        }
+        while (result.length < 3) result += 'X'
+        return result
+      }
+      const prefixFallback = makePrefix(namaReq)
       const date = new Date()
       const dmy = date
         .toLocaleDateString('id-ID', {
